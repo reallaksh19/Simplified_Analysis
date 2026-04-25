@@ -1,0 +1,16 @@
+{
+  "caseId": "pr-loop-001",
+  "expected": {
+    "lines": [
+      {
+        "id": "L2"
+      },
+      {
+        "id": "L1"
+      }
+    ],
+    "governingLine": {
+      "id": "L2"
+    }
+  }
+}
