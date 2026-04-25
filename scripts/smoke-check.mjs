@@ -74,7 +74,7 @@ PIPE
   END-POINT 1800 750 0 100
   MATERIAL A106-B
 `;
-const { parsePcfWithDiagnostics } = await importSource('src/utils/pcfParser.js');
+const { parsePcfWithDiagnostics } = await importSource('src/pcf/pcfParser.js');
 const { pcfToCanonicalGeometry } = await importSource('src/core/geometry/adapters/pcfToCanonicalGeometry.js');
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
