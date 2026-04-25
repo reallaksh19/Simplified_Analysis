@@ -1,0 +1,48 @@
+{
+  "name": "3d2d-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "syntax": "node scripts/syntax-check.mjs",
+    "test": "node scripts/smoke-check.mjs",
+    "check": "npm run syntax && npm run test",
+    "check:build": "npm run build",
+    "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run build",
+    "syntax:strict": "node scripts/syntax-check.mjs --strict"
+  },
+  "dependencies": {
+    "@react-spring/three": "^10.0.3",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@use-gesture/react": "^10.3.1",
+    "eslint-plugin-react": "^7.37.5",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.170.0",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@eslint/js": "^9.39.4",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "babel-jest": "^30.3.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^16.5.0",
+    "playwright": "^1.58.2",
+    "tailwindcss": "^4.2.1",
+    "vite": "^7.3.1",
+    "@babel/parser": "^7.29.0"
+  }
+}

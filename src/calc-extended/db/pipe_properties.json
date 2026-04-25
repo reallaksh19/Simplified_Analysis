@@ -1,0 +1,12 @@
+[
+  { "nominal_size": 2.0, "schedule": "40", "OD": 2.375, "t": 0.154, "Am": 1.074, "I": 0.666 },
+  { "nominal_size": 2.0, "schedule": "80", "OD": 2.375, "t": 0.218, "Am": 1.477, "I": 0.868 },
+  { "nominal_size": 4.0, "schedule": "40", "OD": 4.500, "t": 0.237, "Am": 3.170, "I": 7.230 },
+  { "nominal_size": 4.0, "schedule": "80", "OD": 4.500, "t": 0.337, "Am": 4.410, "I": 9.610 },
+  { "nominal_size": 6.0, "schedule": "40", "OD": 6.625, "t": 0.280, "Am": 5.580, "I": 28.100 },
+  { "nominal_size": 6.0, "schedule": "80", "OD": 6.625, "t": 0.432, "Am": 8.400, "I": 40.500 },
+  { "nominal_size": 8.0, "schedule": "40", "OD": 8.625, "t": 0.322, "Am": 8.400, "I": 72.500 },
+  { "nominal_size": 8.0, "schedule": "80", "OD": 8.625, "t": 0.500, "Am": 12.760, "I": 105.700 },
+  { "nominal_size": 10.0, "schedule": "40", "OD": 10.750, "t": 0.365, "Am": 11.910, "I": 160.800 },
+  { "nominal_size": 10.0, "schedule": "80", "OD": 10.750, "t": 0.500, "Am": 16.100, "I": 212.000 }
+]

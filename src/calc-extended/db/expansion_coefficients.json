@@ -1,0 +1,36 @@
+[
+  {
+    "material": "Carbon Steel",
+    "data": [
+      { "temp_F": 70, "expansion_in_per_100ft": 0.00 },
+      { "temp_F": 100, "expansion_in_per_100ft": 0.23 },
+      { "temp_F": 150, "expansion_in_per_100ft": 0.61 },
+      { "temp_F": 200, "expansion_in_per_100ft": 0.99 },
+      { "temp_F": 250, "expansion_in_per_100ft": 1.40 },
+      { "temp_F": 300, "expansion_in_per_100ft": 1.82 },
+      { "temp_F": 350, "expansion_in_per_100ft": 2.26 },
+      { "temp_F": 400, "expansion_in_per_100ft": 2.70 },
+      { "temp_F": 450, "expansion_in_per_100ft": 3.16 },
+      { "temp_F": 500, "expansion_in_per_100ft": 3.62 },
+      { "temp_F": 600, "expansion_in_per_100ft": 4.60 },
+      { "temp_F": 700, "expansion_in_per_100ft": 5.63 }
+    ]
+  },
+  {
+    "material": "Austenitic Stainless Steel 18 Cr 8 Ni",
+    "data": [
+      { "temp_F": 70, "expansion_in_per_100ft": 0.00 },
+      { "temp_F": 100, "expansion_in_per_100ft": 0.34 },
+      { "temp_F": 150, "expansion_in_per_100ft": 0.90 },
+      { "temp_F": 200, "expansion_in_per_100ft": 1.46 },
+      { "temp_F": 250, "expansion_in_per_100ft": 2.03 },
+      { "temp_F": 300, "expansion_in_per_100ft": 2.61 },
+      { "temp_F": 350, "expansion_in_per_100ft": 3.20 },
+      { "temp_F": 400, "expansion_in_per_100ft": 3.80 },
+      { "temp_F": 450, "expansion_in_per_100ft": 4.41 },
+      { "temp_F": 500, "expansion_in_per_100ft": 5.01 },
+      { "temp_F": 600, "expansion_in_per_100ft": 6.24 },
+      { "temp_F": 700, "expansion_in_per_100ft": 7.50 }
+    ]
+  }
+]

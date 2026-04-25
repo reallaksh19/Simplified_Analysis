@@ -1,0 +1,12 @@
+[
+  { "nominal_size": 2.0, "class": 150, "G_in": 3.625 },
+  { "nominal_size": 2.0, "class": 300, "G_in": 3.625 },
+  { "nominal_size": 4.0, "class": 150, "G_in": 6.1875 },
+  { "nominal_size": 4.0, "class": 300, "G_in": 6.1875 },
+  { "nominal_size": 6.0, "class": 150, "G_in": 8.5 },
+  { "nominal_size": 6.0, "class": 300, "G_in": 8.5 },
+  { "nominal_size": 8.0, "class": 150, "G_in": 10.625 },
+  { "nominal_size": 8.0, "class": 300, "G_in": 10.625 },
+  { "nominal_size": 10.0, "class": 150, "G_in": 12.75 },
+  { "nominal_size": 10.0, "class": 300, "G_in": 12.75 }
+]

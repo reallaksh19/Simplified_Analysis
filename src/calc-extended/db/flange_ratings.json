@@ -1,0 +1,10 @@
+[
+  {
+    "material_group": "Carbon Steel (Group 1.1)",
+    "data": [
+      { "class": 150, "ratings": [ { "temp_F": 100, "psi": 285 }, { "temp_F": 200, "psi": 260 }, { "temp_F": 300, "psi": 230 }, { "temp_F": 400, "psi": 200 }, { "temp_F": 500, "psi": 170 }, { "temp_F": 600, "psi": 140 }, { "temp_F": 700, "psi": 110 } ] },
+      { "class": 300, "ratings": [ { "temp_F": 100, "psi": 740 }, { "temp_F": 200, "psi": 680 }, { "temp_F": 300, "psi": 655 }, { "temp_F": 400, "psi": 635 }, { "temp_F": 500, "psi": 605 }, { "temp_F": 600, "psi": 570 }, { "temp_F": 700, "psi": 530 } ] },
+      { "class": 600, "ratings": [ { "temp_F": 100, "psi": 1480 }, { "temp_F": 200, "psi": 1360 }, { "temp_F": 300, "psi": 1310 }, { "temp_F": 400, "psi": 1265 }, { "temp_F": 500, "psi": 1205 }, { "temp_F": 600, "psi": 1135 }, { "temp_F": 700, "psi": 1065 } ] }
+    ]
+  }
+]
