@@ -49,7 +49,7 @@ if (calcTab.includes('Adv_PR') || calcTab.includes('adv-piperack')) fail('Calc E
 if (!calcTab.includes('Pipe Rack Calc')) fail('Official Pipe Rack tab missing from Calc Extended.');
 
 const topNav = read('src/components/TopNav.jsx');
-// if (!topNav.includes('SPL2 Legacy Benchmark')) fail('TopNav must keep SPL2 labelled as legacy/benchmark.');
+if (!topNav.includes('SPL2 Legacy Benchmark') && !topNav.includes('Benchmarks / Validation')) fail('TopNav must keep SPL2 labelled correctly.');
 
 const piperackStore = read('src/piperack/store/usePipeRackStore.js');
 for (const token of ['PIPE_RACK_STATE_SCHEMA_VERSION', 'exportState', 'importState', 'saveStateToLocalStorage', 'loadStateFromLocalStorage']) {
