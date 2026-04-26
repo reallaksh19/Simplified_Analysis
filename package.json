@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "syntax": "node scripts/syntax-check.mjs",
     "test": "node scripts/smoke-check.mjs",
-    "check": "npm run syntax && npm run test",
+    "check:registry": "node scripts/validate-module-registry.mjs",
+    "check": "npm run syntax && npm run test && npm run check:registry",
     "check:build": "npm run build",
     "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run build",
     "syntax:strict": "node scripts/syntax-check.mjs --strict"

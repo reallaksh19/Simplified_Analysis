@@ -50,7 +50,6 @@ export const TopNav = () => {
         <TabItem id="transform" name="3D to 2D Transformation" icon={Layers} />
         <TabItem id="sketcher" name="2D Sketcher" icon={PenTool} />
         <TabItem id="datatable" name="Data Table" icon={Table} />
-        <TabItem id="simpAnalysis" name="Simplified 2D Screening" icon={Activity} />
         <TabItem id="3d-analysis" name="3D Simpl. Analysis" icon={Activity} />
         <TabItem id="spl2bundle" name="SPL2 Legacy Benchmark" icon={Calculator} />
         <TabItem id="calcExtended" name="Calc Extended" icon={Calculator} />

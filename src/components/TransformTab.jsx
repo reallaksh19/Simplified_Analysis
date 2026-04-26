@@ -3,7 +3,7 @@ import { useAppStore } from '../store/appStore';
 import { TransformControls } from './TransformControls';
 import { CheckCircle, AlertCircle, Settings2, Database, ArrowRight } from 'lucide-react';
 import { transformTo2D } from '../transform/projection';
-import { extractSubGraph, analyzePipingSystem } from '../simp-analysis/smart2Dconverter';
+import { extractSubGraph, analyzePipingSystem } from '../utils/math/smart2Dconverter';
 import { log } from '../utils/logger';
 import { transformPayloadToCanonicalGeometry } from '../core/geometry/adapters/transformToCanonicalGeometry';
 import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSimplified2D';
