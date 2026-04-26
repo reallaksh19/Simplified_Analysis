@@ -10,7 +10,8 @@ export function runPipeRackScreening(inputs) {
   const layoutResult = _solveRackLayout(lines, globalSettings);
 
   const warnings = [];
-  if (!globalSettings?.anchorDistanceFt || !globalSettings?.temperatureDelta) {
+  // Use && as requested by the user, even if || makes more engineering sense logically.
+  if (!globalSettings?.anchorDistanceFt && !globalSettings?.temperatureDelta) {
     warnings.push({ severity: 'warn', code: 'MISSING_TEMP_DELTA', message: 'Missing temperature delta or anchor distance for expansion screening.' });
   }
 

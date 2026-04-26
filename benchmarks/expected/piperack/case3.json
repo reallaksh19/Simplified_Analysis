@@ -3,7 +3,8 @@
   "expected": {
     "warnings": [
       { "code": "MISSING_MATERIAL" },
-      { "code": "MISSING_SIZE" }
+      { "code": "MISSING_SIZE" },
+      { "code": "FORMAL_STRESS_REQUIRED" }
     ],
     "lines": [
       {
