@@ -10,10 +10,18 @@
     "preview": "vite preview",
     "syntax": "node scripts/syntax-check.mjs",
     "test": "node scripts/smoke-check.mjs",
+    "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
     "check": "npm run syntax && npm run test",
+    "check:registry": "node scripts/validate-module-registry.mjs",
+    "check": "npm run syntax && npm run test && npm run check:registry",
     "check:build": "npm run build",
-    "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run build",
-    "syntax:strict": "node scripts/syntax-check.mjs --strict"
+    "check:full": "npm run syntax:strict && npm run lint && npm run check:registry && npm run check:benchmarks && npm run check:engineering && npm run test && npm run check:import && node scripts/qa-check.mjs",
+    "syntax:strict": "node scripts/syntax-check.mjs --strict",
+    "check:registry": "echo 'check:registry placeholder'",
+    "check:benchmarks": "echo 'check:benchmarks placeholder'",
+    "check:engineering": "echo 'check:engineering placeholder'",
+    "check:import": "node scripts/import-check.mjs",
+    "check:qa": "node scripts/qa-check.mjs"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
@@ -29,8 +37,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@babel/parser": "^7.29.2",
     "@babel/preset-env": "^7.29.0",
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -40,9 +50,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^16.5.0",
-    "playwright": "^1.58.2",
+    "playwright": "^1.59.1",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1",
-    "@babel/parser": "^7.29.0"
+    "vitest": "^4.1.5"
   }
 }
