@@ -30,3 +30,4 @@
    - none
 9. Next-agent dependencies
    - Need QA Automation Agent to include the new PCF contract in full test suite and formalize `import-check`
+   - Need Canonical Geometry Agent to supply `validateCanonicalGeometry.js` eventually instead of using `validateGeometry.js`

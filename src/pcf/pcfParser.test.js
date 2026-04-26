@@ -27,6 +27,11 @@ SUPPORT
     expect(result.diagnostics.importConfidenceScore).toBe(100);
     expect(result.geometry.nodes.length).toBeGreaterThan(0);
     expect(result.geometry.segments.length).toBeGreaterThan(0);
+
+    // Round trip test
+    const exportedPcf = exportPcf(result.geometry);
+    expect(typeof exportedPcf).toBe('string');
+    expect(exportedPcf.includes('PIPE')).toBe(true);
   });
 
   it('handles bad/partial PCF gracefully', () => {
