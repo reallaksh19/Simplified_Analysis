@@ -10,10 +10,12 @@
     "preview": "vite preview",
     "syntax": "node scripts/syntax-check.mjs",
     "test": "node scripts/smoke-check.mjs",
+    "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
+    "check": "npm run syntax && npm run test",
     "check:registry": "node scripts/validate-module-registry.mjs",
     "check": "npm run syntax && npm run test && npm run check:registry",
     "check:build": "npm run build",
-    "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run build",
+    "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run check:benchmarks && npm run build",
     "syntax:strict": "node scripts/syntax-check.mjs --strict"
   },
   "dependencies": {
@@ -44,6 +46,7 @@
     "globals": "^16.5.0",
     "playwright": "^1.58.2",
     "tailwindcss": "^4.2.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.5"
   }
 }
