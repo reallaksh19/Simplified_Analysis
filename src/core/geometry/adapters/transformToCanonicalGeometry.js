@@ -1,5 +1,5 @@
 import { CANONICAL_GEOMETRY_SCHEMA_VERSION } from '../geometryTypes.js';
-import { validateGeometry } from '../validateGeometry.js';
+import { validateCanonicalGeometry } from '../validateCanonicalGeometry.js';
 
 const pointKey = (point, tolerance) => [Math.round(Number(point[0] || 0) / tolerance), Math.round(Number(point[1] || 0) / tolerance), 0].join('|');
 
@@ -33,7 +33,7 @@ export function transformPayloadToCanonicalGeometry(payload, options = {}) {
   });
 
   const geometry = { schemaVersion: CANONICAL_GEOMETRY_SCHEMA_VERSION, nodes, segments, source: options.source || payload?.source || 'transform', unit: options.unit || payload?.unit || 'mm', diagnostics, summary: { nodeCount: nodes.length, segmentCount: segments.length, plane: payload?.plane, sourcePayloadName: payload?.name } };
-  const validation = validateGeometry(geometry, { requireKnownUnit: false });
+  const validation = validateCanonicalGeometry(geometry, { requireKnownUnit: false });
   geometry.valid = validation.ok;
   geometry.diagnostics = [...geometry.diagnostics, ...validation.diagnostics];
   geometry.summary = { ...geometry.summary, ...validation.summary };

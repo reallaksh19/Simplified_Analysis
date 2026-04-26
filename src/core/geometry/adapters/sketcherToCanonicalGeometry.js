@@ -1,5 +1,5 @@
 import { CANONICAL_GEOMETRY_SCHEMA_VERSION } from '../geometryTypes.js';
-import { validateGeometry } from '../validateGeometry.js';
+import { validateCanonicalGeometry } from '../validateCanonicalGeometry.js';
 
 const toPos = (node) => (Array.isArray(node?.pos) ? node.pos : [Number(node?.x) || 0, Number(node?.y) || 0, Number(node?.z) || 0]);
 
@@ -12,7 +12,7 @@ export function sketcherToCanonicalGeometry(nodesById = {}, sketchSegments = [],
   const segments = (sketchSegments || []).map((segment, index) => ({ id: segment.id || `SK-S${String(index + 1).padStart(3, '0')}`, startNodeId: segment.startNode || segment.startNodeId, endNodeId: segment.endNode || segment.endNodeId, type: segment.properties?.type || segment.type || 'PIPE', sourceComponentUid: segment.sourceComponentUid || segment.properties?.sourceComponentUid, length: segment.length, diameter: segment.properties?.bore || segment.diameter, material: segment.properties?.material || segment.material, meta: { ...(segment.properties || {}), source: 'sketcher' } }));
 
   const geometry = { schemaVersion: CANONICAL_GEOMETRY_SCHEMA_VERSION, nodes, segments, source: options.source || 'sketcher', unit: options.unit || 'mm', diagnostics: [{ severity: 'info', code: 'SKETCHER_CANONICAL_ADAPTER', message: 'Converted Sketcher graph to canonical geometry.', data: { nodeCount: nodes.length, segmentCount: segments.length } }], summary: { nodeCount: nodes.length, segmentCount: segments.length, plane: options.plane || 'XY' } };
-  const validation = validateGeometry(geometry, { requireKnownUnit: false });
+  const validation = validateCanonicalGeometry(geometry, { requireKnownUnit: false });
   geometry.valid = validation.ok;
   geometry.diagnostics = [...geometry.diagnostics, ...validation.diagnostics];
   geometry.summary = { ...geometry.summary, ...validation.summary };

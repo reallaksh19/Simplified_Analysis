@@ -12,6 +12,8 @@
     "test": "node scripts/smoke-check.mjs",
     "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
     "check": "npm run syntax && npm run test",
+    "check:registry": "node scripts/validate-module-registry.mjs",
+    "check": "npm run syntax && npm run test && npm run check:registry",
     "check:build": "npm run build",
     "check:full": "npm run syntax:strict && npm run lint && npm run test && npm run check:benchmarks && npm run build",
     "syntax:strict": "node scripts/syntax-check.mjs --strict"
@@ -30,7 +32,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
-    "@babel/parser": "^7.29.0",
+    "@babel/parser": "^7.29.2",
     "@babel/preset-env": "^7.29.0",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.2.1",
