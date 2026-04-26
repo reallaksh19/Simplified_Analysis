@@ -1,4 +1,4 @@
-import { validateGeometry } from '../validateGeometry.js';
+import { validateCanonicalGeometry } from '../validateCanonicalGeometry.js';
 
 const UNIT_TO_FEET = Object.freeze({
   mm: 0.003280839895,
@@ -19,7 +19,7 @@ const UNIT_TO_FEET = Object.freeze({
  * @param {{ source?: string }} options
  */
 export function canonicalToExtended(geometry, options = {}) {
-  const validation = validateGeometry(geometry, { requireKnownUnit: true });
+  const validation = validateCanonicalGeometry(geometry, { requireKnownUnit: true });
   const unit = geometry?.unit || 'unknown';
   const factor = UNIT_TO_FEET[String(unit).toLowerCase()] || 1;
   const warnings = [];
