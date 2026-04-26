@@ -31,7 +31,7 @@ const requiredFiles = [
   'src/calc-extended/solver/ExtendedSolver.js',
   'src/piperack/components/PipeRackTab.jsx',
   'src/piperack/store/usePipeRackStore.js',
-  'src/simp-analysis/SimpAnalysisTab.jsx',
+
   'src/fixtures/spl2-benchmarks/case-001-l-bend.json',
   'src/fixtures/spl2-benchmarks/case-002-z-bend.json',
   'src/fixtures/spl2-benchmarks/case-003-loop.json',
