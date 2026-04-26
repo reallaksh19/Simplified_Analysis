@@ -66,7 +66,6 @@ describe('2D Simplified Stress Check Solver', () => {
       const res = run2DSolver(payload);
       expect(res.results.moment.value).toBe(1000 * 50 * 50 / 100);
   });
-});
 
   it('should compute GUIDED_CANTILEVER_THERMAL', () => {
       const payload = {
@@ -82,3 +81,4 @@ describe('2D Simplified Stress Check Solver', () => {
       // F = 12 * 29000000 * 7.23 * 1 / 1000000 = 2516.04
       expect(res.results.force.value).toBeGreaterThan(2500);
   });
+});
