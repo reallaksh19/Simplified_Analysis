@@ -1,121 +1,118 @@
-import { validateGeometry } from './validateGeometry.js';
-import { addError, addWarning, hasErrors, filterBySeverity } from './geometryDiagnostics.js';
-import { normalizeCanonicalGeometry } from './normalizeCanonicalGeometry.js';
-import { DIAGNOSTIC_SEVERITIES, CANONICAL_GEOMETRY_SCHEMA_VERSION, ENTITY_TYPES, SUPPORTED_UNITS } from './geometrySchema.js';
+const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+const addDiagnostic = (diagnostics, severity, code, message, data = {}) => {
+  diagnostics.push({ severity, code, message, data });
+};
 
-export const validateCanonicalGeometry = (geometry, options = {}) => {
+const nodeKey = (node, tolerance) => [
+  Math.round(node.x / tolerance),
+  Math.round(node.y / tolerance),
+  Math.round(node.z / tolerance),
+].join('|');
+
+/**
+ * Validate canonical geometry before solver handoff.
+ * @param {import('./geometryTypes.js').CanonicalGeometry} geometry
+ * @param {{ tolerance?: number, requireKnownUnit?: boolean }} options
+ * @returns {{ ok: boolean, errors: Array<Record<string, unknown>>, warnings: Array<Record<string, unknown>>, diagnostics: Array<Record<string, unknown>>, summary: Record<string, unknown> }}
+ */
+export function validateCanonicalGeometry(geometry, options = {}) {
+  const tolerance = options.tolerance ?? 1e-6;
+  const requireKnownUnit = options.requireKnownUnit ?? false;
   const diagnostics = [];
   const errors = [];
   const warnings = [];
-  const info = [];
-
-  const addDiagToLocal = (targetArr, severity, code, message, data = {}) => {
-    const diag = { severity, code, message, data };
-    targetArr.push(diag);
-    diagnostics.push(diag);
-  };
 
   if (!geometry || typeof geometry !== 'object') {
-     addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_NULL', 'Geometry is null or not an object.');
-     return { ok: false, errors, warnings, info, diagnostics, summary: { nodeCount: 0, segmentCount: 0 } };
+    addDiagnostic(errors, 'error', 'GEOM_NULL', 'Geometry payload is missing or not an object.');
+    return { ok: false, errors, warnings, diagnostics: errors, summary: { nodeCount: 0, segmentCount: 0 } };
   }
 
-  // 1. Schema version check
-  // Although not strictly enforcing missing version to be fatal, it's a good warning
-  if (!geometry.schemaVersion || geometry.schemaVersion !== CANONICAL_GEOMETRY_SCHEMA_VERSION) {
-    addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'GEOM_SCHEMA_VERSION', `Expected schema version ${CANONICAL_GEOMETRY_SCHEMA_VERSION}, got ${geometry.schemaVersion}`);
+  const nodes = Array.isArray(geometry.nodes) ? geometry.nodes : [];
+  const segments = Array.isArray(geometry.segments) ? geometry.segments : [];
+  const nodeIds = new Set();
+  const duplicateCoordinateMap = new Map();
+
+  if (requireKnownUnit && (!geometry.unit || geometry.unit === 'unknown')) {
+    addDiagnostic(errors, 'error', 'GEOM_UNIT_UNKNOWN', 'Geometry unit is unknown; solver execution should be blocked.');
+  } else if (!geometry.unit || geometry.unit === 'unknown') {
+    addDiagnostic(warnings, 'warn', 'GEOM_UNIT_UNKNOWN', 'Geometry unit is unknown; assuming caller will handle unit conversion.');
   }
 
-  // 2. Units check and normalization implicitly handled by normalize
-  const normalizedGeometry = normalizeCanonicalGeometry(geometry);
-  if (!geometry.unit || geometry.unit === 'unknown') {
-    addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_UNIT_MISSING', 'Geometry unit is missing or unknown. It must be specified.');
-  } else if (!SUPPORTED_UNITS.LENGTH.includes(geometry.unit.toLowerCase())) {
-     addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_UNIT_UNSUPPORTED', `Unsupported unit: ${geometry.unit}`);
-  }
+  nodes.forEach((node, index) => {
+    if (!node || typeof node !== 'object') {
+      addDiagnostic(errors, 'error', 'NODE_INVALID', `Node at index ${index} is invalid.`, { index });
+      return;
+    }
 
-  // Delegate core geometry checks to validateGeometry
-  const baseValidation = validateGeometry(normalizedGeometry, { tolerance: options.tolerance, requireKnownUnit: false });
+    if (!node.id) {
+      addDiagnostic(errors, 'error', 'NODE_ID_MISSING', `Node at index ${index} has no id.`, { index });
+    } else if (nodeIds.has(node.id)) {
+      addDiagnostic(errors, 'error', 'NODE_ID_DUPLICATE', `Duplicate node id ${node.id}.`, { id: node.id });
+    } else {
+      nodeIds.add(node.id);
+    }
 
-  // Merge base validation diagnostics
-  baseValidation.errors.forEach(e => addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, e.code, e.message, e.data));
-  baseValidation.warnings.forEach(w => addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, w.code, w.message, w.data));
+    if (!isFiniteNumber(node.x) || !isFiniteNumber(node.y) || !isFiniteNumber(node.z)) {
+      addDiagnostic(errors, 'error', 'NODE_COORD_INVALID', `Node ${node.id || index} has non-numeric coordinates.`, { node });
+      return;
+    }
 
-  // Additional Canonical Checks
-
-  const nodeIds = new Set(normalizedGeometry.nodes.map(n => n.id));
-  const segmentIds = new Set(normalizedGeometry.segments.map(s => s.id));
-
-  // 7. Components reference existing segment or node anchors.
-  if (normalizedGeometry.components) {
-    const componentIds = new Set();
-    normalizedGeometry.components.forEach((comp, idx) => {
-      if (!comp.id) {
-         addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_ID_MISSING', `Component at index ${idx} is missing an ID.`);
-      } else if (componentIds.has(comp.id)) {
-         addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_ID_DUPLICATE', `Duplicate component ID: ${comp.id}`);
-      } else {
-         componentIds.add(comp.id);
-      }
-
-      if (comp.segmentId && !segmentIds.has(comp.segmentId)) {
-        addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_SEGMENT_MISSING', `Component ${comp.id} references missing segment ${comp.segmentId}.`);
-      }
-      if (comp.nodeId && !nodeIds.has(comp.nodeId)) {
-        addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_NODE_MISSING', `Component ${comp.id} references missing node ${comp.nodeId}.`);
-      }
-    });
-  }
-
-  // 8. Supports reference existing nodes or segments.
-  if (normalizedGeometry.supports) {
-     const supportIds = new Set();
-     normalizedGeometry.supports.forEach((supp, idx) => {
-       if (!supp.id) {
-          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_ID_MISSING', `Support at index ${idx} is missing an ID.`);
-       } else if (supportIds.has(supp.id)) {
-          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_ID_DUPLICATE', `Duplicate support ID: ${supp.id}`);
-       } else {
-          supportIds.add(supp.id);
-       }
-
-       if (supp.nodeId && !nodeIds.has(supp.nodeId)) {
-          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_NODE_MISSING', `Support ${supp.id} references missing node ${supp.nodeId}.`);
-       }
-       if (supp.segmentId && !segmentIds.has(supp.segmentId)) {
-          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_SEGMENT_MISSING', `Support ${supp.id} references missing segment ${supp.segmentId}.`);
-       }
-     });
-  }
-
-  // 9. Required calculation fields
-  normalizedGeometry.segments.forEach(seg => {
-     // If it's a pipe, bend, elbow, tee etc
-     if (['PIPE', 'BEND', 'ELBOW', 'TEE', 'VALVE', 'FLANGE'].includes(seg.type)) {
-       if (typeof seg.diameter !== 'number' || isNaN(seg.diameter)) {
-          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_DIAMETER_MISSING', `Segment ${seg.id} is missing diameter or bore.`);
-       }
-       if (typeof seg.thickness !== 'number' || isNaN(seg.thickness)) {
-          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_THICKNESS_MISSING', `Segment ${seg.id} is missing wall thickness.`);
-       }
-       if (!seg.material || typeof seg.material !== 'string') {
-          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_MATERIAL_MISSING', `Segment ${seg.id} is missing material property.`);
-       }
-     }
+    const key = nodeKey(node, tolerance || 1e-6);
+    const existing = duplicateCoordinateMap.get(key);
+    if (existing && existing.id !== node.id) {
+      addDiagnostic(warnings, 'warn', 'NODE_COORD_DUPLICATE', 'Two nodes share the same coordinate bucket.', { first: existing.id, second: node.id, tolerance });
+    } else {
+      duplicateCoordinateMap.set(key, node);
+    }
   });
+
+  const segmentKeys = new Set();
+  segments.forEach((segment, index) => {
+    if (!segment || typeof segment !== 'object') {
+      addDiagnostic(errors, 'error', 'SEGMENT_INVALID', `Segment at index ${index} is invalid.`, { index });
+      return;
+    }
+
+    if (!segment.id) {
+      addDiagnostic(errors, 'error', 'SEGMENT_ID_MISSING', `Segment at index ${index} has no id.`, { index });
+    }
+
+    if (!nodeIds.has(segment.startNodeId)) {
+      addDiagnostic(errors, 'error', 'SEGMENT_START_MISSING', `Segment ${segment.id || index} references missing start node.`, { segment });
+    }
+    if (!nodeIds.has(segment.endNodeId)) {
+      addDiagnostic(errors, 'error', 'SEGMENT_END_MISSING', `Segment ${segment.id || index} references missing end node.`, { segment });
+    }
+    if (segment.startNodeId && segment.startNodeId === segment.endNodeId && segment.type !== 'SUPPORT') {
+      addDiagnostic(errors, 'error', 'SEGMENT_ZERO_TOPOLOGY', `Segment ${segment.id || index} starts and ends on the same node.`, { segment });
+    }
+
+    const undirectedKey = [segment.startNodeId, segment.endNodeId].sort().join('|');
+    if (segmentKeys.has(undirectedKey)) {
+      addDiagnostic(warnings, 'warn', 'SEGMENT_DUPLICATE_PATH', 'Duplicate segment path detected.', { segment });
+    } else {
+      segmentKeys.add(undirectedKey);
+    }
+
+    if (typeof segment.length === 'number' && segment.length <= tolerance && segment.type !== 'SUPPORT') {
+      addDiagnostic(errors, 'error', 'SEGMENT_ZERO_LENGTH', `Segment ${segment.id || index} has zero or near-zero length.`, { length: segment.length, tolerance });
+    }
+  });
+
+  diagnostics.push(...errors, ...warnings);
 
   return {
     ok: errors.length === 0,
     errors,
     warnings,
-    info,
     diagnostics,
-    normalizedGeometry,
     summary: {
-      nodeCount: normalizedGeometry.nodes.length,
-      segmentCount: normalizedGeometry.segments.length,
+      nodeCount: nodes.length,
+      segmentCount: segments.length,
       errorCount: errors.length,
       warningCount: warnings.length,
-    }
+      unit: geometry.unit || 'unknown',
+      source: geometry.source || 'unknown',
+    },
   };
-};
+}

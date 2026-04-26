@@ -12,7 +12,6 @@ const requiredFiles = [
   'src/App.jsx',
   'src/config/version.js',
   'src/core/geometry/geometryTypes.js',
-  'src/core/geometry/validateGeometry.js',
   'src/core/geometry/validateCanonicalGeometry.js',
   'src/core/geometry/adapters/pcfToCanonicalGeometry.js',
   'src/core/geometry/adapters/canonicalToGC3D.js',
@@ -75,7 +74,7 @@ PIPE
   END-POINT 1800 750 0 100
   MATERIAL A106-B
 `;
-const { parsePcfWithDiagnostics } = await importSource('src/utils/pcfParser.js');
+const { parsePcfWithDiagnostics } = await importSource('src/pcf/pcfParser.js');
 const { pcfToCanonicalGeometry } = await importSource('src/core/geometry/adapters/pcfToCanonicalGeometry.js');
 const { validateCanonicalGeometry } = await importSource('src/core/geometry/validateCanonicalGeometry.js');
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
