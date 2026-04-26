@@ -1,4 +1,4 @@
-import { validateGeometry } from '../validateGeometry.js';
+import { validateCanonicalGeometry } from '../validateCanonicalGeometry.js';
 import { getSIFData } from '../../solvers/gc3d/GC3DSIFEngine.js';
 
 const UNIT_TO_INCH = Object.freeze({
@@ -40,7 +40,7 @@ const defaultWallFromDiameter = (odIn) => {
  * @param {{ params?: Record<string, number>, includeSIF?: boolean, defaultOdIn?: number, defaultWtIn?: number }} options
  */
 export function canonicalToGC3D(geometry, options = {}) {
-  const validation = validateGeometry(geometry, { requireKnownUnit: true });
+  const validation = validateCanonicalGeometry(geometry, { requireKnownUnit: true });
   const unit = geometry?.unit || 'unknown';
   const factor = UNIT_TO_INCH[String(unit).toLowerCase()] || 1;
   const diagnostics = [...(geometry?.diagnostics || []), ...validation.diagnostics];

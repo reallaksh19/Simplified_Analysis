@@ -5,14 +5,14 @@ export * from './pcfReader.js';
 import { parsePcfWithDiagnostics } from './pcfParser.js';
 import { pcfToCanonicalGeometry } from '../core/geometry/adapters/pcfToCanonicalGeometry.js';
 import { canonicalToPcfComponents } from '../core/geometry/adapters/canonicalToPcfComponents.js';
-import { validateGeometry } from '../core/geometry/validateGeometry.js';
+import { validateCanonicalGeometry } from '../core/geometry/validateCanonicalGeometry.js';
 import { serializePcf } from './pcfSerializer.js';
 
 export const importPcf = (rawText) => {
   const { components, diagnostics: parseDiagnostics, summary: parseSummary } = parsePcfWithDiagnostics(rawText);
   let geometry = pcfToCanonicalGeometry(components, { source: 'pcf', unit: 'mm' });
 
-  const validation = validateGeometry(geometry);
+  const validation = validateCanonicalGeometry(geometry);
   geometry.diagnostics = [...(geometry.diagnostics || []), ...validation.diagnostics];
   geometry.valid = validation.ok;
 

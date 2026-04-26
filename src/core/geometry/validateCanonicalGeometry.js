@@ -15,7 +15,7 @@ const nodeKey = (node, tolerance) => [
  * @param {{ tolerance?: number, requireKnownUnit?: boolean }} options
  * @returns {{ ok: boolean, errors: Array<Record<string, unknown>>, warnings: Array<Record<string, unknown>>, diagnostics: Array<Record<string, unknown>>, summary: Record<string, unknown> }}
  */
-export function validateGeometry(geometry, options = {}) {
+export function validateCanonicalGeometry(geometry, options = {}) {
   const tolerance = options.tolerance ?? 1e-6;
   const requireKnownUnit = options.requireKnownUnit ?? false;
   const diagnostics = [];

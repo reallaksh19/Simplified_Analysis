@@ -12,7 +12,7 @@ const requiredFiles = [
   'src/App.jsx',
   'src/config/version.js',
   'src/core/geometry/geometryTypes.js',
-  'src/core/geometry/validateGeometry.js',
+  'src/core/geometry/validateCanonicalGeometry.js',
   'src/core/geometry/adapters/pcfToCanonicalGeometry.js',
   'src/core/geometry/adapters/canonicalToGC3D.js',
   'src/core/geometry/adapters/canonicalToExtended.js',
