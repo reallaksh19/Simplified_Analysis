@@ -67,3 +67,18 @@ describe('2D Simplified Stress Check Solver', () => {
       expect(res.results.moment.value).toBe(1000 * 50 * 50 / 100);
   });
 });
+
+  it('should compute GUIDED_CANTILEVER_THERMAL', () => {
+      const payload = {
+        geometry: validGeometry,
+        calculationType: "GUIDED_CANTILEVER_THERMAL",
+        inputs: { deltaX: 1 } // 1 inch thermal expansion
+      };
+      const res = run2DSolver(payload);
+      expect(res.results.force).toBeDefined();
+      expect(res.results.force.unit).toBe("lb");
+      // F = 12 * E * I * deltaX / L^3
+      // I = pi/64 * (4.5^4 - 4.026^4) = 7.23
+      // F = 12 * 29000000 * 7.23 * 1 / 1000000 = 2516.04
+      expect(res.results.force.value).toBeGreaterThan(2500);
+  });
