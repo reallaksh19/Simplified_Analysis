@@ -1,4 +1,4 @@
-import { sectionProperties, thermalDisplacement, gcBasic, gcWithFlexibility, combineStressAtNode, allowableStress, stressCheck } from './GC3DCalcEngine.js';
+import { sectionProperties, thermalDisplacement, gcBasic, gcWithFlexibility, combineStressAtNode, allowableStress, stressCheck } from '../../core/solvers/gc3d/GC3DCalcEngine.js';
 
 const makeLog = (debugLog) => (step, msg) => {
   const sequence = debugLog.length;
@@ -23,14 +23,31 @@ export function solveGC3D(payload) {
   const debugLog = [];
   const formulaTrace = [];
   const warnings = [];
+  const diagnostics = [];
+  const assumptions = [
+    'System behaves as guided cantilevers',
+    'Bending stresses dominate',
+    'Thermal expansion is primary load'
+  ];
   const log = makeLog(debugLog);
 
   log(0, 'Starting deterministic GC3D guided-cantilever analysis.');
 
   if (!nodes || Object.keys(nodes).length < 2 || !Array.isArray(segments) || segments.length === 0) {
     warnings.push('Need >=2 nodes and >=1 segment.');
+    diagnostics.push({ severity: 'FATAL', message: 'Insufficient geometry.'});
     log(1, 'Validation failed: Need >=2 nodes and >=1 segment.');
-    return { legResults: [], nodeResults: [], criticalNode: null, overallResult: 'FAIL', debugLog, formulaTrace, warnings };
+    return {
+        moduleId: "3d-guided-cantilever",
+        engineeringLevel: "SCREENING",
+        inputs: payload,
+        formulas: formulaTrace,
+        assumptions,
+        results: { legResults: [], nodeResults: [], criticalNode: null, overallResult: 'FAIL', debugLog },
+        warnings,
+        diagnostics,
+        visualizationHints: {}
+    };
   }
 
   const E = Number.parseFloat(params?.E_psi);
@@ -42,8 +59,19 @@ export function solveGC3D(payload) {
 
   if ([E, alpha, deltaT, fFactor, Sc, Sh].some((value) => Number.isNaN(value))) {
     warnings.push('Critical GC3D parameters contain NaN.');
+    diagnostics.push({ severity: 'ERROR', message: 'Missing material or temperature properties.'});
     log(1, 'Validation failed: Critical parameters are NaN.');
-    return { legResults: [], nodeResults: [], criticalNode: null, overallResult: 'FAIL', debugLog, formulaTrace, warnings };
+    return {
+        moduleId: "3d-guided-cantilever",
+        engineeringLevel: "SCREENING",
+        inputs: payload,
+        formulas: formulaTrace,
+        assumptions,
+        results: { legResults: [], nodeResults: [], criticalNode: null, overallResult: 'FAIL', debugLog },
+        warnings,
+        diagnostics,
+        visualizationHints: {}
+    };
   }
 
   const SA = allowableStress(fFactor, Sc, Sh);
@@ -115,7 +143,14 @@ export function solveGC3D(payload) {
   let maxRatio = 0;
   let overallResult = 'PASS';
 
+  let hasAnchors = false;
+  let hasSupports = false;
+
   Object.keys(nodes).forEach((nodeId) => {
+    const node = nodes[nodeId];
+    if (node.type === 'anchor') hasAnchors = true;
+    if (node.type === 'support') hasSupports = true;
+
     const connectedLegs = legResults.filter((leg) => {
       const legSeg = segments.find((seg) => seg.id === leg.legId);
       return legSeg && (legSeg.startNode === nodeId || legSeg.endNode === nodeId);
@@ -133,8 +168,28 @@ export function solveGC3D(payload) {
     nodeResults.push({ nodeId, SE_psi: combined, SA_psi: SA, ratio, result });
   });
 
+  if (!hasAnchors) warnings.push('Missing anchor nodes in geometry.');
+  if (!hasSupports) warnings.push('Missing support nodes in geometry.');
+
+  const branchNodes = Object.values(nodes).filter(n => n.type === 'tee');
+  if (branchNodes.length > 0) warnings.push('unsupported branch complexity');
+
+  if (segments.some(seg => ['BEND', 'VALVE', 'FLANGE'].includes(seg.compType))) {
+    warnings.push('out-of-scope geometry');
+  }
+
   formulaTrace.push({ name: 'Node stress combination', expression: 'Snode = sqrt(sum(Sb_i^2))', values: { criticalNode: critical, maxRatio } });
   log(7, `RESULT: ${overallResult}. Critical Node: ${critical} (ratio=${maxRatio.toFixed(3)})`);
 
-  return { legResults, nodeResults, criticalNode: critical, overallResult, debugLog, formulaTrace, warnings };
+  return {
+    moduleId: "3d-guided-cantilever",
+    engineeringLevel: "SCREENING",
+    inputs: payload,
+    formulas: formulaTrace,
+    assumptions,
+    results: { legResults, nodeResults, criticalNode: critical, overallResult, debugLog },
+    warnings,
+    diagnostics,
+    visualizationHints: { criticalNode: critical }
+  };
 }

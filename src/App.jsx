@@ -4,7 +4,6 @@ import { TopNav } from './components/TopNav';
 import { Viewer3DTab } from './components/Viewer3DTab';
 import { DataTableTab } from './components/DataTableTab';
 import { TransformTab } from './components/TransformTab';
-import { SimpAnalysisTab } from './simp-analysis/SimpAnalysisTab';
 import { Spl2BundleTab } from './spl2-bundle';
 import { ConfigTab } from './config/ConfigTab';
 import SketcherTab from './sketcher/SketcherTab';
@@ -27,7 +26,6 @@ function App() {
       {activeTab === 'datatable' && <DataTableTab />}
       {activeTab === 'transform' && <TransformTab />}
       {activeTab === 'sketcher' && <SketcherTab />}
-      {activeTab === 'simpAnalysis' && <SimpAnalysisTab />}
       {activeTab === 'spl2bundle' && <Spl2BundleTab />}
       {activeTab === 'config' && <ConfigTab />}
       {activeTab === '3d-analysis' && <AnalysisTab />}

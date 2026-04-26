@@ -30,7 +30,7 @@ const requiredFiles = [
   'src/calc-extended/solver/ExtendedSolver.js',
   'src/piperack/components/PipeRackTab.jsx',
   'src/piperack/store/usePipeRackStore.js',
-  'src/simp-analysis/SimpAnalysisTab.jsx',
+
   'src/fixtures/spl2-benchmarks/case-001-l-bend.json',
   'src/fixtures/spl2-benchmarks/case-002-z-bend.json',
   'src/fixtures/spl2-benchmarks/case-003-loop.json',
@@ -76,6 +76,7 @@ PIPE
 `;
 const { parsePcfWithDiagnostics } = await importSource('src/pcf/pcfParser.js');
 const { pcfToCanonicalGeometry } = await importSource('src/core/geometry/adapters/pcfToCanonicalGeometry.js');
+const { validateCanonicalGeometry } = await importSource('src/core/geometry/validateCanonicalGeometry.js');
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
 const { canonicalToPipeRack } = await importSource('src/core/geometry/adapters/canonicalToPipeRack.js');
@@ -89,6 +90,9 @@ const parsed = parsePcfWithDiagnostics(samplePcf);
 if (parsed.components.length !== 3) fail(`Expected 3 sample pipes, got ${parsed.components.length}.`);
 const canonical = pcfToCanonicalGeometry(parsed.components, { source: 'phase5-smoke', unit: 'mm' });
 if (!canonical.nodes.length || canonical.segments.length !== 3) fail('PCF to canonical geometry failed.');
+
+const validationResult = validateCanonicalGeometry(canonical);
+if (!validationResult.ok) fail('Canonical geometry validation failed: ' + JSON.stringify(validationResult.errors));
 
 const gc3dInput = canonicalToGC3D(canonical, { params: { deltaT_F: 380, E_psi: 27000000, alpha_in_in_F: 6.72e-6, Sc_psi: 20000, Sh_psi: 19400, f: 1.0 } });
 const resultA = solveGC3D(gc3dInput);
