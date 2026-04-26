@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/config/version.js',
   'src/core/geometry/geometryTypes.js',
   'src/core/geometry/validateGeometry.js',
+  'src/core/geometry/validateCanonicalGeometry.js',
   'src/core/geometry/adapters/pcfToCanonicalGeometry.js',
   'src/core/geometry/adapters/canonicalToGC3D.js',
   'src/core/geometry/adapters/canonicalToExtended.js',
@@ -76,6 +77,7 @@ PIPE
 `;
 const { parsePcfWithDiagnostics } = await importSource('src/utils/pcfParser.js');
 const { pcfToCanonicalGeometry } = await importSource('src/core/geometry/adapters/pcfToCanonicalGeometry.js');
+const { validateCanonicalGeometry } = await importSource('src/core/geometry/validateCanonicalGeometry.js');
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
 const { canonicalToPipeRack } = await importSource('src/core/geometry/adapters/canonicalToPipeRack.js');
@@ -89,6 +91,9 @@ const parsed = parsePcfWithDiagnostics(samplePcf);
 if (parsed.components.length !== 3) fail(`Expected 3 sample pipes, got ${parsed.components.length}.`);
 const canonical = pcfToCanonicalGeometry(parsed.components, { source: 'phase5-smoke', unit: 'mm' });
 if (!canonical.nodes.length || canonical.segments.length !== 3) fail('PCF to canonical geometry failed.');
+
+const validationResult = validateCanonicalGeometry(canonical);
+if (!validationResult.ok) fail('Canonical geometry validation failed: ' + JSON.stringify(validationResult.errors));
 
 const gc3dInput = canonicalToGC3D(canonical, { params: { deltaT_F: 380, E_psi: 27000000, alpha_in_in_F: 6.72e-6, Sc_psi: 20000, Sh_psi: 19400, f: 1.0 } });
 const resultA = solveGC3D(gc3dInput);
