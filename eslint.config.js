@@ -30,7 +30,6 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         ...globals.jest,
-        ...globals.node,
         __BUILD_TIME__: 'readonly',
       },
       parserOptions: {

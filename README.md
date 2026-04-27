@@ -1,39 +1,16 @@
-# Simplified Calc Suite
+# React + Vite
 
-## Engineering Safety Note
-This calculation is a simplified screening/design-aid calculation. It is not a replacement for formal code-compliant pipe stress analysis. None of the modules claim to perform formal code-compliant pipe stress program analysis. Calculation outputs must not contain demo/random values. Every solver must expose formulas, assumptions, units, applicability limits, and warnings.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Workflow Guide
-PCF Import → Geometry → 2D Calc → 3D Calc → PipeRack → Report
+Currently, two official plugins are available:
 
-## Final Module List and Status
-* **Active modules:** Canonical Geometry, PCF import/export, 2D Simplified Stress Check, 3D Guided Cantilever, Pipe Rack & Expansion Loop, Reporting, Benchmark/Validation, Settings/Defaults.
-* **Reference-only modules:** SPL2 Bundle (legacy reference / benchmark only).
-* **Removed modules:** `src/gc3d`, `src/calc-extended/adv-piperack`, old product-surface `src/simp-analysis`, `src/3d-analysis/ExtendedSolver.js`
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Benchmark Status
-PENDING_NUMERIC_EXTRACTION
-Benchmarks have not been run or numeric fixtures are pending.
+## React Compiler
 
-## Build/Test Commands
-```bash
-npm install
-npm run syntax
-npm run test
-npm run check
-npm run syntax:strict
-npm run lint
-npm run build
-npm run check:full
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Final Release Decision
-* **SOURCE COMPLETE:** NO
-* **BUILD VERIFIED:** NO
-* **UI SMOKE VERIFIED:** NO
-* **ENGINEERING BENCHMARK VERIFIED:** NO
+## Expanding the ESLint configuration
 
-## Known Limitations
-* Must not be considered full CAESAR II-like stress analysis.
-* All mathematical output should be considered "Screening," "Design Aid," or "Reference."
-* Must not reintroduce removed modules or use `Math.random()` in calculations.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

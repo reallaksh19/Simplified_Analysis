@@ -1,17 +1,16 @@
 import React from 'react';
 import { useAppStore } from './store/appStore';
 import { TopNav } from './components/TopNav';
+import { Viewer3DTab } from './components/Viewer3DTab';
 import { DataTableTab } from './components/DataTableTab';
+import { TransformTab } from './components/TransformTab';
 import { SimpAnalysisTab } from './simp-analysis/SimpAnalysisTab';
 import { Spl2BundleTab } from './spl2-bundle';
+import { ConfigTab } from './config/ConfigTab';
 import SketcherTab from './sketcher/SketcherTab';
 import { AnalysisTab } from './3d-analysis';
+import CalcExtendedTab from './calc-extended/components/CalcExtendedTab';
 import './App.css';
-
-import { ReportsTab } from './reporting/ReportsTab';
-import { SettingsTab } from './settings/SettingsTab';
-import { DiagnosticsTab } from './components/DiagnosticsTab';
-import PipeRackTab from './piperack/components/PipeRackTab';
 
 function App() {
   const activeTab = useAppStore(state => state.activeTab);
@@ -24,18 +23,16 @@ function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', background: '#0f172a' }}>
       <TopNav />
-
-      {activeTab === 'home' && <Viewer3DTab />}
-      {activeTab === 'pcf' && <DataTableTab />}
+      {activeTab === 'viewer' && <Viewer3DTab />}
+      {activeTab === 'datatable' && <DataTableTab />}
+      {activeTab === 'transform' && <TransformTab />}
       {activeTab === 'sketcher' && <SketcherTab />}
       {activeTab === 'simpAnalysis' && <SimpAnalysisTab />}
+      {activeTab === 'spl2bundle' && <Spl2BundleTab />}
+      {activeTab === 'config' && <ConfigTab />}
       {activeTab === '3d-analysis' && <AnalysisTab />}
-      {activeTab === 'piperack' && <PipeRackTab />}
-      {activeTab === 'reports' && <ReportsTab />}
-      {activeTab === 'benchmarks' && <Spl2BundleTab />}
-      {activeTab === 'settings' && <SettingsTab />}
-      {activeTab === 'diagnostics' && <DiagnosticsTab />}
-</div>
+      {activeTab === 'calcExtended' && <CalcExtendedTab />}
+    </div>
   );
 }
 
