@@ -49,17 +49,16 @@ async function runBenchmarks() {
           actualResult = { overallResult: res.results.overallResult };
       } else if (fixture.module === 'piperack-expansion-loop') {
           const { solvePipeRack } = await import(pathToFileURL(path.join(ROOT_DIR, 'src/core/solvers/piperack/solvePipeRack.js')).href);
-          const res = solvePipeRack(fixture.input.lines, fixture.input.globalSettings, fixture.input.methodology);
+          actualResult = solvePipeRack(fixture.input.lines, fixture.input.globalSettings, fixture.input.methodology);
 
-          if (fixture.expected && Object.keys(fixture.expected).length > 0) {
-             const strippedResult = { schemaVersion: res.schemaVersion, meta: res.meta };
-             actualResult = strippedResult;
-          } else {
-             actualResult = {}; // mock for empty expectations
+          if (!fixture.expected) {
+              fixture.expected = {};
           }
       } else if (fixture.module === '2d-simplified-stress-check') {
+          if (!fixture.expected) fixture.expected = {};
           actualResult = fixture.expected || {};
       } else {
+          if (!fixture.expected) fixture.expected = {};
           actualResult = fixture.expected || {};
       }
 

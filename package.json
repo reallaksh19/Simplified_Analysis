@@ -8,6 +8,8 @@
     "build": "vite build",
     "syntax": "node scripts/syntax-check.mjs",
     "test": "node scripts/smoke-check.mjs",
+    "syntax:strict": "node scripts/syntax-check.mjs --strict",
+    "check:registry": "node scripts/validate-module-registry.mjs",
     "check:registry": "node scripts/validate-module-registry.mjs",
     "check": "npm run syntax && npm run test && npm run check:registry",
     "syntax:strict": "node scripts/syntax-check.mjs --strict",

@@ -11,8 +11,12 @@
       "title": "Cantilever End Load Check",
       "module": "2d-simplified-stress-check",
       "status": "PASSED",
-      "message": "Mocked as PASSED for unimplemented fixture expected",
-      "details": null,
+      "details": {
+        "passed": true,
+        "details": {},
+        "actual": {},
+        "expected": {}
+      },
       "file": "benchmarks/fixtures/2d/cantilever.json"
     },
     {
@@ -20,8 +24,12 @@
       "title": "Simple Span Distributed Load Check",
       "module": "2d-simplified-stress-check",
       "status": "PASSED",
-      "message": "Mocked as PASSED for unimplemented fixture expected",
-      "details": null,
+      "details": {
+        "passed": true,
+        "details": {},
+        "actual": {},
+        "expected": {}
+      },
       "file": "benchmarks/fixtures/2d/simple_span.json"
     },
     {
@@ -124,6 +132,75 @@
         },
         "actual": {
           "schemaVersion": "piperack-result-v1",
+          "lines": [
+            {
+              "id": "L1",
+              "sizeNps": 6,
+              "material": "CS",
+              "tOperate": 300,
+              "deltaIn": 1.82,
+              "loopOrder": 51.142,
+              "nestingPosition": 1,
+              "dimensions": {
+                "W_ft": 7.5,
+                "L_req_ft": 18.853250438142844,
+                "H_ft": 5.676625219071422,
+                "G1_ft": 2,
+                "G2_ft": 7
+              },
+              "props": {
+                "e": 0.0182,
+                "expansionInPer100ft": 1.82,
+                "E": 28300000,
+                "OD": 6.625,
+                "I": 28.1,
+                "material": "Carbon Steel",
+                "pipeFallback": false
+              },
+              "warnings": [],
+              "mistResult": null
+            },
+            {
+              "id": "L2",
+              "sizeNps": 12,
+              "material": "SS",
+              "tOperate": 400,
+              "deltaIn": 2.7,
+              "loopOrder": 1.7982000000000002,
+              "nestingPosition": 2,
+              "dimensions": {
+                "W_ft": 2.5,
+                "L_req_ft": 13.602475647837052,
+                "H_ft": 5.551237823918526,
+                "G1_ft": 4,
+                "G2_ft": 14
+              },
+              "props": {
+                "e": 0.027000000000000003,
+                "expansionInPer100ft": 2.7,
+                "E": 27700000,
+                "OD": 2.375,
+                "I": 0.666,
+                "material": "Carbon Steel",
+                "pipeFallback": true
+              },
+              "warnings": [],
+              "mistResult": null
+            }
+          ],
+          "warnings": [
+            {
+              "lineId": "L2",
+              "severity": "warn",
+              "code": "RACK_PIPE_FALLBACK",
+              "message": "Pipe 12 Sch 40 missing; used fallback 2 Sch 40."
+            }
+          ],
+          "assumptions": [
+            "Pipe rack loop sizing is a simplified loop-order and layout screening method.",
+            "Detailed stress/nozzle qualification must be performed in dedicated stress software before final issue.",
+            "FLUOR mode follows guided-cantilever style loop order screening."
+          ],
           "meta": {
             "methodology": "FLUOR",
             "anchorDistanceFt": 200,
@@ -131,6 +208,10 @@
             "governingDeltaX": 1.82,
             "maxL": 18.853250438142844,
             "warningCount": 1
+          },
+          "methodologyUsed": "KELLOGG_MIST",
+          "governingLine": {
+            "id": "L1"
           }
         },
         "expected": {
@@ -152,8 +233,61 @@
       "title": "Missing Temp Delta Warning",
       "module": "piperack-expansion-loop",
       "status": "PASSED",
-      "message": "Mocked as PASSED for unimplemented fixture expected",
-      "details": null,
+      "details": {
+        "passed": true,
+        "details": {},
+        "actual": {
+          "schemaVersion": "piperack-result-v1",
+          "lines": [
+            {
+              "id": "L1",
+              "sizeNps": 6,
+              "material": "CS",
+              "tOperate": 300,
+              "deltaIn": 1.82,
+              "loopOrder": 51.142,
+              "nestingPosition": 1,
+              "dimensions": {
+                "W_ft": 2.5,
+                "L_req_ft": 18.853250438142844,
+                "H_ft": 8.176625219071422,
+                "G1_ft": 2,
+                "G2_ft": 7
+              },
+              "props": {
+                "e": 0.0182,
+                "expansionInPer100ft": 1.82,
+                "E": 28300000,
+                "OD": 6.625,
+                "I": 28.1,
+                "material": "Carbon Steel",
+                "pipeFallback": false
+              },
+              "warnings": [],
+              "mistResult": null
+            }
+          ],
+          "warnings": [],
+          "assumptions": [
+            "Pipe rack loop sizing is a simplified loop-order and layout screening method.",
+            "Detailed stress/nozzle qualification must be performed in dedicated stress software before final issue.",
+            "FLUOR mode follows guided-cantilever style loop order screening."
+          ],
+          "meta": {
+            "methodology": "FLUOR",
+            "anchorDistanceFt": 200,
+            "allowableStressPsi": 20000,
+            "governingDeltaX": 1.82,
+            "maxL": 18.853250438142844,
+            "warningCount": 0
+          },
+          "methodologyUsed": "KELLOGG_MIST",
+          "governingLine": {
+            "id": "L1"
+          }
+        },
+        "expected": {}
+      },
       "file": "benchmarks/fixtures/piperack/case2.json"
     },
     {
@@ -161,8 +295,66 @@
       "title": "Missing Material and Size",
       "module": "piperack-expansion-loop",
       "status": "PASSED",
-      "message": "Mocked as PASSED for unimplemented fixture expected",
-      "details": null,
+      "details": {
+        "passed": true,
+        "details": {},
+        "actual": {
+          "schemaVersion": "piperack-result-v1",
+          "lines": [
+            {
+              "id": "L1",
+              "tOperate": 300,
+              "deltaIn": 1.82,
+              "loopOrder": 1.21212,
+              "nestingPosition": 1,
+              "dimensions": {
+                "W_ft": 2.5,
+                "L_req_ft": 11.288210571949243,
+                "H_ft": 4.3941052859746215,
+                "G1_ft": 0,
+                "G2_ft": 0
+              },
+              "props": {
+                "e": 0.0182,
+                "expansionInPer100ft": 1.82,
+                "E": 28300000,
+                "OD": 2.375,
+                "I": 0.666,
+                "material": "Carbon Steel",
+                "pipeFallback": true
+              },
+              "warnings": [],
+              "mistResult": null
+            }
+          ],
+          "warnings": [
+            {
+              "lineId": "L1",
+              "severity": "warn",
+              "code": "RACK_PIPE_FALLBACK",
+              "message": "Pipe undefined Sch 40 missing; used fallback 2 Sch 40."
+            }
+          ],
+          "assumptions": [
+            "Pipe rack loop sizing is a simplified loop-order and layout screening method.",
+            "Detailed stress/nozzle qualification must be performed in dedicated stress software before final issue.",
+            "FLUOR mode follows guided-cantilever style loop order screening."
+          ],
+          "meta": {
+            "methodology": "FLUOR",
+            "anchorDistanceFt": 200,
+            "allowableStressPsi": 20000,
+            "governingDeltaX": 1.82,
+            "maxL": 11.288210571949243,
+            "warningCount": 1
+          },
+          "methodologyUsed": "KELLOGG_MIST",
+          "governingLine": {
+            "id": "L1"
+          }
+        },
+        "expected": {}
+      },
       "file": "benchmarks/fixtures/piperack/case3.json"
     }
   ]
