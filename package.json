@@ -14,7 +14,7 @@
     "check:registry": "node scripts/validate-module-registry.mjs",
     "check": "npm run syntax && npm run test && npm run check:registry",
     "check:build": "npm run build",
-    "check:full": "npm run syntax:strict && npm run lint && npm run check:registry && npm run test && npm run check:import && node scripts/qa-check.mjs",
+    "check:full": "npm run syntax:strict && npm run lint && npm run check:registry && npm run check:benchmarks && npm run test && npm run check:import && node scripts/qa-check.mjs",
     "syntax:strict": "node scripts/syntax-check.mjs --strict",
     "check:import": "node scripts/import-check.mjs",
     "check:qa": "node scripts/qa-check.mjs"
