@@ -25,5 +25,16 @@
         "tOperate": 400
       }
     ]
+  },
+  "expected": {
+    "schemaVersion": "piperack-result-v1",
+    "meta": {
+      "methodology": "FLUOR",
+      "anchorDistanceFt": 200,
+      "allowableStressPsi": 20000,
+      "governingDeltaX": 1.82,
+      "maxL": 18.853250438142844,
+      "warningCount": 1
+    }
   }
 }
