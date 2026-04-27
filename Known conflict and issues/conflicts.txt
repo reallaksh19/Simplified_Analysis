@@ -1,0 +1,534 @@
+Blocking:
+The scoping error in src/solvers/2d/index.test.js must be fixed before merging to prevent the test suite from failing. Move the closing }); of the describe block to the very end of the file so that the last it block is inside it.
+
+src/core/geometry/validateCanonicalGeometry.js
+
+<<<<<<< phase6/a08-pcf-interface-11727155955731398687
+const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+const addDiagnostic = (diagnostics, severity, code, message, data = {}) => {
+  diagnostics.push({ severity, code, message, data });
+};
+
+const nodeKey = (node, tolerance) => [
+  Math.round(node.x / tolerance),
+  Math.round(node.y / tolerance),
+  Math.round(node.z / tolerance),
+].join('|');
+
+/**
+ * Validate canonical geometry before solver handoff.
+ * @param {import('./geometryTypes.js').CanonicalGeometry} geometry
+ * @param {{ tolerance?: number, requireKnownUnit?: boolean }} options
+ * @returns {{ ok: boolean, errors: Array<Record<string, unknown>>, warnings: Array<Record<string, unknown>>, diagnostics: Array<Record<string, unknown>>, summary: Record<string, unknown> }}
+ */
+export function validateCanonicalGeometry(geometry, options = {}) {
+  const tolerance = options.tolerance ?? 1e-6;
+  const requireKnownUnit = options.requireKnownUnit ?? false;
+  const diagnostics = [];
+  const errors = [];
+  const warnings = [];
+
+  if (!geometry || typeof geometry !== 'object') {
+    addDiagnostic(errors, 'error', 'GEOM_NULL', 'Geometry payload is missing or not an object.');
+    return { ok: false, errors, warnings, diagnostics: errors, summary: { nodeCount: 0, segmentCount: 0 } };
+  }
+
+  const nodes = Array.isArray(geometry.nodes) ? geometry.nodes : [];
+  const segments = Array.isArray(geometry.segments) ? geometry.segments : [];
+  const nodeIds = new Set();
+  const duplicateCoordinateMap = new Map();
+
+  if (requireKnownUnit && (!geometry.unit || geometry.unit === 'unknown')) {
+    addDiagnostic(errors, 'error', 'GEOM_UNIT_UNKNOWN', 'Geometry unit is unknown; solver execution should be blocked.');
+  } else if (!geometry.unit || geometry.unit === 'unknown') {
+    addDiagnostic(warnings, 'warn', 'GEOM_UNIT_UNKNOWN', 'Geometry unit is unknown; assuming caller will handle unit conversion.');
+  }
+
+  nodes.forEach((node, index) => {
+    if (!node || typeof node !== 'object') {
+      addDiagnostic(errors, 'error', 'NODE_INVALID', `Node at index ${index} is invalid.`, { index });
+      return;
+    }
+
+    if (!node.id) {
+      addDiagnostic(errors, 'error', 'NODE_ID_MISSING', `Node at index ${index} has no id.`, { index });
+    } else if (nodeIds.has(node.id)) {
+      addDiagnostic(errors, 'error', 'NODE_ID_DUPLICATE', `Duplicate node id ${node.id}.`, { id: node.id });
+    } else {
+      nodeIds.add(node.id);
+    }
+
+    if (!isFiniteNumber(node.x) || !isFiniteNumber(node.y) || !isFiniteNumber(node.z)) {
+      addDiagnostic(errors, 'error', 'NODE_COORD_INVALID', `Node ${node.id || index} has non-numeric coordinates.`, { node });
+      return;
+    }
+
+    const key = nodeKey(node, tolerance || 1e-6);
+    const existing = duplicateCoordinateMap.get(key);
+    if (existing && existing.id !== node.id) {
+      addDiagnostic(warnings, 'warn', 'NODE_COORD_DUPLICATE', 'Two nodes share the same coordinate bucket.', { first: existing.id, second: node.id, tolerance });
+    } else {
+      duplicateCoordinateMap.set(key, node);
+    }
+  });
+
+  const segmentKeys = new Set();
+  segments.forEach((segment, index) => {
+    if (!segment || typeof segment !== 'object') {
+      addDiagnostic(errors, 'error', 'SEGMENT_INVALID', `Segment at index ${index} is invalid.`, { index });
+      return;
+    }
+
+    if (!segment.id) {
+      addDiagnostic(errors, 'error', 'SEGMENT_ID_MISSING', `Segment at index ${index} has no id.`, { index });
+    }
+
+    if (!nodeIds.has(segment.startNodeId)) {
+      addDiagnostic(errors, 'error', 'SEGMENT_START_MISSING', `Segment ${segment.id || index} references missing start node.`, { segment });
+    }
+    if (!nodeIds.has(segment.endNodeId)) {
+      addDiagnostic(errors, 'error', 'SEGMENT_END_MISSING', `Segment ${segment.id || index} references missing end node.`, { segment });
+    }
+    if (segment.startNodeId && segment.startNodeId === segment.endNodeId && segment.type !== 'SUPPORT') {
+      addDiagnostic(errors, 'error', 'SEGMENT_ZERO_TOPOLOGY', `Segment ${segment.id || index} starts and ends on the same node.`, { segment });
+    }
+
+    const undirectedKey = [segment.startNodeId, segment.endNodeId].sort().join('|');
+    if (segmentKeys.has(undirectedKey)) {
+      addDiagnostic(warnings, 'warn', 'SEGMENT_DUPLICATE_PATH', 'Duplicate segment path detected.', { segment });
+    } else {
+      segmentKeys.add(undirectedKey);
+    }
+
+    if (typeof segment.length === 'number' && segment.length <= tolerance && segment.type !== 'SUPPORT') {
+      addDiagnostic(errors, 'error', 'SEGMENT_ZERO_LENGTH', `Segment ${segment.id || index} has zero or near-zero length.`, { length: segment.length, tolerance });
+    }
+  });
+
+  diagnostics.push(...errors, ...warnings);
+
+=======
+import { validateGeometry } from './validateGeometry.js';
+import { addError, addWarning, hasErrors, filterBySeverity } from './geometryDiagnostics.js';
+import { normalizeCanonicalGeometry } from './normalizeCanonicalGeometry.js';
+import { DIAGNOSTIC_SEVERITIES, CANONICAL_GEOMETRY_SCHEMA_VERSION, ENTITY_TYPES, SUPPORTED_UNITS } from './geometrySchema.js';
+
+export const validateCanonicalGeometry = (geometry, options = {}) => {
+  const diagnostics = [];
+  const errors = [];
+  const warnings = [];
+  const info = [];
+
+  const addDiagToLocal = (targetArr, severity, code, message, data = {}) => {
+    const diag = { severity, code, message, data };
+    targetArr.push(diag);
+    diagnostics.push(diag);
+  };
+
+  if (!geometry || typeof geometry !== 'object') {
+     addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_NULL', 'Geometry is null or not an object.');
+     return { ok: false, errors, warnings, info, diagnostics, summary: { nodeCount: 0, segmentCount: 0 } };
+  }
+
+  // 1. Schema version check
+  // Although not strictly enforcing missing version to be fatal, it's a good warning
+  if (!geometry.schemaVersion || geometry.schemaVersion !== CANONICAL_GEOMETRY_SCHEMA_VERSION) {
+    addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'GEOM_SCHEMA_VERSION', `Expected schema version ${CANONICAL_GEOMETRY_SCHEMA_VERSION}, got ${geometry.schemaVersion}`);
+  }
+
+  // 2. Units check and normalization implicitly handled by normalize
+  const normalizedGeometry = normalizeCanonicalGeometry(geometry);
+  if (!geometry.unit || geometry.unit === 'unknown') {
+    addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_UNIT_MISSING', 'Geometry unit is missing or unknown. It must be specified.');
+  } else if (!SUPPORTED_UNITS.LENGTH.includes(geometry.unit.toLowerCase())) {
+     addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'GEOM_UNIT_UNSUPPORTED', `Unsupported unit: ${geometry.unit}`);
+  }
+
+  // Delegate core geometry checks to validateGeometry
+  const baseValidation = validateGeometry(normalizedGeometry, { tolerance: options.tolerance, requireKnownUnit: false });
+
+  // Merge base validation diagnostics
+  baseValidation.errors.forEach(e => addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, e.code, e.message, e.data));
+  baseValidation.warnings.forEach(w => addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, w.code, w.message, w.data));
+
+  // Additional Canonical Checks
+
+  const nodeIds = new Set(normalizedGeometry.nodes.map(n => n.id));
+  const segmentIds = new Set(normalizedGeometry.segments.map(s => s.id));
+
+  // 7. Components reference existing segment or node anchors.
+  if (normalizedGeometry.components) {
+    const componentIds = new Set();
+    normalizedGeometry.components.forEach((comp, idx) => {
+      if (!comp.id) {
+         addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_ID_MISSING', `Component at index ${idx} is missing an ID.`);
+      } else if (componentIds.has(comp.id)) {
+         addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_ID_DUPLICATE', `Duplicate component ID: ${comp.id}`);
+      } else {
+         componentIds.add(comp.id);
+      }
+
+      if (comp.segmentId && !segmentIds.has(comp.segmentId)) {
+        addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_SEGMENT_MISSING', `Component ${comp.id} references missing segment ${comp.segmentId}.`);
+      }
+      if (comp.nodeId && !nodeIds.has(comp.nodeId)) {
+        addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'COMPONENT_NODE_MISSING', `Component ${comp.id} references missing node ${comp.nodeId}.`);
+      }
+    });
+  }
+
+  // 8. Supports reference existing nodes or segments.
+  if (normalizedGeometry.supports) {
+     const supportIds = new Set();
+     normalizedGeometry.supports.forEach((supp, idx) => {
+       if (!supp.id) {
+          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_ID_MISSING', `Support at index ${idx} is missing an ID.`);
+       } else if (supportIds.has(supp.id)) {
+          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_ID_DUPLICATE', `Duplicate support ID: ${supp.id}`);
+       } else {
+          supportIds.add(supp.id);
+       }
+
+       if (supp.nodeId && !nodeIds.has(supp.nodeId)) {
+          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_NODE_MISSING', `Support ${supp.id} references missing node ${supp.nodeId}.`);
+       }
+       if (supp.segmentId && !segmentIds.has(supp.segmentId)) {
+          addDiagToLocal(errors, DIAGNOSTIC_SEVERITIES.ERROR, 'SUPPORT_SEGMENT_MISSING', `Support ${supp.id} references missing segment ${supp.segmentId}.`);
+       }
+     });
+  }
+
+  // 9. Required calculation fields
+  normalizedGeometry.segments.forEach(seg => {
+     // If it's a pipe, bend, elbow, tee etc
+     if (['PIPE', 'BEND', 'ELBOW', 'TEE', 'VALVE', 'FLANGE'].includes(seg.type)) {
+       if (typeof seg.diameter !== 'number' || isNaN(seg.diameter)) {
+          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_DIAMETER_MISSING', `Segment ${seg.id} is missing diameter or bore.`);
+       }
+       if (typeof seg.thickness !== 'number' || isNaN(seg.thickness)) {
+          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_THICKNESS_MISSING', `Segment ${seg.id} is missing wall thickness.`);
+       }
+       if (!seg.material || typeof seg.material !== 'string') {
+          addDiagToLocal(warnings, DIAGNOSTIC_SEVERITIES.WARNING, 'SEGMENT_MATERIAL_MISSING', `Segment ${seg.id} is missing material property.`);
+       }
+     }
+  });
+
+>>>>>>> main
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+<<<<<<< phase6/a08-pcf-interface-11727155955731398687
+    diagnostics,
+    summary: {
+      nodeCount: nodes.length,
+      segmentCount: segments.length,
+      errorCount: errors.length,
+      warningCount: warnings.length,
+      unit: geometry.unit || 'unknown',
+      source: geometry.source || 'unknown',
+    },
+  };
+}
+=======
+    info,
+    diagnostics,
+    normalizedGeometry,
+    summary: {
+      nodeCount: normalizedGeometry.nodes.length,
+      segmentCount: normalizedGeometry.segments.length,
+      errorCount: errors.length,
+      warningCount: warnings.length,
+    }
+  };
+};
+>>>>>>> main
+
+
+
+
+
+
+
+
+
+
+
+
+src/App.jsx
+<<<<<<< phase6-engineering-finalization-7187729894486974311
+import { SimpAnalysisTab } from './simp-analysis/SimpAnalysisTab';
+=======
+import { TransformTab } from './components/TransformTab';
+
+
+<<<<<<< phase6-engineering-finalization-7187729894486974311
+      {activeTab === 'simpAnalysis' && <SimpAnalysisTab />}
+=======
+      {activeTab === 'spl2bundle' && <Spl2BundleTab />}
+      {activeTab === 'config' && <ConfigTab />}
+>>>>>>> main
+
+
+src/components/TopNav.jsx
+
+<<<<<<< phase6-engineering-finalization-7187729894486974311
+
+        <TabItem id="home" name="Home / Dashboard" icon={Home} />
+        <TabItem id="pcf" name="PCF Import" icon={Table} />
+        <TabItem id="sketcher" name="Geometry / Sketcher" icon={PenTool} />
+        <TabItem id="simpAnalysis" name="2D Simplified Stress Check" icon={Activity} />
+        <TabItem id="3d-analysis" name="3D Guided Cantilever" icon={Layers} />
+        <TabItem id="piperack" name="Pipe Rack & Expansion Loop" icon={Box} />
+        <TabItem id="reports" name="Reports" icon={FileText} />
+        <TabItem id="benchmarks" name="Benchmarks / Validation" icon={CheckSquare} />
+        <TabItem id="settings" name="Settings / Defaults" icon={Settings} />
+        <TabItem id="diagnostics" name="Debug / Diagnostics" icon={Wrench} />
+</div>
+=======
+        <TabItem id="viewer" name="3D Viewer" icon={Box} />
+        <TabItem id="transform" name="3D to 2D Transformation" icon={Layers} />
+        <TabItem id="sketcher" name="2D Sketcher" icon={PenTool} />
+        <TabItem id="datatable" name="Data Table" icon={Table} />
+        <TabItem id="3d-analysis" name="3D Simpl. Analysis" icon={Activity} />
+        <TabItem id="spl2bundle" name="SPL2 Legacy Benchmark" icon={Calculator} />
+        <TabItem id="calcExtended" name="Calc Extended" icon={Calculator} />
+        <TabItem id="config" name="Config" icon={Settings} />
+      </div>
+>>>>>>> main
+
+
+src/config/moduleRegistry.js
+<<<<<<< phase6-engineering-finalization-7187729894486974311
+export const MODULE_REGISTRY = [
+  { id: 'simp-analysis', displayName: '2D Simplified Stress Check', status: 'ACTIVE', engineeringLevel: 'SCREENING' },
+  { id: '3d-analysis', displayName: '3D Guided Cantilever', status: 'ACTIVE', engineeringLevel: 'SCREENING' },
+  { id: 'piperack', displayName: 'Pipe Rack & Expansion Loop', status: 'ACTIVE', engineeringLevel: 'DESIGN_AID_SCREENING' },
+  { id: 'spl2-bundle', displayName: 'SPL2 Legacy Benchmark', status: 'REFERENCE', engineeringLevel: 'UNKNOWN' }
+=======
+export const MODULE_STATUS = {
+  ACTIVE: 'ACTIVE',
+  REFERENCE: 'REFERENCE',
+  REMOVED: 'REMOVED',
+};
+
+export const ENGINEERING_LEVEL = {
+  SCREENING: 'SCREENING',
+  DESIGN_AID_SCREENING: 'DESIGN_AID_SCREENING',
+  REFERENCE: 'REFERENCE',
+  DATA_INTERFACE: 'DATA_INTERFACE',
+  SYSTEM: 'SYSTEM',
+  UNKNOWN: 'UNKNOWN',
+};
+
+export const MODULE_REGISTRY = [
+  {
+    id: 'core-geometry',
+    displayName: 'Canonical Geometry',
+    path: 'src/core/geometry',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SYSTEM,
+    inputModel: 'Any',
+    outputTypes: ['CanonicalGeometry'],
+    ownerTab: null,
+    benchmarkRequired: true,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'Canonical geometry backbone'
+  },
+  {
+    id: 'pcf-interface',
+    displayName: 'PCF Import/Export',
+    path: 'src/pcf',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.DATA_INTERFACE,
+    inputModel: 'PCF File',
+    outputTypes: ['CanonicalGeometry', 'Diagnostics'],
+    ownerTab: 'PCF Import',
+    benchmarkRequired: true,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'PCF import/export layer data interface'
+  },
+  {
+    id: '2d-simplified-stress-check',
+    displayName: '2D Simplified Stress Check',
+    path: 'src/calc-extended',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SCREENING,
+    inputModel: 'CanonicalGeometry',
+    outputTypes: ['CalculationResult'],
+    ownerTab: '2D Simplified Stress Check',
+    benchmarkRequired: true,
+    reportExport: true,
+    replacementFor: 'simp-analysis-legacy',
+    forbiddenPaths: [],
+    notes: 'Screening module for 2D simplified checks'
+  },
+  {
+    id: '3d-guided-cantilever',
+    displayName: '3D Guided Cantilever',
+    path: 'src/3d-analysis',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SCREENING,
+    inputModel: 'CanonicalGeometry',
+    outputTypes: ['CalculationResult'],
+    ownerTab: '3D Guided Cantilever',
+    benchmarkRequired: true,
+    reportExport: true,
+    replacementFor: 'gc3d',
+    forbiddenPaths: ['src/3d-analysis/ExtendedSolver.js'],
+    notes: 'Screening module for 3D guided cantilever'
+  },
+  {
+    id: 'piperack-expansion-loop',
+    displayName: 'Pipe Rack & Expansion Loop',
+    path: 'src/piperack',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.DESIGN_AID_SCREENING,
+    inputModel: 'CanonicalGeometry',
+    outputTypes: ['CalculationResult', 'LayoutResult'],
+    ownerTab: 'Pipe Rack & Expansion Loop',
+    benchmarkRequired: true,
+    reportExport: true,
+    replacementFor: 'adv-piperack',
+    forbiddenPaths: [],
+    notes: 'Design aid + screening module'
+  },
+  {
+    id: 'reporting',
+    displayName: 'Reporting',
+    path: 'src/reporting',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SYSTEM,
+    inputModel: 'CalculationResult',
+    outputTypes: ['HTML', 'JSON', 'Markdown'],
+    ownerTab: 'Reports',
+    benchmarkRequired: true,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'Engineering report export'
+  },
+  {
+    id: 'benchmark-validation',
+    displayName: 'Benchmark/Validation',
+    path: 'src/benchmarking',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SYSTEM,
+    inputModel: 'BenchmarkFixture',
+    outputTypes: ['BenchmarkReport'],
+    ownerTab: 'Benchmarks / Validation',
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'Numeric QA and regression'
+  },
+  {
+    id: 'settings-defaults',
+    displayName: 'Settings/Defaults',
+    path: 'src/settings',
+    status: MODULE_STATUS.ACTIVE,
+    engineeringLevel: ENGINEERING_LEVEL.SYSTEM,
+    inputModel: null,
+    outputTypes: ['Settings'],
+    ownerTab: 'Settings / Defaults',
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'App configuration'
+  },
+  {
+    id: 'spl2-bundle',
+    displayName: 'SPL2 Bundle',
+    path: 'src/spl2-bundle',
+    status: MODULE_STATUS.REFERENCE,
+    engineeringLevel: ENGINEERING_LEVEL.REFERENCE,
+    inputModel: 'Legacy',
+    outputTypes: ['LegacyResult'],
+    ownerTab: 'Benchmarks / Reference',
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: [],
+    notes: 'Legacy reference / benchmark only'
+  },
+  {
+    id: 'gc3d',
+    displayName: 'GC3D',
+    path: 'src/gc3d',
+    status: MODULE_STATUS.REMOVED,
+    engineeringLevel: ENGINEERING_LEVEL.UNKNOWN,
+    inputModel: null,
+    outputTypes: [],
+    ownerTab: null,
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: '3d-guided-cantilever',
+    forbiddenPaths: ['src/gc3d'],
+    notes: 'Removed duplicate GC3D module'
+  },
+  {
+    id: 'adv-piperack',
+    displayName: 'Advanced Pipe Rack',
+    path: 'src/calc-extended/adv-piperack',
+    status: MODULE_STATUS.REMOVED,
+    engineeringLevel: ENGINEERING_LEVEL.UNKNOWN,
+    inputModel: null,
+    outputTypes: [],
+    ownerTab: null,
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: 'piperack-expansion-loop',
+    forbiddenPaths: ['src/calc-extended/adv-piperack'],
+    notes: 'Removed duplicate adv-piperack module'
+  },
+  {
+    id: 'simp-analysis-legacy',
+    displayName: 'Simp Analysis (Legacy)',
+    path: 'src/simp-analysis',
+    status: MODULE_STATUS.REMOVED,
+    engineeringLevel: ENGINEERING_LEVEL.UNKNOWN,
+    inputModel: null,
+    outputTypes: [],
+    ownerTab: null,
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: '2d-simplified-stress-check',
+    forbiddenPaths: ['src/simp-analysis'],
+    notes: 'Removed old product-surface simp-analysis module'
+  },
+  {
+    id: 'extended-solver',
+    displayName: 'Extended Solver',
+    path: 'src/3d-analysis/ExtendedSolver.js',
+    status: MODULE_STATUS.REMOVED,
+    engineeringLevel: ENGINEERING_LEVEL.UNKNOWN,
+    inputModel: null,
+    outputTypes: [],
+    ownerTab: null,
+    benchmarkRequired: false,
+    reportExport: false,
+    replacementFor: null,
+    forbiddenPaths: ['src/3d-analysis/ExtendedSolver.js'],
+    notes: 'Removed ExtendedSolver.js'
+  }
+>>>>>>> main
+
+
+
+package.json
+
+<<<<<<< phase6/a03-benchmark-framework-12022533081876508686
+    "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
+    "check": "npm run syntax && npm run test",
+=======
+    "check:registry": "node scripts/validate-module-registry.mjs",
+    "check": "npm run syntax && npm run test && npm run check:registry",
+
+---------------------------
