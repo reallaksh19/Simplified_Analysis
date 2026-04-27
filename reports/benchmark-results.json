@@ -1,8 +1,8 @@
 {
   "summary": {
-    "total": 7,
-    "passed": 0,
-    "failed": 7,
+    "total": 6,
+    "passed": 1,
+    "failed": 5,
     "pending": 0
   },
   "cases": [
@@ -28,17 +28,19 @@
       "caseId": "GC-3D-BASIC-1",
       "title": "Basic 3D Guided Cantilever L-Shape",
       "module": "3d-guided-cantilever",
-      "status": "FAILED",
-      "message": "Result outside tolerance",
+      "status": "PASSED",
       "details": {
-        "passed": false,
+        "passed": true,
         "details": {
           "overallResult": {
-            "passed": false,
-            "reason": "Missing key in actual"
+            "passed": true,
+            "actual": "PASS",
+            "expected": "PASS"
           }
         },
-        "actual": {},
+        "actual": {
+          "overallResult": "PASS"
+        },
         "expected": {
           "overallResult": "PASS"
         }
@@ -71,12 +73,6 @@
       "message": "Missing expected result in fixture",
       "details": null,
       "file": "benchmarks/fixtures/piperack/case3.json"
-    },
-    {
-      "status": "FAILED",
-      "message": "Missing expected result in fixture",
-      "details": null,
-      "file": "benchmarks/fixtures/reporting/sample-report.json"
     }
   ]
 }
