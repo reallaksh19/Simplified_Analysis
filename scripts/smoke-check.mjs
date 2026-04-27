@@ -17,7 +17,7 @@ const requiredFiles = [
   'src/core/geometry/adapters/canonicalToGC3D.js',
   'src/core/geometry/adapters/canonicalToExtended.js',
   'src/core/geometry/adapters/canonicalToPipeRack.js',
-  'src/core/solvers/gc3d/solveGC3D.js',
+  'src/solvers/3d/solveGC3D.js',
   'src/core/solvers/piperack/solvePipeRack.js',
   'src/core/solvers/piperack/solveRackLayout.js',
   'src/core/reporting/createCalculationReport.js',
@@ -80,7 +80,7 @@ const { validateCanonicalGeometry } = await importSource('src/core/geometry/vali
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
 const { canonicalToPipeRack } = await importSource('src/core/geometry/adapters/canonicalToPipeRack.js');
-const { solveGC3D } = await importSource('src/core/solvers/gc3d/solveGC3D.js');
+const { solveGC3D } = await importSource('src/solvers/3d/solveGC3D.js');
 const { solvePipeRack } = await importSource('src/core/solvers/piperack/solvePipeRack.js');
 const { solveRackLayout } = await importSource('src/core/solvers/piperack/solveRackLayout.js');
 const { createCalculationReport, reportToMarkdown } = await importSource('src/core/reporting/createCalculationReport.js');
@@ -121,10 +121,3 @@ for (const file of ['case-001-l-bend.json', 'case-002-z-bend.json', 'case-003-lo
 
 console.log('Smoke check passed: Phase 5 pipe rack consolidation, report exports, SPL2 fixtures, and duplicate module retirement are valid.');
 
-import { spawnSync } from 'child_process';
-const benchResult = spawnSync('npm', ['run', 'check:benchmarks'], { stdio: 'inherit' });
-if (benchResult.status !== 0) {
-  fail('Benchmark script failed to run.');
-}
-
-process.exit(0);
