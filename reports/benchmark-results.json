@@ -1,8 +1,8 @@
 {
   "summary": {
-    "total": 6,
-    "passed": 6,
-    "failed": 0,
+    "total": 7,
+    "passed": 0,
+    "failed": 7,
     "pending": 0
   },
   "cases": [
@@ -10,45 +10,35 @@
       "caseId": "2D-CANTILEVER-001",
       "title": "Cantilever End Load Check",
       "module": "2d-simplified-stress-check",
-      "status": "PASSED",
-      "details": {
-        "passed": true,
-        "details": {},
-        "actual": {},
-        "expected": {}
-      },
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
       "file": "benchmarks/fixtures/2d/cantilever.json"
     },
     {
       "caseId": "2D-SIMPLE-SPAN-001",
       "title": "Simple Span Distributed Load Check",
       "module": "2d-simplified-stress-check",
-      "status": "PASSED",
-      "details": {
-        "passed": true,
-        "details": {},
-        "actual": {},
-        "expected": {}
-      },
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
       "file": "benchmarks/fixtures/2d/simple_span.json"
     },
     {
       "caseId": "GC-3D-BASIC-1",
       "title": "Basic 3D Guided Cantilever L-Shape",
       "module": "3d-guided-cantilever",
-      "status": "PASSED",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
       "details": {
-        "passed": true,
+        "passed": false,
         "details": {
           "overallResult": {
-            "passed": true,
-            "actual": "PASS",
-            "expected": "PASS"
+            "passed": false,
+            "reason": "Missing key in actual"
           }
         },
-        "actual": {
-          "overallResult": "PASS"
-        },
+        "actual": {},
         "expected": {
           "overallResult": "PASS"
         }
@@ -59,40 +49,34 @@
       "caseId": "pr-loop-001",
       "title": "Basic Loop Sizing",
       "module": "piperack-expansion-loop",
-      "status": "PASSED",
-      "details": {
-        "passed": true,
-        "details": {},
-        "actual": {},
-        "expected": {}
-      },
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
       "file": "benchmarks/fixtures/piperack/case1.json"
     },
     {
       "caseId": "pr-loop-002",
       "title": "Missing Temp Delta Warning",
       "module": "piperack-expansion-loop",
-      "status": "PASSED",
-      "details": {
-        "passed": true,
-        "details": {},
-        "actual": {},
-        "expected": {}
-      },
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
       "file": "benchmarks/fixtures/piperack/case2.json"
     },
     {
       "caseId": "pr-loop-003",
       "title": "Missing Material and Size",
       "module": "piperack-expansion-loop",
-      "status": "PASSED",
-      "details": {
-        "passed": true,
-        "details": {},
-        "actual": {},
-        "expected": {}
-      },
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
       "file": "benchmarks/fixtures/piperack/case3.json"
+    },
+    {
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/reporting/sample-report.json"
     }
   ]
 }
