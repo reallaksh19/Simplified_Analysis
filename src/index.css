@@ -2,10 +2,9 @@
 @import "tailwindcss" source(none);
 @source "./components";
 @source "./config";
-@source "./simp-analysis";
+@source "./calc-extended";
 @source "./sketcher";
 @source "./3d-analysis";
-@source "./calc-extended";
 @source "./piperack";
 @source "./spl2-bundle";
 
