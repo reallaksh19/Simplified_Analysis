@@ -7,7 +7,7 @@ const buildTime = new Date().toISOString();
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split('/')[1]}/` : '/',
   plugins: [react(), tailwindcss()],
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
