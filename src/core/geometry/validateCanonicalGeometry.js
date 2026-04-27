@@ -99,6 +99,64 @@ export function validateCanonicalGeometry(geometry, options = {}) {
     }
   });
 
+  // 7. Components reference existing segment or node anchors.
+  if (geometry.components) {
+    const componentIds = new Set();
+    geometry.components.forEach((comp, idx) => {
+      if (!comp.id) {
+         addDiagnostic(errors, 'error', 'COMPONENT_ID_MISSING', `Component at index ${idx} is missing an ID.`);
+      } else if (componentIds.has(comp.id)) {
+         addDiagnostic(errors, 'error', 'COMPONENT_ID_DUPLICATE', `Duplicate component ID: ${comp.id}`);
+      } else {
+         componentIds.add(comp.id);
+      }
+
+      if (comp.segmentId && !segmentKeys.has(comp.segmentId)) {
+        addDiagnostic(errors, 'error', 'COMPONENT_SEGMENT_MISSING', `Component ${comp.id} references missing segment ${comp.segmentId}.`);
+      }
+      if (comp.nodeId && !nodeIds.has(comp.nodeId)) {
+        addDiagnostic(errors, 'error', 'COMPONENT_NODE_MISSING', `Component ${comp.id} references missing node ${comp.nodeId}.`);
+      }
+    });
+  }
+
+  // 8. Supports reference existing nodes or segments.
+  if (geometry.supports) {
+     const supportIds = new Set();
+     geometry.supports.forEach((supp, idx) => {
+       if (!supp.id) {
+          addDiagnostic(errors, 'error', 'SUPPORT_ID_MISSING', `Support at index ${idx} is missing an ID.`);
+       } else if (supportIds.has(supp.id)) {
+          addDiagnostic(errors, 'error', 'SUPPORT_ID_DUPLICATE', `Duplicate support ID: ${supp.id}`);
+       } else {
+          supportIds.add(supp.id);
+       }
+
+       if (supp.nodeId && !nodeIds.has(supp.nodeId)) {
+          addDiagnostic(errors, 'error', 'SUPPORT_NODE_MISSING', `Support ${supp.id} references missing node ${supp.nodeId}.`);
+       }
+       if (supp.segmentId && !segmentKeys.has(supp.segmentId)) {
+          addDiagnostic(errors, 'error', 'SUPPORT_SEGMENT_MISSING', `Support ${supp.id} references missing segment ${supp.segmentId}.`);
+       }
+     });
+  }
+
+  // 9. Required calculation fields
+  segments.forEach(seg => {
+     // If it's a pipe, bend, elbow, tee etc
+     if (['PIPE', 'BEND', 'ELBOW', 'TEE', 'VALVE', 'FLANGE'].includes(seg.type)) {
+       if (typeof seg.diameter !== 'number' || isNaN(seg.diameter)) {
+          addDiagnostic(warnings, 'warn', 'SEGMENT_DIAMETER_MISSING', `Segment ${seg.id} is missing diameter or bore.`);
+       }
+       if (typeof seg.thickness !== 'number' || isNaN(seg.thickness)) {
+          addDiagnostic(warnings, 'warn', 'SEGMENT_THICKNESS_MISSING', `Segment ${seg.id} is missing wall thickness.`);
+       }
+       if (!seg.material || typeof seg.material !== 'string') {
+          addDiagnostic(warnings, 'warn', 'SEGMENT_MATERIAL_MISSING', `Segment ${seg.id} is missing material property.`);
+       }
+     }
+  });
+
   diagnostics.push(...errors, ...warnings);
 
   return {
