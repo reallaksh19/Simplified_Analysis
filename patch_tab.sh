@@ -1,3 +1,3 @@
-sed -i '/<<<<<<< Updated upstream/d' src/simp-analysis/Redundant_SimpAnalysisTab.jsx
-sed -i '/=======/d' src/simp-analysis/Redundant_SimpAnalysisTab.jsx
-sed -i '/>>>>>>> Stashed changes/d' src/simp-analysis/Redundant_SimpAnalysisTab.jsx
+# Fix UI warnings to appease the linter without disrupting layout logic
+
+sed -i '/import { getUnitLabel, formatUnit } from '\''..\/utils\/units'\'';/d' src/calc-extended/components/GlobalDebugTab.jsx
