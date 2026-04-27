@@ -121,3 +121,10 @@ for (const file of ['case-001-l-bend.json', 'case-002-z-bend.json', 'case-003-lo
 
 console.log('Smoke check passed: Phase 5 pipe rack consolidation, report exports, SPL2 fixtures, and duplicate module retirement are valid.');
 
+import { spawnSync } from 'child_process';
+const benchResult = spawnSync('npm', ['run', 'check:benchmarks'], { stdio: 'inherit' });
+if (benchResult.status !== 0) {
+  fail('Benchmark script failed to run.');
+}
+
+process.exit(0);

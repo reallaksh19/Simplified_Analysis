@@ -1,4 +1,5 @@
 {
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
   "caseId": "pr-loop-002",
   "title": "Missing Temp Delta Warning",
   "module": "piperack-expansion-loop",

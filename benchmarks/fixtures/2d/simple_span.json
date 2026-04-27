@@ -1,4 +1,5 @@
 {
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
   "caseId": "2D-SIMPLE-SPAN-001",
   "title": "Simple Span Distributed Load Check",
   "module": "2d-simplified-stress-check",

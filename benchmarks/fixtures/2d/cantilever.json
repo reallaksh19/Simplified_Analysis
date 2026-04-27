@@ -1,4 +1,5 @@
 {
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
   "caseId": "2D-CANTILEVER-001",
   "title": "Cantilever End Load Check",
   "module": "2d-simplified-stress-check",

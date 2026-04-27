@@ -1,4 +1,5 @@
 {
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
   "caseId": "pr-loop-001",
   "title": "Basic Loop Sizing",
   "module": "piperack-expansion-loop",

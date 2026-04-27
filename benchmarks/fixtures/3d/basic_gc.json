@@ -28,7 +28,7 @@
   },
   "tolerance": 0.05,
   "source": "INTERNAL",
-  "sourceStatus": "HAND_CALC",
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
   "applicableSolvers": ["3d-guided-cantilever"],
   "tags": ["screening", "guided-cantilever", "3d"]
 }
