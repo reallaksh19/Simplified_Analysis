@@ -1,7 +1,6 @@
 import React from 'react';
 import { useExtendedStore } from '../store/useExtendedStore';
 import { usePipeRackStore } from '../../piperack/store/usePipeRackStore';
-import { getUnitLabel, formatUnit } from '../utils/units';
 import { useAppStore } from '../../store/appStore';
 
 const styles = {
