@@ -56,7 +56,7 @@ const styles = {
   }
 };
 
-export default function CalcExtendedTab() {
+export function CalcExtendedTab() {
   const { activeSubTab, setActiveSubTab, methodology, setMethodology, importFromCanonicalGeometry } = useExtendedStore();
   const activeCanonicalGeometry = useAppStore(state => state.activeCanonicalGeometry);
 

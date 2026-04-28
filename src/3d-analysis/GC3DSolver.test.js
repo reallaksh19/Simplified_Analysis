@@ -36,13 +36,13 @@ describe('GC3DSolver Golden Master Tests (Regression)', () => {
         const result = solveGC3D(payload);
         console.timeEnd('solveGC3D - L-Bend');
 
-        const elbowStress = result.nodeResults.find(n => n.nodeId === 'N2').SE_psi;
+        const elbowStress = result.results.nodeResults.find(n => n.nodeId === 'N2').SE_psi;
 
         // Expected from CAESAR GC Basic output
         const expectedStress = 16637;
         // Tolerance up to hundreds to account for small mathematical derivations across solver configurations.
         expect(elbowStress).toBeCloseTo(expectedStress, -3);
-        expect(result.overallResult).toBe('PASS');
+        expect(result.results.overallResult).toBe('PASS');
     });
 
     it('Loop 2: Z-Bend (No SIF) - 8" Sch40', () => {
@@ -72,8 +72,8 @@ describe('GC3DSolver Golden Master Tests (Regression)', () => {
         console.timeEnd('solveGC3D - Z-Bend');
 
         // N2 is the junction between X and Y
-        const n2Result = result.nodeResults.find(n => n.nodeId === 'N2');
-        const n3Result = result.nodeResults.find(n => n.nodeId === 'N3');
+        const n2Result = result.results.nodeResults.find(n => n.nodeId === 'N2');
+        const n3Result = result.results.nodeResults.find(n => n.nodeId === 'N3');
 
         // Expected combined stress at nodes based on vector resolution
         const expectedStressE1 = 25542;
@@ -121,7 +121,7 @@ describe('GC3DSolver Golden Master Tests (Regression)', () => {
 
         // S2 absorbs X (300) and Z (84) total delta.
         // Node 2 represents the first critical elbow corner
-        const n2Result = result.nodeResults.find(n => n.nodeId === 'N2');
+        const n2Result = result.results.nodeResults.find(n => n.nodeId === 'N2');
 
         // This confirms the math engine successfully resolves all 3D orthogonal components
         // and safely multiplies them by the SIFs and adds flexibility correctly.
