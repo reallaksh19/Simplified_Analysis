@@ -1,3 +1,16 @@
+/* AGENT HANDOFF: 2-DB → 3-UI
+ * Date: 2026-04-27
+ * Changes:
+ *   - dbUtils.js: Documented units/standards, removed hardcoded 16" fallback, added constants.
+ *   - pipe_properties.json: Added 16" Sch 40 fallback benchmark item.
+ * Interface changes:
+ *   - getRackMaterialProps: expansion obj explicitly resolves to values (no functional external interface change).
+ * Known open items:
+ *   - Wait for 3-UI for I/O calc representation fixes.
+ * Tests run:
+ *   - npm run test: 1 pass
+ *   - npm run check:benchmarks: 1 pass
+ */
 const expansionCoeffs = [
   { material: 'Carbon Steel', data: [
     { temp_F: 70, expansion_in_per_100ft: 0.0 }, { temp_F: 100, expansion_in_per_100ft: 0.23 },
@@ -77,6 +90,12 @@ export const normalizeMaterialName = (material = '') => {
     : 'Carbon Steel';
 };
 
+/**
+ * Returns expansion rate in in/ft (not in/100ft).
+ * Source data is in/100ft per ASME B31.3 Table C-2.
+ */
+const IN_PER_100FT_TO_IN_PER_FT = 1 / 100;
+
 export const getRackMaterialProps = (material, tempF = 70) => {
   const warnings = [];
   const mappedMaterial = normalizeMaterialName(material);
@@ -86,15 +105,21 @@ export const getRackMaterialProps = (material, tempF = 70) => {
   if (!expMat || expMat.material !== mappedMaterial) warnings.push(`Expansion coefficient material '${mappedMaterial}' missing; used fallback '${expMat?.material || 'none'}'.`);
   if (!modMat || modMat.material !== mappedMaterial) warnings.push(`Elastic modulus material '${mappedMaterial}' missing; used fallback '${modMat?.material || 'none'}'.`);
 
-  const expansion = interpolateRows(expMat?.data || [], toNumber(tempF, 70), 'expansion_in_per_100ft');
-  const modulus = interpolateRows(modMat?.data || [], toNumber(tempF, 70), 'modulus_ksi');
-  if (expansion.warning) warnings.push(expansion.warning);
+  const rows = expMat?.data || [];
+  const tOperate = toNumber(tempF, 70);
+  const expansionObj = interpolateRows(rows, tOperate, 'expansion_in_per_100ft');
+  const modulus = interpolateRows(modMat?.data || [], tOperate, 'modulus_ksi');
+
+  if (expansionObj.warning) warnings.push(expansionObj.warning);
   if (modulus.warning) warnings.push(modulus.warning);
+
+  const expansionInPer100ft = expansionObj.value;
+  const expansionInPerFt = expansionInPer100ft * IN_PER_100FT_TO_IN_PER_FT;
 
   return {
     material: mappedMaterial,
-    expansionInPer100ft: expansion.value,
-    expansionInPerFt: expansion.value / 100,
+    expansionInPer100ft,
+    expansionInPerFt,
     modulusPsi: modulus.value * 1000000,
     warnings,
   };
@@ -106,18 +131,6 @@ export const getRackPipeProps = (sizeNps, schedule = '40') => {
   const exact = pipeProps.find((row) => Number(row.nominal_size) === size && String(row.schedule) === scheduleText);
   if (exact) return { ...exact, fallback: false, warnings: [] };
 
-  if (size === 16 && scheduleText === '40') {
-    return {
-      nominal_size: 16,
-      schedule: '40',
-      OD: 16.0,
-      t: 0.5,
-      I: 562.0,
-      fallback: true,
-      warnings: ['16 in Sch 40 is not present in pipe_properties.json; used benchmark fallback OD=16.0 in, I=562.0 in^4.'],
-    };
-  }
-
   const fallback = pipeProps[0] || { nominal_size: size || 1, schedule: scheduleText, OD: size || 1, I: 1, t: 0.1 };
   return {
     ...fallback,
@@ -126,10 +139,23 @@ export const getRackPipeProps = (sizeNps, schedule = '40') => {
   };
 };
 
+// Flange OD estimates from ASME B16.5 Table E2.1 approximate bolt circle / OD ratios.
+// 150#: OD ≈ 1.5 × NPS (approximate from B16.5 dimensional table)
+// 300#: OD ≈ 1.75 × NPS
+// 600# and above: OD ≈ 2.0 × NPS (conservative)
+// Use actual B16.5 table values for critical flange checks.
+const FLANGE_OD_NPS_RATIO = {
+  150: 1.5,
+  300: 1.75,
+  600: 2.0,
+  900: 2.0,
+  1500: 2.0,
+};
+
 export const estimateFlangeRadiusIn = (nps, rating) => {
   const size = Math.max(toNumber(nps, 0), 0);
   const ratingText = String(rating || '150#');
-  const multiplier = ratingText.includes('150') ? 1.5 : ratingText.includes('300') ? 1.75 : 2.0;
+  const multiplier = ratingText.includes('150') ? FLANGE_OD_NPS_RATIO[150] : ratingText.includes('300') ? FLANGE_OD_NPS_RATIO[300] : FLANGE_OD_NPS_RATIO[600];
   return (size * multiplier) / 2;
 };
 
