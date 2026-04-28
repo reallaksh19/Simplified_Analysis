@@ -94,6 +94,7 @@ export const DebugTable = () => {
   const segments = useAnalysisStore(s => s.segments);
   const setSelectedNode = useAnalysisStore(s => s.setSelectedNode);
   const unitSystem = useAnalysisStore(s => s.unitSystem);
+  const selectedNodeId = useAnalysisStore(s => s.selectedNodeId);
 
   const getLabel = (base, quantity) => {
       const parts = displayValue(0, quantity, unitSystem, 0).split(' ');
@@ -129,7 +130,7 @@ export const DebugTable = () => {
                 useAnalysisStore.getState().setCameraViewMode('selected');
                 setSelectedNode(nodeId);
               }}
-              selectedNodeId={useAnalysisStore.getState().selectedNodeId}
+              selectedNodeId={selectedNodeId}
               unitSystem={unitSystem}
             />
           ))}

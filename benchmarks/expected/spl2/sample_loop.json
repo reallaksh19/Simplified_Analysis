@@ -13,6 +13,7 @@
   },
   "expected": {
     "L": "PENDING_NUMERIC_EXTRACTION",
-    "Ix": "PENDING_NUMERIC_EXTRACTION"
+    "Ix": "PENDING_NUMERIC_EXTRACTION",
+    "tolerance": 0.005
   }
 }

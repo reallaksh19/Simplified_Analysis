@@ -101,12 +101,12 @@ export const ComponentPanel = () => {
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <Field label="Outside Diameter" value={firstSeg.od_in?.toFixed(3)} unit="in" />
+            <label style={{ fontSize: '12px', color: '#94a3b8' }}>Outside Diameter (in)</label>
             <input type="number" step="0.1" name="od_in" value={firstSeg.od_in || ''} onChange={handleChange} style={inputStyle} />
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <Field label="Wall Thickness" value={firstSeg.wt_in?.toFixed(4)} unit="in" />
+            <label style={{ fontSize: '12px', color: '#94a3b8' }}>Wall Thickness (in)</label>
             <input type="number" step="0.01" name="wt_in" value={firstSeg.wt_in || ''} onChange={handleChange} style={inputStyle} />
           </div>
 
