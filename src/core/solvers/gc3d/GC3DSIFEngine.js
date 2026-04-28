@@ -67,8 +67,15 @@ export function getSIFData(compType, D_o, t_n, includeSIF = true, bendType = 'LR
       const result = unreinforcedTeeSIF(t_n, r2);
       return { ...result, R_e: 0 };
     }
+    case 'VALVE':
+    case 'FLANGE': {
+      const assumptions = [`${compType}: SIF=1.0, k=1.0 assumed. ` +
+        `Per ASME B31.3 App D Table D300, no standard SIF assigned. ` +
+        `Verify vendor data if fatigue is a concern.`];
+      return { h: 0, k: 1.0, i_i: 1.0, i_o: 1.0, R_e: 0, assumptions };
+    }
     default:
-      // PIPE, VALVE, FLANGE, etc. — no SIF amplification
+      // PIPE, etc. — no SIF amplification
       return { h: 0, k: 1.0, i_i: 1.0, i_o: 1.0, R_e: 0 };
   }
 }

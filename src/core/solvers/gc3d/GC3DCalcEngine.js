@@ -102,11 +102,14 @@ export function requiredLegLength(E, D_o, delta, SA, i = 1.0) {
 
 /**
  * @returns {{ ratio, result: 'PASS'|'FAIL'|'MARGINAL' }}
+ * MARGINAL zone 0.95–1.0 flags cases within 5% of allowable — standard
+ * engineering review practice per B31.3 Appendix P commentary.
  */
 export function stressCheck(SE, SA) {
+  const MARGINAL_THRESHOLD = 0.95; // 5% review band, B31.3 App P commentary
   const ratio = SA > 0 ? SE / SA : Infinity;
   let result = 'PASS';
   if (ratio > 1.0) result = 'FAIL';
-  else if (ratio > 0.95) result = 'MARGINAL';
+  else if (ratio > MARGINAL_THRESHOLD) result = 'MARGINAL';
   return { ratio, result };
 }
