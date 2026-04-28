@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppStore } from './store/appStore';
 import { TopNav } from './components/TopNav';
 import { DataTableTab } from './components/DataTableTab';
-import { CalcExtendedTab } from './calc-extended/components/CalcExtendedTab';
+import CalcExtendedTab from './calc-extended/components/CalcExtendedTab';
 import { Viewer3DTab } from './components/Viewer3DTab';
 import { Spl2BundleTab } from './spl2-bundle';
 import SketcherTab from './sketcher/SketcherTab';
