@@ -1,6 +1,16 @@
 import React from 'react';
 import { useAnalysisStore } from './AnalysisStore';
 
+const Field = ({ label, value, unit }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '0.8rem' }}>
+    <span style={{ color: '#94a3b8' }}>{label}</span>
+    <span style={{ color: '#f1f5f9', fontFamily: 'monospace' }}>
+      {value != null ? value : '—'}
+      {unit && <span style={{ color: '#64748b', marginLeft: '4px' }}>{unit}</span>}
+    </span>
+  </div>
+);
+
 export const ComponentPanel = () => {
   const selectedSegmentIds = useAnalysisStore(s => s.selectedSegmentIds);
   const segments = useAnalysisStore(s => s.segments);
@@ -48,8 +58,8 @@ export const ComponentPanel = () => {
              <>
                 <p style={{ marginBottom: '8px' }}>ID: <span style={{ color: '#38bdf8' }}>{firstSeg.id}</span></p>
                 <p style={{ marginBottom: '8px' }}>Type: {firstSeg.compType}</p>
-                <p style={{ marginBottom: '8px' }}>Length: {(firstSeg.length_in || 0).toFixed(2)} in</p>
-                <p style={{ marginBottom: '16px' }}>Axis: {firstSeg.axis}</p>
+                <Field label="Length" value={firstSeg.length_in?.toFixed(1)} unit="in" />
+                <p style={{ marginBottom: '16px', marginTop: '8px' }}>Axis: {firstSeg.axis}</p>
 
                 {/* Editable Deltas */}
                 <div style={{ marginBottom: '16px', background: '#0f172a', padding: '8px', borderRadius: '4px', border: '1px solid #334155' }}>
@@ -91,21 +101,37 @@ export const ComponentPanel = () => {
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>Outside Diameter (in)</label>
+            <Field label="Outside Diameter" value={firstSeg.od_in?.toFixed(3)} unit="in" />
             <input type="number" step="0.1" name="od_in" value={firstSeg.od_in || ''} onChange={handleChange} style={inputStyle} />
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8' }}>Wall Thickness (in)</label>
+            <Field label="Wall Thickness" value={firstSeg.wt_in?.toFixed(4)} unit="in" />
             <input type="number" step="0.01" name="wt_in" value={firstSeg.wt_in || ''} onChange={handleChange} style={inputStyle} />
           </div>
+
+          {(() => {
+            if (firstSeg.od_in && firstSeg.wt_in) {
+              const d_i = firstSeg.od_in - 2 * firstSeg.wt_in;
+              const i = (Math.PI / 64) * (Math.pow(firstSeg.od_in, 4) - Math.pow(d_i, 4));
+              const z = i / (firstSeg.od_in / 2);
+              return (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginTop: '16px', borderTop: '1px solid #334155', paddingTop: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Calculated Properties</div>
+                  <Field label="Moment of Inertia" value={i.toFixed(4)} unit="in⁴" />
+                  <Field label="Section Modulus" value={z.toFixed(4)} unit="in³" />
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {data && selectedSegmentIds.size === 1 && (
             <>
               <div style={{ marginTop: '16px', borderTop: '1px solid #334155', paddingTop: '16px', fontWeight: 'bold', marginBottom: '8px' }}>SIF Data</div>
-              <p style={{ fontSize: '13px', color: '#cbd5e1' }}>Flexibility h: {data.h?.toFixed(3)}</p>
-              <p style={{ fontSize: '13px', color: '#cbd5e1' }}>In-plane SIF (i_i): {data.i_i?.toFixed(3)}</p>
-              <p style={{ fontSize: '13px', color: '#cbd5e1' }}>Flexibility factor k: {data.k?.toFixed(3)}</p>
+              <Field label="Flexibility h" value={data.h?.toFixed(3)} unit="" />
+              <Field label="SIF i_i" value={data.i_i?.toFixed(3)} unit="" />
+              <Field label="Flex. Factor k" value={data.k?.toFixed(3)} unit="" />
             </>
           )}
         </div>

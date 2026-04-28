@@ -1,6 +1,92 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAnalysisStore } from './AnalysisStore';
 import { displayValue } from './GC3DUnitConverter';
+
+const RatioBar = ({ ratio }) => {
+  const pct = Math.min(ratio * 100, 120); // cap display at 120%
+  const color = ratio > 1.0 ? '#ef4444' : ratio > 0.95 ? '#f59e0b' : '#22c55e';
+  return (
+    <div style={{ position: 'relative', height: '6px', background: '#1e293b',
+                  borderRadius: '3px', width: '80px', display: 'inline-block' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${Math.min(pct, 100)}%`, background: color,
+                    borderRadius: '3px', transition: 'width 0.3s' }} />
+      {ratio > 1.0 && (
+        <div style={{ position: 'absolute', left: '100%', top: 0, height: '100%',
+                      width: `${pct - 100}%`, background: '#7f1d1d', borderRadius: '0 3px 3px 0' }} />
+      )}
+    </div>
+  );
+};
+
+const NodeResultRow = ({ result, legResults, segments, onSelect, selectedNodeId, unitSystem }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isSelected = selectedNodeId === result.nodeId;
+
+  const ratioColor = result.ratio > 1.0 ? '#ef4444'      // red — FAIL
+                   : result.ratio > 0.95 ? '#f59e0b'     // amber — MARGINAL
+                   : '#22c55e';                          // green — PASS
+
+  const connectedLegs = legResults.filter(l => {
+      const legSeg = segments.find(s => s.id === l.legId);
+      return legSeg && (legSeg.startNode === result.nodeId || legSeg.endNode === result.nodeId);
+  });
+
+  const maxF = connectedLegs.reduce((max, l) => Math.max(max, l.F_lbf || 0), 0);
+  const maxM = connectedLegs.reduce((max, l) => Math.max(max, l.M_inlbf || 0), 0);
+  const maxL = connectedLegs.reduce((max, l) => Math.max(max, l.L_in || 0), 0);
+
+  return (
+    <>
+      <tr onClick={() => { onSelect(result.nodeId); setExpanded(!expanded); }}
+          style={{ cursor: 'pointer', background: isSelected ? '#1e3a5f' : 'transparent', borderBottom: '1px solid #1e293b' }}
+          onMouseOver={(e) => e.currentTarget.style.background = isSelected ? '#1e3a5f' : '#1e293b'}
+          onMouseOut={(e) => e.currentTarget.style.background = isSelected ? '#1e3a5f' : 'transparent'}>
+        <td style={{ padding: '8px 16px', color: '#38bdf8', fontWeight: 'bold' }}>{result.nodeId}</td>
+        <td style={{ padding: '8px 16px', color: '#cbd5e1' }}>
+            {displayValue(maxL, 'length', unitSystem, 1).split(' ')[0]}
+        </td>
+        <td style={{ padding: '8px 16px', color: '#f59e0b' }}>
+            {displayValue(maxF, 'force', unitSystem, 0).split(' ')[0]}
+        </td>
+        <td style={{ padding: '8px 16px', color: '#f59e0b' }}>
+            {displayValue(maxM, 'moment', unitSystem, 0).split(' ')[0]}
+        </td>
+        <td style={{ padding: '8px 16px', color: ratioColor, fontWeight: 'bold' }}>
+            {displayValue(result.SE_psi, 'stress', unitSystem, 0).split(' ')[0]}
+        </td>
+        <td style={{ padding: '8px 16px' }}>
+            {displayValue(result.SA_psi, 'stress', unitSystem, 0).split(' ')[0]}
+        </td>
+        <td style={{ padding: '8px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: ratioColor, fontWeight: 'bold', width: '45px' }}>
+              {((result.ratio || 0) * 100).toFixed(1)}%
+            </span>
+            <RatioBar ratio={result.ratio || 0} />
+          </div>
+        </td>
+        <td style={{ padding: '8px 16px' }}>
+          <span style={{ color: ratioColor, fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 'bold' }}>
+            {result.result}
+          </span>
+        </td>
+        <td style={{ padding: '8px 16px', color: '#64748b', fontSize: '0.75rem' }}>{expanded ? '▾' : '▸'} per-axis</td>
+      </tr>
+      {expanded && result.perAxisSE && (
+        <tr style={{ background: '#0f1e30' }}>
+          <td colSpan={9} style={{ padding: '8px 16px 8px 32px', fontSize: '0.75rem', color: '#94a3b8' }}>
+            {Object.entries(result.perAxisSE).map(([axis, se]) => (
+              <span key={axis} style={{ marginRight: '1.5rem' }}>
+                SE<sub>{axis}</sub> = {displayValue(se, 'stress', unitSystem, 0)}
+              </span>
+            ))}
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
 
 export const DebugTable = () => {
   const nodeResults = useAnalysisStore(s => s.nodeResults);
@@ -33,55 +119,20 @@ export const DebugTable = () => {
           {nodeResults.length === 0 && (
             <tr><td colSpan={8} style={{ padding: '16px', textAlign: 'center', color: '#475569' }}>Run analysis to generate results.</td></tr>
           )}
-          {nodeResults.map((r, i) => {
-            const isFail = r.result === 'FAIL';
-
-            // Determine max force/moment/length associated with this node to satisfy strict display request
-            const connectedLegs = legResults.filter(l => {
-                const legSeg = segments.find(s => s.id === l.legId);
-                return legSeg && (legSeg.startNode === r.nodeId || legSeg.endNode === r.nodeId);
-            });
-
-            const maxF = connectedLegs.reduce((max, l) => Math.max(max, l.F_lbf || 0), 0);
-            const maxM = connectedLegs.reduce((max, l) => Math.max(max, l.M_inlbf || 0), 0);
-            const maxL = connectedLegs.reduce((max, l) => Math.max(max, l.L_in || 0), 0);
-
-            return (
-              <tr
-                 key={i}
-                 onClick={() => {
-                     useAnalysisStore.getState().setCameraViewMode('selected');
-                     setSelectedNode(r.nodeId);
-                 }}
-                 style={{ borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
-                 onMouseOver={(e) => e.currentTarget.style.background = '#1e293b'}
-                 onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <td style={{ padding: '8px 16px', color: '#38bdf8', fontWeight: 'bold' }}>{r.nodeId}</td>
-                <td style={{ padding: '8px 16px', color: '#cbd5e1' }}>
-                    {displayValue(maxL, 'length', unitSystem, 1).split(' ')[0]}
-                </td>
-                <td style={{ padding: '8px 16px', color: '#f59e0b' }}>
-                    {displayValue(maxF, 'force', unitSystem, 0).split(' ')[0]}
-                </td>
-                <td style={{ padding: '8px 16px', color: '#f59e0b' }}>
-                    {displayValue(maxM, 'moment', unitSystem, 0).split(' ')[0]}
-                </td>
-                <td style={{ padding: '8px 16px', color: isFail ? '#ef4444' : '#f8fafc', fontWeight: 'bold' }}>
-                    {displayValue(r.SE_psi, 'stress', unitSystem, 0).split(' ')[0]}
-                </td>
-                <td style={{ padding: '8px 16px' }}>
-                    {displayValue(r.SA_psi, 'stress', unitSystem, 0).split(' ')[0]}
-                </td>
-                <td style={{ padding: '8px 16px', color: isFail ? '#ef4444' : (r.ratio > 0.7 ? '#eab308' : '#10b981') }}>
-                    {((r.ratio || 0) * 100).toFixed(1)}%
-                </td>
-                <td style={{ padding: '8px 16px', fontWeight: 'bold', color: isFail ? '#ef4444' : '#10b981' }}>
-                    {r.result}
-                </td>
-              </tr>
-            );
-          })}
+          {nodeResults.map((r, i) => (
+            <NodeResultRow
+              key={i}
+              result={r}
+              legResults={legResults}
+              segments={segments}
+              onSelect={(nodeId) => {
+                useAnalysisStore.getState().setCameraViewMode('selected');
+                setSelectedNode(nodeId);
+              }}
+              selectedNodeId={useAnalysisStore.getState().selectedNodeId}
+              unitSystem={unitSystem}
+            />
+          ))}
         </tbody>
       </table>
     </div>

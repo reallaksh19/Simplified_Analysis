@@ -3,6 +3,58 @@ import { useExtendedStore } from '../store/useExtendedStore';
 import { runExtendedSolver } from '../solver/ExtendedSolver'; // Reuse the pure function by mocking an equivalent 3D payload
 import { getUnitLabel, formatUnit, MetricToImperial } from '../utils/units';
 
+const RatioBar = ({ ratio }) => {
+  const pct = Math.min(ratio * 100, 120); // cap display at 120%
+  const color = ratio > 1.0 ? '#ef4444' : ratio > 0.95 ? '#f59e0b' : '#22c55e';
+  return (
+    <div style={{ position: 'relative', height: '6px', background: '#1e293b',
+                  borderRadius: '3px', width: '80px', display: 'inline-block' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${Math.min(pct, 100)}%`, background: color,
+                    borderRadius: '3px', transition: 'width 0.3s' }} />
+      {ratio > 1.0 && (
+        <div style={{ position: 'absolute', left: '100%', top: 0, height: '100%',
+                      width: `${pct - 100}%`, background: '#7f1d1d', borderRadius: '0 3px 3px 0' }} />
+      )}
+    </div>
+  );
+};
+
+const FormulaTracePanel = ({ formulaTrace = [] }) => {
+  const [open, setOpen] = useState(false);
+  if (!formulaTrace.length) return null;
+  return (
+    <div style={{ marginTop: '1rem', border: '1px solid #1e3a5f', borderRadius: '6px' }}>
+      <button onClick={() => setOpen(!open)}
+              style={{ width: '100%', padding: '8px 12px', background: '#0f1a2e',
+                       color: '#94a3b8', textAlign: 'left', fontSize: '0.8rem', cursor: 'pointer', border: 'none' }}>
+        {open ? '▾' : '▸'} Calculation Trace ({formulaTrace.length} steps)
+      </button>
+      {open && (
+        <div style={{ padding: '8px 12px', maxHeight: '400px', overflowY: 'auto' }}>
+          {formulaTrace.map((step, i) => (
+            <div key={i} style={{ marginBottom: '12px', borderBottom: '1px solid #1e293b', paddingBottom: '8px' }}>
+              <div style={{ color: '#60a5fa', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                {step.name}
+              </div>
+              <div style={{ color: '#fbbf24', fontFamily: 'monospace', fontSize: '0.75rem', marginTop: '2px' }}>
+                {step.expression}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: '4px' }}>
+                {Object.entries(step.values || {}).map(([k, v]) => (
+                  <span key={k} style={{ marginRight: '1rem' }}>
+                    {k} = {typeof v === 'object' ? JSON.stringify(v) : (typeof v === 'number' ? v.toFixed(4) : String(v))}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const styles = {
   container: { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#020617', color: '#e2e8f0', overflow: 'hidden' },
   overlay: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexDirection: 'column', gap: 12, fontSize: 14 },
@@ -304,13 +356,17 @@ export default function Bundle2DSolverView() {
                             <td style={{ padding: '12px', borderBottom: '1px solid #1e293b', fontSize: '14px' }}>{formatUnit(unitSystem, 'force', row.force, 0)}</td>
                             <td style={{ padding: '12px', borderBottom: '1px solid #1e293b', fontSize: '14px' }}>{formatUnit(unitSystem, 'pressure', row.stress, 0)}</td>
                             <td style={{ padding: '12px', borderBottom: '1px solid #1e293b', fontSize: '14px' }}>
-                              <span style={styles.statusBadge(row.status === 'PASS')}>{row.status}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <RatioBar ratio={row.ratio || (row.status === 'FAIL' ? 1.5 : 0.5)} />
+                                <span style={styles.statusBadge(row.status === 'PASS')}>{row.status}</span>
+                              </div>
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                  <FormulaTracePanel formulaTrace={results.formulaTrace} />
                 </div>
               )}
            </div>
