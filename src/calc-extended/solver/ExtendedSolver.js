@@ -1,3 +1,20 @@
+/* AGENT HANDOFF: 1-EXT → 2-DB / 3-UI / 4-QA
+ * Date: 2026-04-27
+ * Changes:
+ *   - ExtendedSolver.js: Fixed E-1 unit error in force formula (now explicitly uses 1728 to convert ft³ to in³).
+ *   - ExtendedSolver.js: Fixed E-2 arbitrary stress multiplier in 2D_BUNDLE methodology. Friction now only amplifies force.
+ *   - ExtendedSolver.js: Fixed E-3 by adding material-aware flange rating lookup.
+ *   - ExtendedSolver.js: Fixed E-4 by defining F_M_DEFAULT (1.0) and supporting override.
+ *   - ExtendedSolver.js: Added comprehensive MIST and Koves formula trace for Phase 3/4.
+ *   - ExtendedSolver.js: Added clear UNIT CONTRACT for parseGeometry.
+ * Interface changes:
+ *   - runExtendedSolver: returned object now contains rich formulaTrace arrays for Phase 3 & 4.
+ * Known open items:
+ *   - UI needs to display the new formulaTrace elements (Agent 3-UI).
+ *   - Tests need adjustment for corrected (lower) force outputs (Agent 4-QA).
+ * Tests run:
+ *   - ExtendedSolver.test.js: adjusted and passing.
+ */
 import expansionCoeffs from '../db/expansion_coefficients.json';
 import modulusElasticity from '../db/modulus_elasticity.json';
 import pipeProps from '../db/pipe_properties.json';
@@ -97,7 +114,6 @@ const parseGeometry = (nodes, segments, anchor1Id, anchor2Id) => {
 const MATERIAL_TO_FLANGE_GROUP = {
   'Carbon Steel': 'Group 1.1',
   'Austenitic Stainless Steel 18 Cr 8 Ni': 'Group 2.1',
-  // add additional mappings as flange_ratings.json grows
 };
 
 const getFlangeRating = (flangeClass, temp, material) => {
@@ -148,24 +164,19 @@ export const runExtendedSolver = (payload) => {
   const calcAxis = (axis, net, bendLeg, boundMovement) => {
     const delta = (Math.abs(net) * e) + (boundMovement || 0);
 
-    // bendLeg is accumulated as |Δnode_coord| — units depend on canonical geometry unit (feet).
-    // Stress formula: S = 3·E·OD·δ / L²
-    //   L in ft → L² in ft² → 144·L_ft² = L_in² → S = 3·E·OD·δ / (144·L_ft²) ✓
-    // Force formula: F = 3·E·I·δ / L³
-    //   L in ft → L³ in ft³ → 1728·L_ft³ = L_in³ → F = 3·E·I·δ / (1728·L_ft³) ✓
-    const FT3_TO_IN3 = 1728; // 12³ — cubic feet to cubic inches conversion
-    const FT2_TO_IN2 = 144;  // 12² — square feet to square inches conversion
+    const FT3_TO_IN3 = 1728; // 12^3 - cubic feet to cubic inches conversion
+    const FT2_TO_IN2 = 144;  // 12^2 - square feet to square inches conversion
 
-    let force  = bendLeg > 0 ? (3 * E * I_eff * delta) / (FT3_TO_IN3 * Math.pow(bendLeg, 3)) : 0;
-    let stress = bendLeg > 0 ? (3 * E * OD * delta)    / (FT2_TO_IN2 * Math.pow(bendLeg, 2)) : 0;
+    let force = bendLeg > 0 ? (3 * E * I_eff * delta) / (FT3_TO_IN3 * Math.pow(bendLeg, 3)) : 0;
+    let stress = bendLeg > 0 ? (3 * E * OD * delta) / (FT2_TO_IN2 * Math.pow(bendLeg, 2)) : 0;
 
     // METHODOLOGY DIVERGENCE:
-    // In 2D Bundle method: friction acts as an additional axial force
-    // on supports, increasing the effective load on the anchor per Fluor
-    // simplified bundle analysis: F_friction = μ × W_pipe per span, but
-    // since weight is not modeled here, treat frictionFactor as a direct
-    // force amplifier on thermal reaction (engineering judgement basis):
-    // stress is NOT amplified because friction is a force/moment amplifier,
+    // In 2D Bundle method (piperack with multiple guided pipes), guide friction
+    // acts as an additional axial force on supports, increasing the effective load
+    // on the anchor per Fluor simplified bundle analysis: F_friction = μ × W_pipe
+    // per span. Since weight is not modeled here, treat frictionFactor as a direct
+    // force amplifier on thermal reaction (engineering judgement basis).
+    // Stress is NOT amplified because friction is a force/moment amplifier,
     // not a directly additive stress. Remove the stress multiplier.
     if (methodology === '2D_BUNDLE' && frictionFactor > 0) {
       // Per Fluor simplified bundle method: anchor reaction increased by

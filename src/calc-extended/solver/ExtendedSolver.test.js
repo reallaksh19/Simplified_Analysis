@@ -53,7 +53,9 @@ describe('ExtendedSolver Math Engine', () => {
 
     // Lower I_eff means less stiffness, which means less force exerted on equipment
     const xRes = results.axes.X;
-    expect(xRes.force).toBeLessThan(350); // It will be lower than the solid wall force
+    // With E-1 fix (force formula uses 1728 not 144), force drops by factor of 12.
+    // Previous threshold 350 -> should be < 30.
+    expect(xRes.force).toBeLessThan(30);
   });
 
 });
