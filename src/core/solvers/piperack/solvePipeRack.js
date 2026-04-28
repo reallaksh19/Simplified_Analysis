@@ -47,14 +47,23 @@ export function solvePipeRack(lines = [], globalSettings = {}, methodology = 'FL
   return {
     schemaVersion: 'piperack-result-v1',
     lines: rackResults,
+    formulaTrace: [
+      { name: 'Loop order ranking', expression: 'loopOrder = I × δ (in⁴ × in)',
+        values: { lines: rackResults.map(l => ({ id: l.id, loopOrder: l.loopOrder })) } },
+      { name: 'Required loop leg (all lines)',
+        expression: 'L_req_ft = √(3·E·OD·δ / (144·S_allow))',
+        values: { lines: rackResults.map(l => ({ id: l.id, L_req_ft: l.dimensions.L_req_ft, deltaIn: l.deltaIn })) } },
+    ],
     warnings: [
       ...loopOrderResult.warnings,
       ...rackResults.flatMap((line) => (line.warnings || []).map((message) => ({ lineId: line.id, severity: 'warn', code: 'RACK_APPROXIMATION', message }))),
     ],
     assumptions: [
+      'Anchor distance halved for expansion length per piperack mid-span anchor convention.',
+      'Loop ordering by I×δ: higher stiffness × higher displacement pipes placed on lower tiers.',
+      '2D_BUNDLE methodology applies (1+μ) loop length factor per Fluor E-3.',
       'Pipe rack loop sizing is a simplified loop-order and layout screening method.',
       'Detailed stress/nozzle qualification must be performed in dedicated stress software before final issue.',
-      methodology === '2D_BUNDLE' ? '2D_BUNDLE applies friction multiplier to required leg length.' : 'FLUOR mode follows guided-cantilever style loop order screening.',
     ],
     meta: {
       methodology,

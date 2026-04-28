@@ -101,8 +101,17 @@ export function solveRackLayout(lines = [], globalSettings = {}, structSettings 
           const prevFlgRad = numeric(prev.flgRad_in, 0) * 25.4;
           const physicalGap = prevOd / 2 + prevIns + odMm / 2 + insMm;
           const flangeAllowance = (prev.stagger && line.stagger) ? Math.max(prevFlgRad, flgRadMm) : (prevFlgRad + flgRadMm);
+          // Bowing allowance: Thermal expansion causes pipes to bow outwards between guides.
+          // The exact bowing amount depends on span and stiffness, but a common
+          // screening rule of thumb (e.g. Caesar II / Fluor convention) takes 15%
+          // of axial displacement as bowing offset.
           const bowing = Math.max(numeric(prev.delta_in, 0), numeric(line.delta_in, 0)) * 25.4 * numeric(structSettings.bowingMultiplier, 0.15);
-          const standardGap = Math.max(75, numeric(prev.guide_mm, 50) / 2 + numeric(line.guide_mm, 50) / 2) + 25;
+
+          const MIN_PIPE_GUIDE_CLEARANCE_MM = 75;  // min clear gap between guided pipes, per Fluor piperack std
+          const GUIDE_BRACKET_ALLOWANCE_MM  = 25;  // bracket/clip thickness allowance
+          const standardGap = Math.max(MIN_PIPE_GUIDE_CLEARANCE_MM, numeric(prev.guide_mm, 50) / 2 + numeric(line.guide_mm, 50) / 2)
+                            + GUIDE_BRACKET_ALLOWANCE_MM;
+
           const spacing = physicalGap + flangeAllowance + bowing + standardGap;
           currentX += tierGroup[idx - 1].isFutureSlot ? spacing / 2 : spacing;
           line.spacing_log = `S_pipe = PhysGap(${physicalGap.toFixed(0)}) + FlgAllow(${flangeAllowance.toFixed(0)}) + Bowing(${bowing.toFixed(0)}) + StdGap(${standardGap.toFixed(0)}) = ${spacing.toFixed(0)}mm`;
