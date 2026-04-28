@@ -2,7 +2,8 @@ import React from 'react';
 import { useAppStore } from './store/appStore';
 import { TopNav } from './components/TopNav';
 import { DataTableTab } from './components/DataTableTab';
-import { SimpAnalysisTab } from './simp-analysis/SimpAnalysisTab';
+import { CalcExtendedTab } from './calc-extended/components/CalcExtendedTab';
+import { Viewer3DTab } from './components/Viewer3DTab';
 import { Spl2BundleTab } from './spl2-bundle';
 import SketcherTab from './sketcher/SketcherTab';
 import { AnalysisTab } from './3d-analysis';
@@ -28,7 +29,7 @@ function App() {
       {activeTab === 'home' && <Viewer3DTab />}
       {activeTab === 'pcf' && <DataTableTab />}
       {activeTab === 'sketcher' && <SketcherTab />}
-      {activeTab === 'simpAnalysis' && <SimpAnalysisTab />}
+      {activeTab === 'simpAnalysis' && <CalcExtendedTab />}
       {activeTab === '3d-analysis' && <AnalysisTab />}
       {activeTab === 'piperack' && <PipeRackTab />}
       {activeTab === 'reports' && <ReportsTab />}

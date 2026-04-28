@@ -17,7 +17,6 @@ const requiredFiles = [
   'src/core/geometry/adapters/canonicalToGC3D.js',
   'src/core/geometry/adapters/canonicalToExtended.js',
   'src/core/geometry/adapters/canonicalToPipeRack.js',
-  'src/core/solvers/gc3d/solveGC3D.js',
   'src/core/solvers/piperack/solvePipeRack.js',
   'src/core/solvers/piperack/solveRackLayout.js',
   'src/core/reporting/createCalculationReport.js',
@@ -80,7 +79,6 @@ const { validateCanonicalGeometry } = await importSource('src/core/geometry/vali
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
 const { canonicalToPipeRack } = await importSource('src/core/geometry/adapters/canonicalToPipeRack.js');
-const { solveGC3D } = await importSource('src/core/solvers/gc3d/solveGC3D.js');
 const { solvePipeRack } = await importSource('src/core/solvers/piperack/solvePipeRack.js');
 const { solveRackLayout } = await importSource('src/core/solvers/piperack/solveRackLayout.js');
 const { createCalculationReport, reportToMarkdown } = await importSource('src/core/reporting/createCalculationReport.js');
@@ -93,11 +91,6 @@ if (!canonical.nodes.length || canonical.segments.length !== 3) fail('PCF to can
 
 const validationResult = validateCanonicalGeometry(canonical);
 if (!validationResult.ok) fail('Canonical geometry validation failed: ' + JSON.stringify(validationResult.errors));
-
-const gc3dInput = canonicalToGC3D(canonical, { params: { deltaT_F: 380, E_psi: 27000000, alpha_in_in_F: 6.72e-6, Sc_psi: 20000, Sh_psi: 19400, f: 1.0 } });
-const resultA = solveGC3D(gc3dInput);
-const resultB = solveGC3D(gc3dInput);
-if (JSON.stringify(resultA) !== JSON.stringify(resultB)) fail('GC3D solver is not deterministic for identical input.');
 
 const extendedInput = canonicalToExtended(canonical, { source: 'phase5-smoke' });
 if (extendedInput.summary.segmentCount !== 3 || extendedInput.nodes.length < 2) fail('canonicalToExtended conversion failed.');

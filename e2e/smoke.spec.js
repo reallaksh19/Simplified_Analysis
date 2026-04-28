@@ -8,13 +8,13 @@ test.describe('E2E Smoke Tests', () => {
         // Basic verification
         await expect(page).toHaveTitle(/Simplified Analysis/i);
 
-        // Wait for body content to load
-        await page.waitForSelector('body');
+        // Wait for app content to load
+        await page.waitForSelector('#root', { state: 'attached' });
 
         // Note: Full e2e test workflow (PCF -> Geometry -> 2D -> 3D -> PipeRack -> Reports -> Benchmarks)
         // will be implemented once UI agents finalize element labels and component ids.
         // For now, we assert the app is alive and the title is updated properly.
-        const bodyText = await page.textContent('body');
+        const bodyText = await page.textContent('#root');
         expect(bodyText).not.toBeNull();
     });
 });
