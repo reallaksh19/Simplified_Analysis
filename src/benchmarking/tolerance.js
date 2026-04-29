@@ -101,3 +101,14 @@ export function validateBenchmarkResult(fixture, actualResult) {
     details: comparison
   };
 }
+
+// Engineering benchmark tolerance tiers:
+// TIGHT (0.5%): exact algebraic cases where round-trip should be lossless
+// STANDARD (2%): floating-point interpolation + rounding, expected precision for screening calcs
+// LOOSE (5%): cases with known simplifying assumptions (e.g. Rule of Rigidity filter)
+export const TOLERANCE = {
+  TIGHT:    0.005, // exact algebra — e.g. section properties, thermal displacement
+  STANDARD: 0.02,  // interpolated DB values, combined stresses
+  LOOSE:    0.05,  // geometry filtering, methodology divergence
+};
+export const DEFAULT_TOLERANCE = 0.02;

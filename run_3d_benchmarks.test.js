@@ -1,3 +1,13 @@
+/**
+ * BENCHMARK UPDATE LOG:
+ * 2026-04-27 — Agent 1-GC3D fixed double SRSS combination (G-1).
+ *   Expected SE values updated. New values verified by hand calculation.
+ *   Previous values archived in benchmarks/expected/3d/archive-pre-srss-fix/.
+ * 2026-04-27 — Agent 1-EXT fixed force formula unit (E-1, ×1728 not ×144).
+ *   Force expected values updated. Stress values unchanged.
+ */
+import { test } from 'vitest';
+
 import { runExtendedSolver } from './src/calc-extended/solver/ExtendedSolver.js';
 
 test('BM 3D-A: Complex Rigidity', () => {

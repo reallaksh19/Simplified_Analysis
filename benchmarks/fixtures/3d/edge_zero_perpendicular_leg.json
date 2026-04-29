@@ -1,0 +1,30 @@
+{
+  "caseId": "GC-3D-EDGE-1",
+  "title": "Straight pipe run between two anchors",
+  "module": "3d-guided-cantilever",
+  "engineeringLevel": "SCREENING",
+  "description": "Straight pipe run between two anchors — no perpendicular legs. SE must be zero.",
+  "input": {
+    "nodes": {
+      "A": { "pos": [0, 0, 0], "type": "anchor" },
+      "B": { "pos": [2400, 0, 0], "type": "anchor" }
+    },
+    "segments": [
+      { "id": "S1", "startNode": "A", "endNode": "B",
+        "length_in": 2400, "od_in": 6.625, "wt_in": 0.280,
+        "axis": "X", "compType": "PIPE" }
+    ],
+    "params": { "deltaT_F": 300, "E_psi": 29500000, "alpha_in_in_F": 0.0000065,
+                "Sc_psi": 20000, "Sh_psi": 18000, "f": 1.0 },
+    "includeSIF": false
+  },
+  "expected": {
+    "overallResult": "PASS",
+    "criticalRatio": 0.0
+  },
+  "tolerance": 0.005,
+  "source": "INTERNAL",
+  "sourceStatus": "HAND_CALC",
+  "applicableSolvers": ["3d-guided-cantilever"],
+  "tags": ["screening", "guided-cantilever", "3d", "edge-case"]
+}
