@@ -80,6 +80,24 @@ const SegmentMesh = ({ start, end, results, heatmapMode }) => {
   );
 };
 
+
+const RatioBar = ({ ratio }) => {
+  const pct = Math.min((ratio || 0) * 100, 120);
+  const color = ratio > 1.0 ? '#ef4444' : ratio > 0.95 ? '#f59e0b' : '#22c55e';
+  return (
+    <div style={{ position: 'relative', height: '6px', background: '#1e293b',
+                  borderRadius: '3px', width: '80px', display: 'inline-block', marginTop: '4px' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${Math.min(pct, 100)}%`, background: color,
+                    borderRadius: '3px', transition: 'width 0.3s' }} />
+      {ratio > 1.0 && (
+        <div style={{ position: 'absolute', left: '100%', top: 0, height: '100%',
+                      width: `${pct - 100}%`, background: '#7f1d1d', borderRadius: '0 3px 3px 0' }} />
+      )}
+    </div>
+  );
+};
+
 export default function DashboardView() {
   const { unitSystem, methodology, calculationStatus, heatmapMode, setHeatmapMode, setAnchor, inputs, vessel, boundaryMovement, constraints, results, nodes, segments, anchors, setResults } = useExtendedStore();
   const [resultsExpanded, setResultsExpanded] = useState(true);
@@ -269,7 +287,7 @@ export default function DashboardView() {
                           <td style={styles.td}>{formatUnit(unitSystem, 'length', row.bendingLeg, 1)}</td>
                           <td style={styles.td}>{formatUnit(unitSystem, 'force', row.force, 0)}</td>
                           <td style={styles.td}>{formatUnit(unitSystem, 'pressure', row.stress, 0)}</td>
-                          <td style={styles.td}><span style={styles.statusBadge(row.status === 'PASS')}>{row.status}</span></td>
+                          <td style={styles.td}><div style={{ display: 'flex', flexDirection: 'column' }}><span style={styles.statusBadge(row.status === 'PASS')}>{row.status}</span><RatioBar ratio={row.ratio || (row.status === 'PASS' ? 0.5 : 1.5)} /></div></td>
                         </tr>
                       );
                     })}

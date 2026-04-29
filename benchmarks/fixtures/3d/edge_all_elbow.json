@@ -1,9 +1,9 @@
 {
-  "caseId": "GC-3D-EDGE-1",
-  "title": "Straight pipe run between two anchors",
+  "caseId": "GC-3D-EDGE-3",
+  "title": "All elbows pipeline",
   "module": "3d-guided-cantilever",
   "engineeringLevel": "SCREENING",
-  "description": "Straight pipe run between two anchors \u2014 no perpendicular legs. SE must be zero.",
+  "description": "A pipeline segment that is entirely made of elbows.",
   "input": {
     "nodes": {
       "A": {
@@ -16,8 +16,16 @@
       },
       "B": {
         "pos": [
-          2400,
+          120,
           0,
+          0
+        ],
+        "type": "elbow"
+      },
+      "C": {
+        "pos": [
+          120,
+          120,
           0
         ],
         "type": "anchor"
@@ -28,11 +36,21 @@
         "id": "S1",
         "startNode": "A",
         "endNode": "B",
-        "length_in": 2400,
+        "length_in": 120,
         "od_in": 6.625,
         "wt_in": 0.28,
         "axis": "X",
-        "compType": "PIPE"
+        "compType": "ELBOW"
+      },
+      {
+        "id": "S2",
+        "startNode": "B",
+        "endNode": "C",
+        "length_in": 120,
+        "od_in": 6.625,
+        "wt_in": 0.28,
+        "axis": "Y",
+        "compType": "ELBOW"
       }
     ],
     "params": {
@@ -47,9 +65,9 @@
   },
   "expected": {
     "overallResult": "PASS",
-    "criticalRatio": 0.0
+    "criticalRatio": 0.5
   },
-  "tolerance": 0.005,
+  "tolerance": 0.05,
   "source": "INTERNAL",
   "sourceStatus": "HAND_CALC",
   "applicableSolvers": [

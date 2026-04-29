@@ -1,9 +1,181 @@
 {
   "summary": {
-    "total": 0,
+    "total": 11,
     "passed": 0,
-    "failed": 0,
+    "failed": 11,
     "pending": 0
   },
-  "cases": []
+  "cases": [
+    {
+      "caseId": "2D-CANTILEVER-001",
+      "title": "Cantilever End Load Check",
+      "module": "2d-simplified-stress-check",
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/2d/cantilever.json"
+    },
+    {
+      "caseId": "2D-SIMPLE-SPAN-001",
+      "title": "Simple Span Distributed Load Check",
+      "module": "2d-simplified-stress-check",
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/2d/simple_span.json"
+    },
+    {
+      "caseId": "GC-3D-BASIC-1",
+      "title": "Basic 3D Guided Cantilever L-Shape",
+      "module": "3d-guided-cantilever",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
+      "details": {
+        "passed": false,
+        "details": {
+          "overallResult": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          }
+        },
+        "actual": {},
+        "expected": {
+          "overallResult": "PASS"
+        }
+      },
+      "file": "benchmarks/fixtures/3d/basic_gc.json"
+    },
+    {
+      "caseId": "GC-3D-EDGE-3",
+      "title": "All elbows pipeline",
+      "module": "3d-guided-cantilever",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
+      "details": {
+        "passed": false,
+        "details": {
+          "overallResult": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          },
+          "criticalRatio": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          }
+        },
+        "actual": {},
+        "expected": {
+          "overallResult": "PASS",
+          "criticalRatio": 0.5
+        }
+      },
+      "file": "benchmarks/fixtures/3d/edge_all_elbow.json"
+    },
+    {
+      "caseId": "GC-3D-EDGE-4",
+      "title": "SIF OFF case",
+      "module": "3d-guided-cantilever",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
+      "details": {
+        "passed": false,
+        "details": {
+          "overallResult": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          }
+        },
+        "actual": {},
+        "expected": {
+          "overallResult": "PASS"
+        }
+      },
+      "file": "benchmarks/fixtures/3d/edge_sif_off.json"
+    },
+    {
+      "caseId": "GC-3D-EDGE-2",
+      "title": "Single anchor pipeline",
+      "module": "3d-guided-cantilever",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
+      "details": {
+        "passed": false,
+        "details": {
+          "overallResult": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          },
+          "criticalRatio": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          }
+        },
+        "actual": {},
+        "expected": {
+          "overallResult": "PASS",
+          "criticalRatio": 0
+        }
+      },
+      "file": "benchmarks/fixtures/3d/edge_single_anchor.json"
+    },
+    {
+      "caseId": "GC-3D-EDGE-1",
+      "title": "Straight pipe run between two anchors",
+      "module": "3d-guided-cantilever",
+      "status": "FAILED",
+      "message": "Result outside tolerance",
+      "details": {
+        "passed": false,
+        "details": {
+          "overallResult": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          },
+          "criticalRatio": {
+            "passed": false,
+            "reason": "Missing key in actual"
+          }
+        },
+        "actual": {},
+        "expected": {
+          "overallResult": "PASS",
+          "criticalRatio": 0
+        }
+      },
+      "file": "benchmarks/fixtures/3d/edge_zero_perpendicular_leg.json"
+    },
+    {
+      "caseId": "pr-loop-001",
+      "title": "Basic Loop Sizing",
+      "module": "piperack-expansion-loop",
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/piperack/case1.json"
+    },
+    {
+      "caseId": "pr-loop-002",
+      "title": "Missing Temp Delta Warning",
+      "module": "piperack-expansion-loop",
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/piperack/case2.json"
+    },
+    {
+      "caseId": "pr-loop-003",
+      "title": "Missing Material and Size",
+      "module": "piperack-expansion-loop",
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/piperack/case3.json"
+    },
+    {
+      "status": "FAILED",
+      "message": "Missing expected result in fixture",
+      "details": null,
+      "file": "benchmarks/fixtures/reporting/sample-report.json"
+    }
+  ]
 }

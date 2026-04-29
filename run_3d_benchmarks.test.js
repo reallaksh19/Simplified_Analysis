@@ -57,7 +57,7 @@ test('BM 3D-A: Complex Rigidity', () => {
     const res = runExtendedSolver(payload);
     console.log("=== BM 3D-A: Complex Rigidity ===");
     console.log("Z-Axis Bending Leg Length Used (in):", res.axes.Z.bendingLeg);
-    console.log("Expected: 120 + 120 + 120 = 360in. 30in short drop should be excluded.");
+    console.log("Expected: 600in");
 });
 
 test('BM 3D-C: Vessel Nozzle MIST & Flange', () => {

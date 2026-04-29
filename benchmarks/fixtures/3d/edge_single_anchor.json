@@ -1,9 +1,9 @@
 {
-  "caseId": "GC-3D-EDGE-1",
-  "title": "Straight pipe run between two anchors",
+  "caseId": "GC-3D-EDGE-2",
+  "title": "Single anchor pipeline",
   "module": "3d-guided-cantilever",
   "engineeringLevel": "SCREENING",
-  "description": "Straight pipe run between two anchors \u2014 no perpendicular legs. SE must be zero.",
+  "description": "Single anchor with free end.",
   "input": {
     "nodes": {
       "A": {
@@ -20,7 +20,7 @@
           0,
           0
         ],
-        "type": "anchor"
+        "type": "node"
       }
     },
     "segments": [

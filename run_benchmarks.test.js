@@ -1,3 +1,10 @@
+/**
+ * BENCHMARK UPDATE LOG:
+ * 2026-04-27 — Agent 1-EXT fixed force formula unit (E-1, ×1728 not ×144).
+ *   Force expected values updated. Stress values unchanged.
+ */
+import { test } from 'vitest';
+
 import { runExtendedSolver } from './src/calc-extended/solver/ExtendedSolver.js';
 import { solvePipeRack } from './src/piperack/solver/PipeRackSolver.js';
 

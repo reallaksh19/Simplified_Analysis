@@ -139,7 +139,7 @@ export const DebugTable = () => {
                 const legSeg = segments.find(s => s.id === l.legId);
                 return legSeg && (legSeg.startNode === r.nodeId || legSeg.endNode === r.nodeId);
             });
-            const isSelected = useAnalysisStore.getState().selectedNodeId === r.nodeId;
+            const isSelected = useAnalysisStore(s => s.selectedNodeId) === r.nodeId;
             return (
               <NodeResultRow
                 key={i}
