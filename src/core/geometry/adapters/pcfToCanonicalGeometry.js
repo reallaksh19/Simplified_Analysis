@@ -1,5 +1,5 @@
 import { DEFAULT_GEOMETRY_UNIT, CANONICAL_GEOMETRY_SCHEMA_VERSION } from '../geometryTypes.js';
-import { validateCanonicalGeometry } from '../validateCanonicalGeometry.js';
+import { validateGeometry } from '../validateGeometry.js';
 
 const parseNumber = (value) => {
   const number = Number(value);
@@ -210,7 +210,7 @@ export function pcfToCanonicalGeometry(components, options = {}) {
     },
   };
 
-  const validation = validateCanonicalGeometry(geometry, { tolerance, requireKnownUnit: false });
+  const validation = validateGeometry(geometry, { tolerance, requireKnownUnit: false });
   geometry.diagnostics = [...diagnostics, ...validation.diagnostics];
   geometry.summary = {
     ...geometry.summary,

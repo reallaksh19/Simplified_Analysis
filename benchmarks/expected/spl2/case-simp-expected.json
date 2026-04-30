@@ -1,0 +1,8 @@
+{
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "expected": {
+    "stress_calc": null,
+    "moment_calc": null,
+    "isSafe": null
+  }
+}

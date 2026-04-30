@@ -3,8 +3,8 @@ import { Activity } from 'lucide-react';
 import { useAnalysisStore } from '../3d-analysis';
 import { useAppStore } from '../store/appStore';
 import { PcfViewer3D } from '../utils/viewer3d';
-import { parsePcfWithDiagnostics } from '../pcf/pcfParser';
-import { serializePcf } from '../pcf/pcfSerializer';
+import { parsePcfWithDiagnostics } from '../utils/pcfParser';
+import { serializePcf } from '../utils/pcfSerializer';
 import { log } from '../utils/logger';
 import { mock5LegData } from '../mocks/mock5Leg';
 

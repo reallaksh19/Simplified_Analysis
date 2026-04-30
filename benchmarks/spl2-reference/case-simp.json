@@ -1,0 +1,23 @@
+{
+  "caseId": "spl2-simp-001",
+  "title": "SPL2 Simplified Stress 1",
+  "module": "2d-simplified-stress-check",
+  "engineeringLevel": "SCREENING",
+  "source": "SPL2 bundle calculateSimplified",
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "input": {
+    "nps": "8",
+    "sch": "40",
+    "mat": "Carbon Steels",
+    "tempF": 400,
+    "sa": 20000,
+    "lx": 10,
+    "ly": 5,
+    "lz": 0
+  },
+  "expected": {
+    "stress_calc": null,
+    "moment_calc": null,
+    "isSafe": null
+  }
+}

@@ -1,43 +1,41 @@
 # SPL2 Formula Extraction
 
-This document outlines the formulas extracted from the legacy SPL2 codebase (`public/spl2-bundle/js/spl2/`).
+This document outlines the engineering calculations found in the legacy SPL2 bundle.
 
-## Simplified Analysis (spl2_simp_logic.js)
-**Variables:**
-- `inp_sa`: Allowable Stress
-- `inp_lz`, `inp_lx`, `inp_ly`: Distances/Lengths
-- `inp_temp`: Temperature
-- `inp_nps`, `inp_sch`: Nominal Pipe Size, Schedule
-- `inp_mat`: Material
+## 1. Simplified Stress Check (`calculateSimplified` in `spl2_simp_logic.js`)
+* **Inputs**: NPS, Schedule, Material, Temperature (F), Allowable Stress (psi), Lengths (lx, ly, lz in ft).
+* **Outputs**: D (in), t (in), Ec (Msi), Expansion (in/100ft), dx/dy/dz (in), Stress (psi), Moment (lb-ft), Status (Pass/Fail).
+* **Units**: inches, ft, psi, Msi, Fahrenheit.
+* **Assumptions / Hard-coded constants**:
+  - `alpha_in_ft = exp_100 / 100` (Expansion rate per foot).
+  - Total displacement `d_total_expansion = Math.sqrt(dx^2 + dy^2 + dz^2)`.
+  - Polynomial Curve Fit for MW Kellogg method is roughly proxied by `factor_y = (0.016 * D * d_total_expansion) / Math.pow(L_total, 2)`.
+  - Approx stress `stress_calc = ec_psi * factor_y`.
+  - Approx moment `moment_calc = (stress_calc * ((Math.PI / 32) * Math.pow(D, 3))) / 12`.
+  - If `stress_calc < sa`, it passes.
 
-**Calculations:**
-Includes formulas for: `out_dx`, `out_dy`, `out_dz` (displacements), `out_exp` (expansion), `out_moment` (moment), `out_stress` (stress).
-Details to be formalized as benchmarks.
+## 2. Expansion Loop (`calculateLoop` in `spl2_loop_logic.js`)
+* **Inputs**: NPS, Schedule, Material, Temperature (F), Allowable Stress, S, G, H, W (loop dimensions).
+* **Outputs**: Ec, Expansion, D (in), t (in), I (in^4), Z (in^3), Bend Radius R (in), Flexibility factor h, k, SIF beta, Total Length L.
+* **Units**: inches, Msi, Fahrenheit.
+* **Assumptions / Hard-coded constants**:
+  - `r_in = d_in * 1.5` (1.5D bend factor).
+  - `I = (Math.PI / 64) * (D^4 - d^4)`.
+  - `Z = (Math.PI / 32) * (D^4 - d^4) / D`.
+  - `factor_h = (t_in * r_in) / Math.pow((d_in / 2), 2)` (Standard flexibility characteristic h).
+  - Flexibility factor `k = 1.65 / factor_h`.
+  - In-plane SIF `beta = 0.9 / Math.pow(factor_h, 0.66)`.
+  - Loop Length `L = W + (2 * H) + S + G`.
 
-## Loop Algorithm (spl2_loop_algo.js)
-**Variables:**
-- `D`: Diameter (in)
-- `t`: Thickness (in)
-- `R`: Bend Radius (usually `D * 1.5`)
-- `H`, `W`, `G`: Geometry dimensions (ft)
-- `Ec`: Cold Modulus (Msi)
-- `e`: Expansion rate (in/100ft)
-
-**Formulas:**
-- `h = (t * R) / ((D - t) / 2)^2`
-- `k = 1.65 / h`
-- `beta = 0.9 / h^(2/3)`
-- `L = 2 * PI * (R/12) * k + 2 * H + G - 8 * (R/12)`
-- `Z_bar = (PI * (R/12) * k + W + H - 4*(R/12)) * H / L`
-- Inertia terms `AA`, `BB`, `CC` leading to `Ix`.
-
-## Rack Load (spl2_rack_logic.js)
-**Variables:**
-- `inp_nps`, `inp_sch`: Pipe size
-- `inp_insul`, `inp_sg`: Insulation thickness, specific gravity
-- `inp_wind`, `inp_dens`: Wind, density
-- `inp_spacing`, `inp_bents`: Spacing and bents
-
-**Calculations:**
-Weights: `out_w_pipe`, `out_w_insul`, `out_w_cont`, `out_w_test`, total `out_w`.
-Dimensions: `out_do`, `out_dt`, `out_de`.
+## 3. Pipe Rack Load (`calculateRackLoad` in `spl2_rack_logic.js`)
+* **Inputs**: NPS, Schedule, Specific Gravity (sg), Insulation Thickness (in), Insulation Density (lb/ft3), Spacing (ft), Bents, Wind Load (lbf/ft).
+* **Outputs**: W_pipe, W_cont, W_test, W_insul (all lb/ft), De, Do, Dt (lb), Wind total (lbf).
+* **Units**: inches, lb/ft, lb.
+* **Assumptions / Hard-coded constants**:
+  - Water density `62.4 lb/ft3`.
+  - Test fluid SG = 1.0 (water).
+  - Insulation Density default `12 lb/ft3`.
+  - Empty Load `De = (w_pipe + w_insul) * spacing`.
+  - Operating Load `Do = (w_pipe + w_insul + w_cont) * spacing`.
+  - Test Load `Dt = (w_pipe + w_insul + w_test) * spacing`.
+  - Wind Load total `w_total = windLoadFt * projectedDiaFt * spacing` where `projectedDiaFt = (d_in + 2 * insulThick) / 12`.

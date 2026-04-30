@@ -1,0 +1,9 @@
+{
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "expected": {
+    "factor_h": null,
+    "k": null,
+    "beta": null,
+    "L": null
+  }
+}

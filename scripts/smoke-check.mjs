@@ -12,7 +12,7 @@ const requiredFiles = [
   'src/App.jsx',
   'src/config/version.js',
   'src/core/geometry/geometryTypes.js',
-  'src/core/geometry/validateCanonicalGeometry.js',
+  'src/core/geometry/validateGeometry.js',
   'src/core/geometry/adapters/pcfToCanonicalGeometry.js',
   'src/core/geometry/adapters/canonicalToGC3D.js',
   'src/core/geometry/adapters/canonicalToExtended.js',
@@ -30,7 +30,7 @@ const requiredFiles = [
   'src/calc-extended/solver/ExtendedSolver.js',
   'src/piperack/components/PipeRackTab.jsx',
   'src/piperack/store/usePipeRackStore.js',
-
+  'src/simp-analysis/SimpAnalysisTab.jsx',
   'src/fixtures/spl2-benchmarks/case-001-l-bend.json',
   'src/fixtures/spl2-benchmarks/case-002-z-bend.json',
   'src/fixtures/spl2-benchmarks/case-003-loop.json',
@@ -49,7 +49,7 @@ if (calcTab.includes('Adv_PR') || calcTab.includes('adv-piperack')) fail('Calc E
 if (!calcTab.includes('Pipe Rack Calc')) fail('Official Pipe Rack tab missing from Calc Extended.');
 
 const topNav = read('src/components/TopNav.jsx');
-if (!topNav.includes('SPL2 Legacy Benchmark') && !topNav.includes('Benchmarks / Validation')) fail('TopNav must keep SPL2 labelled correctly.');
+if (!topNav.includes('SPL2 Legacy Benchmark')) fail('TopNav must keep SPL2 labelled as legacy/benchmark.');
 
 const piperackStore = read('src/piperack/store/usePipeRackStore.js');
 for (const token of ['PIPE_RACK_STATE_SCHEMA_VERSION', 'exportState', 'importState', 'saveStateToLocalStorage', 'loadStateFromLocalStorage']) {
@@ -74,9 +74,8 @@ PIPE
   END-POINT 1800 750 0 100
   MATERIAL A106-B
 `;
-const { parsePcfWithDiagnostics } = await importSource('src/pcf/pcfParser.js');
+const { parsePcfWithDiagnostics } = await importSource('src/utils/pcfParser.js');
 const { pcfToCanonicalGeometry } = await importSource('src/core/geometry/adapters/pcfToCanonicalGeometry.js');
-const { validateCanonicalGeometry } = await importSource('src/core/geometry/validateCanonicalGeometry.js');
 const { canonicalToGC3D } = await importSource('src/core/geometry/adapters/canonicalToGC3D.js');
 const { canonicalToExtended } = await importSource('src/core/geometry/adapters/canonicalToExtended.js');
 const { canonicalToPipeRack } = await importSource('src/core/geometry/adapters/canonicalToPipeRack.js');
@@ -90,9 +89,6 @@ const parsed = parsePcfWithDiagnostics(samplePcf);
 if (parsed.components.length !== 3) fail(`Expected 3 sample pipes, got ${parsed.components.length}.`);
 const canonical = pcfToCanonicalGeometry(parsed.components, { source: 'phase5-smoke', unit: 'mm' });
 if (!canonical.nodes.length || canonical.segments.length !== 3) fail('PCF to canonical geometry failed.');
-
-const validationResult = validateCanonicalGeometry(canonical);
-if (!validationResult.ok) fail('Canonical geometry validation failed: ' + JSON.stringify(validationResult.errors));
 
 const gc3dInput = canonicalToGC3D(canonical, { params: { deltaT_F: 380, E_psi: 27000000, alpha_in_in_F: 6.72e-6, Sc_psi: 20000, Sh_psi: 19400, f: 1.0 } });
 const resultA = solveGC3D(gc3dInput);

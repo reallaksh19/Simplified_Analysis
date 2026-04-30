@@ -1,0 +1,25 @@
+{
+  "caseId": "spl2-loop-001",
+  "title": "SPL2 Expansion Loop 1",
+  "module": "piperack-expansion-loop",
+  "engineeringLevel": "DESIGN_AID",
+  "source": "SPL2 bundle calculateLoop",
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "input": {
+    "nps": "12",
+    "sch": "STD",
+    "mat": "Carbon Steels",
+    "tempF": 300,
+    "stress": 20000,
+    "W": 10,
+    "H": 15,
+    "S": 5,
+    "G": 5
+  },
+  "expected": {
+    "factor_h": null,
+    "k": null,
+    "beta": null,
+    "L": null
+  }
+}

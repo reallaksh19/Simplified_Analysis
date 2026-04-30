@@ -1,0 +1,25 @@
+{
+  "caseId": "spl2-rack-001",
+  "title": "SPL2 Rack Load 1",
+  "module": "piperack-expansion-loop",
+  "engineeringLevel": "SCREENING",
+  "source": "SPL2 bundle calculateRackLoad",
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "input": {
+    "nps": "24",
+    "sch": "XS",
+    "sg": 1.0,
+    "insulThick": 2,
+    "density": 490,
+    "spacing": 20,
+    "bents": 1,
+    "windLoadFt": 50
+  },
+  "expected": {
+    "w_pipe": null,
+    "w_cont": null,
+    "w_insul": null,
+    "do_op": null,
+    "w_total": null
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "sourceStatus": "PENDING_NUMERIC_EXTRACTION",
+  "expected": {
+    "w_pipe": null,
+    "w_cont": null,
+    "w_insul": null,
+    "do_op": null,
+    "w_total": null
+  }
+}
