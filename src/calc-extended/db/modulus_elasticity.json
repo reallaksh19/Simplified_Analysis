@@ -1,0 +1,27 @@
+[
+  {
+    "material": "Carbon Steel",
+    "carbon_content": "<= 0.30%",
+    "data": [
+      { "temp_F": 70, "modulus_ksi": 29.5 },
+      { "temp_F": 200, "modulus_ksi": 28.8 },
+      { "temp_F": 300, "modulus_ksi": 28.3 },
+      { "temp_F": 400, "modulus_ksi": 27.7 },
+      { "temp_F": 500, "modulus_ksi": 27.3 },
+      { "temp_F": 600, "modulus_ksi": 26.7 },
+      { "temp_F": 700, "modulus_ksi": 25.5 }
+    ]
+  },
+  {
+    "material": "Austenitic Stainless Steel 18 Cr 8 Ni",
+    "data": [
+      { "temp_F": 70, "modulus_ksi": 28.3 },
+      { "temp_F": 200, "modulus_ksi": 27.6 },
+      { "temp_F": 300, "modulus_ksi": 27.0 },
+      { "temp_F": 400, "modulus_ksi": 26.5 },
+      { "temp_F": 500, "modulus_ksi": 25.8 },
+      { "temp_F": 600, "modulus_ksi": 25.3 },
+      { "temp_F": 700, "modulus_ksi": 24.8 }
+    ]
+  }
+]

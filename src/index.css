@@ -1,0 +1,46 @@
+/* Custom Fonts implemented in index.html */
+@import "tailwindcss" source(none);
+@source "./components";
+@source "./config";
+@source "./calc-extended";
+@source "./sketcher";
+@source "./3d-analysis";
+@source "./piperack";
+@source "./spl2-bundle";
+
+body,
+html,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background-color: #0f172a;
+  /* Slate 900 */
+  color: #f8fafc;
+  /* Slate 50 */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

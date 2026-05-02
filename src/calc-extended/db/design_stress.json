@@ -1,0 +1,10 @@
+[
+  {
+    "material": "Carbon Steel",
+    "f_psi": 20000
+  },
+  {
+    "material": "Austenitic Stainless Steel 18 Cr 8 Ni",
+    "f_psi": 16700
+  }
+]
