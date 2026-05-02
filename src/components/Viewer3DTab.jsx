@@ -290,6 +290,7 @@ export const Viewer3DTab = () => {
             </button>
 
           </div>
+          </div>
 
           {/* Status Bar */}
           <div className="px-3 py-1 bg-white border-b border-slate-100 flex justify-between">
