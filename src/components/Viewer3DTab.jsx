@@ -8,6 +8,7 @@ import { serializePcf } from '../pcf/pcfSerializer';
 import { log } from '../utils/logger';
 import { mock5LegData } from '../mocks/mock5Leg';
 import { useSketchStore } from '../sketcher/SketcherStore';
+import { setClippingBounds } from '../utils/viewer3d';
 
 export const Viewer3DTab = () => {
   const components = useAppStore(state => state.components);
@@ -23,6 +24,14 @@ export const Viewer3DTab = () => {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
 
+  // Section Box State
+  const [showSectionBox, setShowSectionBox] = React.useState(false);
+  const [clipBounds, setClipBounds] = React.useState({
+    minX: -10000, maxX: 10000,
+    minY: -10000, maxY: 10000,
+    minZ: -10000, maxZ: 10000
+  });
+
   // Status for selected geometry
   const selectedComps = components.filter(c => selectedIds.has(c.id));
   const numElements = selectedComps.length;
@@ -33,6 +42,14 @@ export const Viewer3DTab = () => {
   useEffect(() => {
     setProcessingStage('stage1', selectedComps);
   }, [selectedIds, components, setProcessingStage]);
+
+  useEffect(() => {
+    setClippingBounds(clipBounds.minX, clipBounds.maxX, clipBounds.minY, clipBounds.maxY, clipBounds.minZ, clipBounds.maxZ);
+  }, [clipBounds]);
+
+  const handleClipChange = (axis, value) => {
+    setClipBounds(prev => ({ ...prev, [axis]: Number(value) }));
+  };
 
   const loadMockData = () => {
     setComponents(mock5LegData);
@@ -218,6 +235,12 @@ export const Viewer3DTab = () => {
               >
                 <span>⊙</span> Auto center
               </button>
+              <button
+                onClick={() => setShowSectionBox(!showSectionBox)}
+                className={`px-3 py-1 text-[11px] font-medium flex items-center gap-1 border-l border-slate-200 ml-1 pl-2 cursor-pointer ${showSectionBox ? 'text-[#10b981] bg-emerald-50' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <span>✂</span> Section Box
+              </button>
             </div>
 
             <div className="ml-auto flex items-center gap-2">
@@ -306,6 +329,39 @@ export const Viewer3DTab = () => {
           </div>
 
           <div className="flex-1 relative bg-[#1c2030] overflow-hidden flex flex-row">
+
+            {showSectionBox && (
+              <div className="absolute top-4 left-4 z-10 w-64 bg-white/90 backdrop-blur border border-slate-300 rounded shadow-lg p-3 flex flex-col gap-2 text-xs">
+                <div className="font-bold text-slate-700 mb-1">Section Box (Clipping Planes)</div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-slate-600"><span>Min X: {clipBounds.minX}</span><span>Max X: {clipBounds.maxX}</span></div>
+                  <div className="flex gap-2">
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minX} onChange={e => handleClipChange('minX', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxX} onChange={e => handleClipChange('maxX', e.target.value)} className="w-1/2" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-slate-600"><span>Min Y: {clipBounds.minY}</span><span>Max Y: {clipBounds.maxY}</span></div>
+                  <div className="flex gap-2">
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minY} onChange={e => handleClipChange('minY', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxY} onChange={e => handleClipChange('maxY', e.target.value)} className="w-1/2" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-slate-600"><span>Min Z: {clipBounds.minZ}</span><span>Max Z: {clipBounds.maxZ}</span></div>
+                  <div className="flex gap-2">
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minZ} onChange={e => handleClipChange('minZ', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxZ} onChange={e => handleClipChange('maxZ', e.target.value)} className="w-1/2" />
+                  </div>
+                </div>
+                <button
+                  className="mt-2 w-full py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded transition-colors"
+                  onClick={() => setClipBounds({ minX: -10000, maxX: 10000, minY: -10000, maxY: 10000, minZ: -10000, maxZ: 10000 })}
+                >
+                  Reset Bounds
+                </button>
+              </div>
+            )}
 
             <div
               ref={containerRef}

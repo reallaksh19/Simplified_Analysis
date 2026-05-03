@@ -47,7 +47,7 @@ export const buildGraphFromComponents = (components) => {
     };
 
     // Filter to only structural piping components for now
-    const structuralComps = components.filter(c => ['PIPE', 'ELBOW', 'BEND', 'TEE'].includes(c.type));
+    const structuralComps = components.filter(c => ['PIPE', 'ELBOW', 'BEND', 'TEE', 'VALVE', 'FLANGE', 'REDUCER'].includes(c.type));
 
     structuralComps.forEach(comp => {
         if (!comp.points || !Array.isArray(comp.points) || comp.points.length < 2) {
@@ -90,10 +90,104 @@ export const buildGraphFromComponents = (components) => {
                     material: comp.attributes?.MATERIAL || 'UNKNOWN'
                 }
             });
+        } else if (['VALVE', 'FLANGE', 'REDUCER'].includes(comp.type)) {
+            const midpoint = {
+                x: (comp.points[0].x + comp.points[1].x) / 2,
+                y: (comp.points[0].y + comp.points[1].y) / 2,
+                z: (comp.points[0].z + comp.points[1].z) / 2,
+            };
+            const midId = findOrAddNode(midpoint);
+            if (midId) {
+                nodes[midId].type = comp.type.toLowerCase();
+
+                // Connect weld points to midpoint
+                segments.push({
+                    id: `${comp.id}-in`,
+                    startNode: startId,
+                    endNode: midId,
+                    properties: { type: 'PIPE', bore: comp.bore, material: comp.attributes?.MATERIAL || 'UNKNOWN' }
+                });
+                segments.push({
+                    id: `${comp.id}-out`,
+                    startNode: midId,
+                    endNode: endId,
+                    properties: { type: 'PIPE', bore: comp.bore, material: comp.attributes?.MATERIAL || 'UNKNOWN' }
+                });
+            }
         } else if (comp.type === 'ELBOW' || comp.type === 'BEND') {
             // Upgrade nodes if they are fittings
             nodes[startId].type = 'fitting';
             nodes[endId].type = 'fitting';
+
+            if (!comp.centrePoint) {
+                const pt1 = comp.points[0];
+                const pt2 = comp.points[1];
+
+                // Fallback logic: Find connecting pipes to compute intersection
+                const pipe1 = components.find(c => c.type === 'PIPE' && c.points && c.points.length >= 2 && (distance(c.points[0], pt1) < TOLERANCE || distance(c.points[1], pt1) < TOLERANCE));
+                const pipe2 = components.find(c => c.type === 'PIPE' && c.points && c.points.length >= 2 && (distance(c.points[0], pt2) < TOLERANCE || distance(c.points[1], pt2) < TOLERANCE));
+
+                let calculatedCenter = null;
+                if (pipe1 && pipe2) {
+                    const v1 = {
+                        x: pipe1.points[1].x - pipe1.points[0].x,
+                        y: pipe1.points[1].y - pipe1.points[0].y,
+                        z: pipe1.points[1].z - pipe1.points[0].z
+                    };
+                    const v2 = {
+                        x: pipe2.points[1].x - pipe2.points[0].x,
+                        y: pipe2.points[1].y - pipe2.points[0].y,
+                        z: pipe2.points[1].z - pipe2.points[0].z
+                    };
+
+                    const p1Coord = pt1;
+                    const p2Coord = pt2;
+
+                    // Compute closest approach midpoint for 3D line intersection
+                    const d1343 = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+                    const d4321 = v2.x * v1.x + v2.y * v1.y + v2.z * v1.z;
+                    const d1321 = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
+                    const d4343 = v2.x * v2.x + v2.y * v2.y + v2.z * v2.z;
+                    const d2121 = d1321;
+
+                    const p13 = {
+                        x: p1Coord.x - p2Coord.x,
+                        y: p1Coord.y - p2Coord.y,
+                        z: p1Coord.z - p2Coord.z
+                    };
+                    const d1343_p13 = p13.x * v2.x + p13.y * v2.y + p13.z * v2.z;
+                    const d1321_p13 = p13.x * v1.x + p13.y * v1.y + p13.z * v1.z;
+
+                    const denom = d2121 * d4343 - d4321 * d4321;
+                    if (Math.abs(denom) > 1e-6) {
+                        const numer = d1343_p13 * d4321 - d1321_p13 * d4343;
+                        const mua = numer / denom;
+                        const mub = (d1343_p13 + d4321 * mua) / d4343;
+
+                        const pa = {
+                            x: p1Coord.x + mua * v1.x,
+                            y: p1Coord.y + mua * v1.y,
+                            z: p1Coord.z + mua * v1.z
+                        };
+                        const pb = {
+                            x: p2Coord.x + mub * v2.x,
+                            y: p2Coord.y + mub * v2.y,
+                            z: p2Coord.z + mub * v2.z
+                        };
+                        calculatedCenter = {
+                            x: (pa.x + pb.x) / 2,
+                            y: (pa.y + pb.y) / 2,
+                            z: (pa.z + pb.z) / 2
+                        };
+                    }
+                }
+
+                // Absolute fallback if math fails
+                if (!calculatedCenter) {
+                    calculatedCenter = { x: (pt1.x + pt2.x)/2, y: (pt1.y + pt2.y)/2, z: (pt1.z + pt2.z)/2 };
+                }
+                comp.centrePoint = calculatedCenter;
+            }
 
             if (comp.centrePoint) {
                  const centerId = findOrAddNode(comp.centrePoint);
