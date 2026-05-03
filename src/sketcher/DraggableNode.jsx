@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useSketchStore } from './SketcherStore';
 import * as THREE from 'three';
@@ -18,6 +18,7 @@ export const DraggableNode = ({ id, node, is3D }) => {
     const isSelected = selectedItems.nodes.includes(id) || selectedNodeId === id;
 
     const [isDragging, setIsDragging] = useState(false);
+    const dragStartPos = useRef(null);
 
     const onPointerDown = (e) => {
         if (is3D) return;
@@ -26,6 +27,7 @@ export const DraggableNode = ({ id, node, is3D }) => {
         if (activeTool === 'select') {
             setSelectedNodeId(id);
             setIsDragging(true);
+            dragStartPos.current = [...node.pos];
             e.target.setPointerCapture(e.pointerId);
         } else {
             // Forward interaction click to store for drafting/anchor tools
@@ -69,6 +71,26 @@ export const DraggableNode = ({ id, node, is3D }) => {
         } else if (workingPlane === 'YZ') {
             newPos[1] = vec.y;
             newPos[2] = vec.z;
+        }
+
+        if (e.shiftKey && dragStartPos.current) {
+            const startPos = dragStartPos.current;
+            if (workingPlane === 'XY') {
+                const dx = Math.abs(newPos[0] - startPos[0]);
+                const dy = Math.abs(newPos[1] - startPos[1]);
+                if (dx > dy) newPos[1] = startPos[1];
+                else newPos[0] = startPos[0];
+            } else if (workingPlane === 'XZ') {
+                const dx = Math.abs(newPos[0] - startPos[0]);
+                const dz = Math.abs(newPos[2] - startPos[2]);
+                if (dx > dz) newPos[2] = startPos[2];
+                else newPos[0] = startPos[0];
+            } else if (workingPlane === 'YZ') {
+                const dy = Math.abs(newPos[1] - startPos[1]);
+                const dz = Math.abs(newPos[2] - startPos[2]);
+                if (dy > dz) newPos[2] = startPos[2];
+                else newPos[1] = startPos[1];
+            }
         }
 
         updateNode(id, { pos: newPos });

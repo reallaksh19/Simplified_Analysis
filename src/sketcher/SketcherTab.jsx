@@ -15,6 +15,7 @@ import { DraggableNode } from './DraggableNode';
 import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSimplified2D';
 import { useAnalysisStore } from '../3d-analysis/AnalysisStore';
 import { Activity } from 'lucide-react';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const SketcherToolbar = () => {
     const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
@@ -592,7 +593,13 @@ const GraphRenderer = ({ is3D }) => {
             {Object.entries(nodes).map(([id, node]) => {
                 const conns = nodeConnections[id] || [];
                 const nodePos = node.pos;
-                const bore   = 100; // TODO: derive from connected segments
+
+                const connectedBores = conns.map(c => {
+                    const seg = segments.find(s => s.id === (c.seg.id || c.seg));
+                    return seg?.properties?.bore || 100;
+                });
+                const bore = connectedBores.length > 0 ? Math.max(...connectedBores) : 100;
+
                 const pipeR  = is3D ? bore / 2 : 40;
                 const isNodeSel = selectedNodeId === id;
 
@@ -667,11 +674,23 @@ export const SketcherTab = () => {
     const activeTool = useSketchStore(s => s.activeTool);
     const importWarnings = useSketchStore(s => s.importWarnings);
     const clearWarnings = useSketchStore(s => s.clearWarnings);
+    const undo = useSketchStore(s => s.undo);
+    const redo = useSketchStore(s => s.redo);
 
     const [isAltHeld, setIsAltHeld] = React.useState(false);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                if (e.shiftKey) {
+                    redo();
+                } else {
+                    undo();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                redo();
+            }
+
             if (e.key === 'Alt') {
                 e.preventDefault(); // prevent browser menu stealing
                 setIsAltHeld(true);
@@ -719,20 +738,22 @@ export const SketcherTab = () => {
                 <NodeEditorPanel />
                 <SegmentEditorPanel />
 
-                <Canvas style={{ cursor: activeTool !== 'select' ? 'crosshair' : 'default' }}>
-                    <MarqueeSelection />
-                    <OrthographicCamera 
-                        makeDefault 
-                        position={workingPlane === 'XY' ? [0, 0, 10000] : (workingPlane === 'XZ' ? [0, 10000, 0] : [10000, 0, 0])} 
-                        zoom={0.2} 
-                        near={-100000} far={100000} 
-                    />
-                    <OrbitControls makeDefault enableRotate={false} />
-                    <MainViewAutoCenter isAltHeld={isAltHeld} />
-                    <DynamicGrid workingPlane={workingPlane} />
-                    <InteractivePlane isAltHeld={isAltHeld} />
-                    <GraphRenderer is3D={false} />
-                </Canvas>
+                <ErrorBoundary>
+                    <Canvas style={{ cursor: activeTool !== 'select' ? 'crosshair' : 'default' }}>
+                        <MarqueeSelection />
+                        <OrthographicCamera
+                            makeDefault
+                            position={workingPlane === 'XY' ? [0, 0, 10000] : (workingPlane === 'XZ' ? [0, 10000, 0] : [10000, 0, 0])}
+                            zoom={0.2}
+                            near={-100000} far={100000}
+                        />
+                        <OrbitControls makeDefault enableRotate={false} />
+                        <MainViewAutoCenter isAltHeld={isAltHeld} />
+                        <DynamicGrid workingPlane={workingPlane} />
+                        <InteractivePlane isAltHeld={isAltHeld} />
+                        <GraphRenderer is3D={false} />
+                    </Canvas>
+                </ErrorBoundary>
 
                 {/* PiP 3D Container (Top Right) */}
                 <div style={{ 
@@ -741,14 +762,16 @@ export const SketcherTab = () => {
                     overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' 
                 }}>
                     <div style={{ position: 'absolute', top: 4, left: 8, zIndex: 10, color: '#38bdf8', fontSize: '10px', fontWeight: 'bold', textShadow: '1px 1px 2px black' }}>3D VERIFICATION VIEW</div>
-                    <Canvas>
-                        <PerspectiveCamera makeDefault position={[5000, 5000, 5000]} fov={50} />
-                        <OrbitControls makeDefault />
-                        <ambientLight intensity={0.5} />
-                        <directionalLight position={[10, 10, 5]} intensity={1} />
-                        <VerificationViewBounds />
-                        <GraphRenderer is3D={true} />
-                    </Canvas>
+                    <ErrorBoundary>
+                        <Canvas>
+                            <PerspectiveCamera makeDefault position={[5000, 5000, 5000]} fov={50} />
+                            <OrbitControls makeDefault />
+                            <ambientLight intensity={0.5} />
+                            <directionalLight position={[10, 10, 5]} intensity={1} />
+                            <VerificationViewBounds />
+                            <GraphRenderer is3D={true} />
+                        </Canvas>
+                    </ErrorBoundary>
                 </div>
             </div>
         </div>

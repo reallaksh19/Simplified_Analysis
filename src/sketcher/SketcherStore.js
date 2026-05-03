@@ -5,6 +5,7 @@ import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../cor
 export const useSketchStore = create((set, get) => ({
   nodes: {},
   segments: [],
+  history: { past: [], future: [] },
   workingPlane: 'XY', // 'XY', 'XZ', 'YZ'
   workingElevation: 0,
   activeTool: 'select', // 'select', 'draw_pipe', 'add_node'
@@ -38,19 +39,73 @@ export const useSketchStore = create((set, get) => ({
 
   selectedNodeId: null,
   setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedSegmentId: null }),
-  updateNode: (id, updates) => set((s) => ({
-      nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
-  })),
+  saveSnapshot: () => set((state) => {
+      const snapshot = {
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          segments: JSON.parse(JSON.stringify(state.segments))
+      };
+      return {
+          history: {
+              past: [...state.history.past, snapshot],
+              future: []
+          }
+      };
+  }),
+
+  undo: () => set((state) => {
+      if (state.history.past.length === 0) return state;
+      const past = [...state.history.past];
+      const previousState = past.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: previousState.nodes,
+          segments: previousState.segments,
+          history: { past, future: [...state.history.future, currentSnapshot] }
+      };
+  }),
+
+  redo: () => set((state) => {
+      if (state.history.future.length === 0) return state;
+      const future = [...state.history.future];
+      const nextState = future.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: nextState.nodes,
+          segments: nextState.segments,
+          history: { past: [...state.history.past, currentSnapshot], future }
+      };
+  }),
+
+  updateNode: (id, updates) => {
+      get().saveSnapshot();
+      set((s) => ({
+          nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
+      }));
+  },
 
   selectedSegmentId: null,
   setSelectedSegmentId: (id) => set({ selectedSegmentId: id, selectedNodeId: null }),
-  updateSegment: (id, updates) => set((s) => ({
-      segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
-  })),
-  deleteSegment: (id) => set((s) => ({
-      segments: s.segments.filter(seg => seg.id !== id),
-      selectedSegmentId: null,
-  })),
+  updateSegment: (id, updates) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
+      }));
+  },
+  deleteSegment: (id) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.filter(seg => seg.id !== id),
+          selectedSegmentId: null,
+      }));
+  },
+  deleteNode: (id) => {
+      get().saveSnapshot();
+      set((s) => {
+          const newNodes = { ...s.nodes };
+          delete newNodes[id];
+          return { nodes: newNodes, selectedNodeId: null };
+      });
+  },
 
   selectedItems: { nodes: [], segments: [] },
   setSelectedItems: (items) => set({ selectedItems: items }),
@@ -77,6 +132,7 @@ export const useSketchStore = create((set, get) => ({
 
   // Geometric Actions
   createNode: (pos, type = 'free') => {
+      get().saveSnapshot();
       const { nodes } = get();
 
       let maxNum = 0;
@@ -95,6 +151,7 @@ export const useSketchStore = create((set, get) => ({
   },
 
   createSegment: (startNodeId, endNodeId, properties = {}) => {
+      get().saveSnapshot();
       const { segments } = get();
 
       let maxNum = 0;
@@ -130,7 +187,10 @@ export const useSketchStore = create((set, get) => ({
       return [x, y, z];
   },
   
-  clearSketch: () => set({ nodes: {}, segments: [] }),
+  clearSketch: () => {
+      get().saveSnapshot();
+      set({ nodes: {}, segments: [] });
+  },
 
   exportSketch: () => {
       const { nodes, segments, workingPlane, workingElevation } = get();
@@ -151,6 +211,7 @@ export const useSketchStore = create((set, get) => ({
       try {
           const data = JSON.parse(jsonText);
           if (!data.nodes || !data.segments) throw new Error('Invalid sketch file — missing nodes or segments.');
+          get().saveSnapshot();
           set({
               nodes: data.nodes,
               segments: data.segments,
@@ -186,7 +247,29 @@ export const useSketchStore = create((set, get) => ({
                       state.snapCoordinate(draftingState.currentPos.z)
                   ];
               } else {
-                  pt3D = resolve3DPoint(draftingState.currentPos);
+                  // Orthogonal Constraint Engine (Shift-to-Lock)
+                  let targetPos = resolve3DPoint(ePoint);
+                  const start = draftingState.currentPos;
+
+                  if (isShiftHeld && start) {
+                      if (state.workingPlane === 'XY') {
+                          const dx = Math.abs(targetPos[0] - start.x);
+                          const dy = Math.abs(targetPos[1] - start.y);
+                          if (dx > dy) targetPos[1] = start.y;
+                          else targetPos[0] = start.x;
+                      } else if (state.workingPlane === 'XZ') {
+                          const dx = Math.abs(targetPos[0] - start.x);
+                          const dz = Math.abs(targetPos[2] - start.z);
+                          if (dx > dz) targetPos[2] = start.z;
+                          else targetPos[0] = start.x;
+                      } else if (state.workingPlane === 'YZ') {
+                          const dy = Math.abs(targetPos[1] - start.y);
+                          const dz = Math.abs(targetPos[2] - start.z);
+                          if (dy > dz) targetPos[2] = start.z;
+                          else targetPos[1] = start.y;
+                      }
+                  }
+                  pt3D = targetPos;
               }
           } else {
               pt3D = resolve3DPoint(ePoint);
