@@ -5,6 +5,7 @@ import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../cor
 export const useSketchStore = create((set, get) => ({
   nodes: {},
   segments: [],
+  history: { past: [], future: [] },
   workingPlane: 'XY', // 'XY', 'XZ', 'YZ'
   workingElevation: 0,
   activeTool: 'select', // 'select', 'draw_pipe', 'add_node'
@@ -17,6 +18,56 @@ export const useSketchStore = create((set, get) => ({
 
   designTemperature: 450, // Global default temperature (F)
   setDesignTemperature: (temp) => set({ designTemperature: temp }),
+
+  saveSnapshot: () => set((state) => {
+      // Prevent saving massive empty states or duplicate states
+      if (Object.keys(state.nodes).length === 0 && state.segments.length === 0 && state.history.past.length === 0) return state;
+
+      const snapshot = {
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          segments: JSON.parse(JSON.stringify(state.segments))
+      };
+
+      // Prevent saving duplicate states
+      if (state.history.past.length > 0) {
+          const lastSnapshot = state.history.past[state.history.past.length - 1];
+          if (JSON.stringify(lastSnapshot.nodes) === JSON.stringify(snapshot.nodes) &&
+              JSON.stringify(lastSnapshot.segments) === JSON.stringify(snapshot.segments)) {
+              return state;
+          }
+      }
+
+      return {
+          history: {
+              past: [...state.history.past, snapshot],
+              future: []
+          }
+      };
+  }),
+
+  undo: () => set((state) => {
+      if (state.history.past.length === 0) return state;
+      const past = [...state.history.past];
+      const previousState = past.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: previousState.nodes,
+          segments: previousState.segments,
+          history: { past, future: [...state.history.future, currentSnapshot] }
+      };
+  }),
+
+  redo: () => set((state) => {
+      if (state.history.future.length === 0) return state;
+      const future = [...state.history.future];
+      const nextState = future.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: nextState.nodes,
+          segments: nextState.segments,
+          history: { past: [...state.history.past, currentSnapshot], future }
+      };
+  }),
 
   setWorkingPlane: (plane) => set({ workingPlane: plane, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
   setActiveTool: (tool) => set({ activeTool: tool, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
@@ -38,19 +89,28 @@ export const useSketchStore = create((set, get) => ({
 
   selectedNodeId: null,
   setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedSegmentId: null }),
-  updateNode: (id, updates) => set((s) => ({
-      nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
-  })),
+  updateNode: (id, updates, skipHistory = false) => {
+      if (!skipHistory) get().saveSnapshot();
+      set((s) => ({
+          nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
+      }));
+  },
 
   selectedSegmentId: null,
   setSelectedSegmentId: (id) => set({ selectedSegmentId: id, selectedNodeId: null }),
-  updateSegment: (id, updates) => set((s) => ({
-      segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
-  })),
-  deleteSegment: (id) => set((s) => ({
-      segments: s.segments.filter(seg => seg.id !== id),
-      selectedSegmentId: null,
-  })),
+  updateSegment: (id, updates) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
+      }));
+  },
+  deleteSegment: (id) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.filter(seg => seg.id !== id),
+          selectedSegmentId: null,
+      }));
+  },
 
   selectedItems: { nodes: [], segments: [] },
   setSelectedItems: (items) => set({ selectedItems: items }),
@@ -77,6 +137,7 @@ export const useSketchStore = create((set, get) => ({
 
   // Geometric Actions
   createNode: (pos, type = 'free') => {
+      get().saveSnapshot();
       const { nodes } = get();
 
       let maxNum = 0;
@@ -95,6 +156,7 @@ export const useSketchStore = create((set, get) => ({
   },
 
   createSegment: (startNodeId, endNodeId, properties = {}) => {
+      get().saveSnapshot();
       const { segments } = get();
 
       let maxNum = 0;
@@ -130,7 +192,10 @@ export const useSketchStore = create((set, get) => ({
       return [x, y, z];
   },
   
-  clearSketch: () => set({ nodes: {}, segments: [] }),
+  clearSketch: () => {
+      get().saveSnapshot();
+      set({ nodes: {}, segments: [] });
+  },
 
   exportSketch: () => {
       const { nodes, segments, workingPlane, workingElevation } = get();
@@ -151,6 +216,7 @@ export const useSketchStore = create((set, get) => ({
       try {
           const data = JSON.parse(jsonText);
           if (!data.nodes || !data.segments) throw new Error('Invalid sketch file — missing nodes or segments.');
+          get().saveSnapshot();
           set({
               nodes: data.nodes,
               segments: data.segments,

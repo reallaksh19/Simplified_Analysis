@@ -288,7 +288,7 @@ export const Viewer3DTab = () => {
             >
               <span className="text-[12px]">✎</span> Edit in 2D Sketcher
             </button>
-
+            </div>
           </div>
 
           {/* Status Bar */}
