@@ -3,6 +3,44 @@ import { buildGraphFromComponents, buildComponentsFromGraph } from './GraphTrans
 import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../core/geometry/adapters/sketcherToCanonicalGeometry';
 
 export const useSketchStore = create((set, get) => ({
+  history: { past: [], future: [] },
+  saveSnapshot: () => set((state) => {
+      const snapshot = {
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          segments: JSON.parse(JSON.stringify(state.segments))
+      };
+      return {
+          history: {
+              past: [...state.history.past, snapshot],
+              future: []
+          }
+      };
+  }),
+
+  undo: () => set((state) => {
+      if (state.history.past.length === 0) return state;
+      const past = [...state.history.past];
+      const previousState = past.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: previousState.nodes,
+          segments: previousState.segments,
+          history: { past, future: [...state.history.future, currentSnapshot] }
+      };
+  }),
+
+  redo: () => set((state) => {
+      if (state.history.future.length === 0) return state;
+      const future = [...state.history.future];
+      const nextState = future.pop();
+      const currentSnapshot = { nodes: state.nodes, segments: state.segments };
+      return {
+          nodes: nextState.nodes,
+          segments: nextState.segments,
+          history: { past: [...state.history.past, currentSnapshot], future }
+      };
+  }),
+
   nodes: {},
   segments: [],
   workingPlane: 'XY', // 'XY', 'XZ', 'YZ'
@@ -38,29 +76,56 @@ export const useSketchStore = create((set, get) => ({
 
   selectedNodeId: null,
   setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedSegmentId: null }),
-  updateNode: (id, updates) => set((s) => ({
-      nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
-  })),
+  updateNode: (id, updates, skipSnapshot = false) => {
+      if (!skipSnapshot) {
+          get().saveSnapshot();
+      }
+      set((s) => ({
+          nodes: { ...s.nodes, [id]: { ...s.nodes[id], ...updates } }
+      }));
+  },
+
+  deleteNode: (id) => {
+      get().saveSnapshot();
+      set((s) => {
+          const newNodes = { ...s.nodes };
+          delete newNodes[id];
+          const newSegments = s.segments.filter(seg => seg.startNode !== id && seg.endNode !== id);
+          return {
+              nodes: newNodes,
+              segments: newSegments,
+              selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId
+          };
+      });
+  },
 
   selectedSegmentId: null,
   setSelectedSegmentId: (id) => set({ selectedSegmentId: id, selectedNodeId: null }),
-  updateSegment: (id, updates) => set((s) => ({
-      segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
-  })),
-  deleteSegment: (id) => set((s) => ({
-      segments: s.segments.filter(seg => seg.id !== id),
-      selectedSegmentId: null,
-  })),
+  updateSegment: (id, updates) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.map(seg => seg.id === id ? { ...seg, ...updates } : seg)
+      }));
+  },
+  deleteSegment: (id) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.filter(seg => seg.id !== id),
+          selectedSegmentId: null,
+      }));
+  },
 
   selectedItems: { nodes: [], segments: [] },
   setSelectedItems: (items) => set({ selectedItems: items }),
 
   importFromComponents: (components) => {
+      get().saveSnapshot();
       const { nodes, segments, warnings } = buildGraphFromComponents(components);
       set({ nodes, segments, importWarnings: warnings || [] });
   },
 
   importFromCanonicalGeometry: (geometry) => {
+      get().saveSnapshot();
       const { nodes, segments, warnings } = canonicalGeometryToSketcher(geometry);
       set({ nodes, segments, importWarnings: warnings || [] });
   },
@@ -77,6 +142,7 @@ export const useSketchStore = create((set, get) => ({
 
   // Geometric Actions
   createNode: (pos, type = 'free') => {
+      get().saveSnapshot();
       const { nodes } = get();
 
       let maxNum = 0;
@@ -95,6 +161,7 @@ export const useSketchStore = create((set, get) => ({
   },
 
   createSegment: (startNodeId, endNodeId, properties = {}) => {
+      get().saveSnapshot();
       const { segments } = get();
 
       let maxNum = 0;
@@ -130,7 +197,10 @@ export const useSketchStore = create((set, get) => ({
       return [x, y, z];
   },
   
-  clearSketch: () => set({ nodes: {}, segments: [] }),
+  clearSketch: () => {
+      get().saveSnapshot();
+      set({ nodes: {}, segments: [] });
+  },
 
   exportSketch: () => {
       const { nodes, segments, workingPlane, workingElevation } = get();
@@ -151,6 +221,7 @@ export const useSketchStore = create((set, get) => ({
       try {
           const data = JSON.parse(jsonText);
           if (!data.nodes || !data.segments) throw new Error('Invalid sketch file — missing nodes or segments.');
+          get().saveSnapshot();
           set({
               nodes: data.nodes,
               segments: data.segments,
@@ -165,20 +236,20 @@ export const useSketchStore = create((set, get) => ({
   },
 
   // Centralized interaction handler for the canvas
-  handleInteractionClick: (ePoint, targetNodeId, isShiftHeld, isAltHeld) => {
+  handleInteractionClick: (ePoint, targetNodeId, shiftKey, isAltHeld) => {
       const state = get();
       const { activeTool, draftingState, resolve3DPoint, createNode, createSegment, setSelectedNodeId, updateNode, nodes } = state;
 
       let targetId = null;
       let pt3D;
 
-      if (targetNodeId && nodes[targetNodeId] && !isShiftHeld) {
+      if (targetNodeId && nodes[targetNodeId] && !shiftKey) {
           // Snapped to an existing node
           targetId = targetNodeId;
           pt3D = nodes[targetNodeId].pos;
       } else {
           // Free space click
-          if ((isShiftHeld || isAltHeld) && draftingState.isDrawing && draftingState.currentPos) {
+          if ((shiftKey || isAltHeld) && draftingState.isDrawing && draftingState.currentPos) {
               if (isAltHeld) {
                   pt3D = [
                       state.snapCoordinate(draftingState.currentPos.x),
@@ -186,7 +257,31 @@ export const useSketchStore = create((set, get) => ({
                       state.snapCoordinate(draftingState.currentPos.z)
                   ];
               } else {
-                  pt3D = resolve3DPoint(draftingState.currentPos);
+                  pt3D = resolve3DPoint(ePoint);
+
+                  if (shiftKey && state.draftingState.currentPos) {
+                      const start = resolve3DPoint(state.draftingState.currentPos);
+                      if (start) {
+                          let dx = 0, dy = 0;
+
+                          if (state.workingPlane === 'XY') {
+                              dx = Math.abs(pt3D[0] - start[0]);
+                              dy = Math.abs(pt3D[1] - start[1]);
+                              if (dx > dy) pt3D[1] = start[1];
+                              else pt3D[0] = start[0];
+                          } else if (state.workingPlane === 'XZ') {
+                              dx = Math.abs(pt3D[0] - start[0]);
+                              dy = Math.abs(pt3D[2] - start[2]);
+                              if (dx > dy) pt3D[2] = start[2];
+                              else pt3D[0] = start[0];
+                          } else if (state.workingPlane === 'YZ') {
+                              dx = Math.abs(pt3D[1] - start[1]);
+                              dy = Math.abs(pt3D[2] - start[2]);
+                              if (dx > dy) pt3D[2] = start[2];
+                              else pt3D[1] = start[1];
+                          }
+                      }
+                  }
               }
           } else {
               pt3D = resolve3DPoint(ePoint);

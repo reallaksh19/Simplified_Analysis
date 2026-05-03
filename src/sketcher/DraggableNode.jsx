@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useSketchStore } from './SketcherStore';
 import * as THREE from 'three';
@@ -18,6 +18,7 @@ export const DraggableNode = ({ id, node, is3D }) => {
     const isSelected = selectedItems.nodes.includes(id) || selectedNodeId === id;
 
     const [isDragging, setIsDragging] = useState(false);
+    const dragStartPos = useRef(null);
 
     const onPointerDown = (e) => {
         if (is3D) return;
@@ -26,6 +27,8 @@ export const DraggableNode = ({ id, node, is3D }) => {
         if (activeTool === 'select') {
             setSelectedNodeId(id);
             setIsDragging(true);
+            dragStartPos.current = [...node.pos];
+            useSketchStore.getState().saveSnapshot();
             e.target.setPointerCapture(e.pointerId);
         } else {
             // Forward interaction click to store for drafting/anchor tools
@@ -71,7 +74,28 @@ export const DraggableNode = ({ id, node, is3D }) => {
             newPos[2] = vec.z;
         }
 
-        updateNode(id, { pos: newPos });
+        if (e.shiftKey && dragStartPos.current) {
+            const start = dragStartPos.current;
+            let dx = 0, dy = 0;
+            if (workingPlane === 'XY') {
+                dx = Math.abs(newPos[0] - start[0]);
+                dy = Math.abs(newPos[1] - start[1]);
+                if (dx > dy) newPos[1] = start[1];
+                else newPos[0] = start[0];
+            } else if (workingPlane === 'XZ') {
+                dx = Math.abs(newPos[0] - start[0]);
+                dy = Math.abs(newPos[2] - start[2]);
+                if (dx > dy) newPos[2] = start[2];
+                else newPos[0] = start[0];
+            } else if (workingPlane === 'YZ') {
+                dx = Math.abs(newPos[1] - start[1]);
+                dy = Math.abs(newPos[2] - start[2]);
+                if (dx > dy) newPos[2] = start[2];
+                else newPos[1] = start[1];
+            }
+        }
+
+        updateNode(id, { pos: newPos }, true);
     };
 
     const isAnchor = node.type === 'anchor';
