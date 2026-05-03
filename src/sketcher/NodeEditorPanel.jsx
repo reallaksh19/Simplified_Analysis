@@ -75,6 +75,9 @@ export const NodeEditorPanel = () => {
                         <option value="fitting">Fitting (legacy)</option>
                         <option value="elbow">Elbow (needs 2 pipes)</option>
                         <option value="tee">Tee (needs 3 pipes)</option>
+                        <option value="valve">Valve</option>
+                        <option value="flange">Flange</option>
+                        <option value="reducer">Reducer</option>
                     </select>
                     {node.type === 'elbow' && connCount < 2 && (
                         <div style={{ fontSize: '10px', color: '#f59e0b', marginTop: '4px' }}>⚠ Connect 2 pipe segments to this node for the elbow to render.</div>

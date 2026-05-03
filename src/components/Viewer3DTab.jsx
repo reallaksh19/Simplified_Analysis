@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Activity } from 'lucide-react';
 import { useAnalysisStore } from '../3d-analysis';
 import { useAppStore } from '../store/appStore';
-import { PcfViewer3D } from '../utils/viewer3d';
+import { PcfViewer3D, setClippingBounds, clippingPlanes } from '../utils/viewer3d';
 import { parsePcfWithDiagnostics } from '../pcf/pcfParser';
 import { serializePcf } from '../pcf/pcfSerializer';
 import { log } from '../utils/logger';
@@ -19,6 +19,8 @@ export const Viewer3DTab = () => {
   const setProcessingStage = useAppStore(state => state.setProcessingStage);
   const canonicalGeometry = useAppStore(state => state.canonicalGeometry);
   const geometryDiagnostics = useAppStore(state => state.geometryDiagnostics);
+
+  const [clipBounds, setClipBounds] = React.useState({ minX: -10000, maxX: 10000, minY: -10000, maxY: 10000, minZ: -10000, maxZ: 10000 });
 
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
@@ -178,6 +180,30 @@ export const Viewer3DTab = () => {
               placeholder="Paste PCF content here, or click 📂 to open a file..."
               className="absolute inset-0 w-full h-full bg-transparent text-[#21808e] font-mono text-[11px] leading-tight p-3 outline-none resize-none custom-scrollbar whitespace-pre"
             />
+          </div>
+
+          <div className="p-2 border-t border-slate-200 bg-[#f8fafc] flex flex-col gap-2">
+            <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Section Box</div>
+            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
+              <label className="flex flex-col">Min X: {clipBounds.minX}
+                <input type="range" min="-10000" max="10000" value={clipBounds.minX} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, minX: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+              <label className="flex flex-col">Max X: {clipBounds.maxX}
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxX} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, maxX: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+              <label className="flex flex-col">Min Y: {clipBounds.minY}
+                <input type="range" min="-10000" max="10000" value={clipBounds.minY} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, minY: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+              <label className="flex flex-col">Max Y: {clipBounds.maxY}
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxY} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, maxY: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+              <label className="flex flex-col">Min Z: {clipBounds.minZ}
+                <input type="range" min="-10000" max="10000" value={clipBounds.minZ} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, minZ: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+              <label className="flex flex-col">Max Z: {clipBounds.maxZ}
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxZ} onChange={e => { const val = Number(e.target.value); setClipBounds(prev => { const nb = {...prev, maxZ: val}; setClippingBounds(nb.minX, nb.maxX, nb.minY, nb.maxY, nb.minZ, nb.maxZ); return nb; }) }} />
+              </label>
+            </div>
           </div>
 
           <div className="p-2 border-t border-slate-200 flex items-center bg-[#f8fafc]">
