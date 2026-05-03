@@ -47,7 +47,7 @@ export const buildGraphFromComponents = (components) => {
     };
 
     // Filter to only structural piping components for now
-    const structuralComps = components.filter(c => ['PIPE', 'ELBOW', 'BEND', 'TEE'].includes(c.type));
+    const structuralComps = components.filter(c => ['PIPE', 'ELBOW', 'BEND', 'TEE', 'VALVE', 'FLANGE', 'REDUCER'].includes(c.type));
 
     structuralComps.forEach(comp => {
         if (!comp.points || !Array.isArray(comp.points) || comp.points.length < 2) {
@@ -79,7 +79,19 @@ export const buildGraphFromComponents = (components) => {
             return;
         }
 
-        if (comp.type === 'PIPE') {
+        if (['VALVE', 'FLANGE', 'REDUCER'].includes(comp.type)) {
+            const midpoint = {
+                x: (comp.points[0].x + comp.points[1].x) / 2,
+                y: (comp.points[0].y + comp.points[1].y) / 2,
+                z: (comp.points[0].z + comp.points[1].z) / 2,
+            };
+            const midId = findOrAddNode(midpoint);
+            nodes[midId].type = comp.type.toLowerCase();
+
+            // Connect weld points to midpoint
+            segments.push({ id: `${comp.id}-in`, startNode: startId, endNode: midId, properties: { type: 'PIPE', bore: comp.bore } });
+            segments.push({ id: `${comp.id}-out`, startNode: midId, endNode: endId, properties: { type: 'PIPE', bore: comp.bore } });
+        } else if (comp.type === 'PIPE') {
             segments.push({
                 id: comp.id || `S${String(segCounter++).padStart(3, '0')}`,
                 startNode: startId,
@@ -94,6 +106,53 @@ export const buildGraphFromComponents = (components) => {
             // Upgrade nodes if they are fittings
             nodes[startId].type = 'fitting';
             nodes[endId].type = 'fitting';
+
+            if (!comp.centrePoint) {
+                const pt1 = comp.points[0];
+                const pt2 = comp.points[1];
+
+                const pipe1 = components.find(c => c.type === 'PIPE' && (distance(c.points[0], pt1) < 1 || distance(c.points[1], pt1) < 1));
+                const pipe2 = components.find(c => c.type === 'PIPE' && (distance(c.points[0], pt2) < 1 || distance(c.points[1], pt2) < 1));
+
+                let calculatedCenter = null;
+                if (pipe1 && pipe2) {
+                    const p1 = pipe1.points[0];
+                    const p2 = pipe1.points[1];
+                    const p3 = pipe2.points[0];
+                    const p4 = pipe2.points[1];
+
+                    const v1 = { x: p2.x - p1.x, y: p2.y - p1.y, z: p2.z - p1.z };
+                    const v2 = { x: p4.x - p3.x, y: p4.y - p3.y, z: p4.z - p3.z };
+
+                    const cross = {
+                        x: v1.y * v2.z - v1.z * v2.y,
+                        y: v1.z * v2.x - v1.x * v2.z,
+                        z: v1.x * v2.y - v1.y * v2.x
+                    };
+
+                    const crossMagSq = cross.x * cross.x + cross.y * cross.y + cross.z * cross.z;
+
+                    if (crossMagSq >= 1e-6) {
+                        const t = { x: p3.x - p1.x, y: p3.y - p1.y, z: p3.z - p1.z };
+                        const tCrossV2 = {
+                            x: t.y * v2.z - t.z * v2.y,
+                            y: t.z * v2.x - t.x * v2.z,
+                            z: t.x * v2.y - t.y * v2.x
+                        };
+                        const s = (tCrossV2.x * cross.x + tCrossV2.y * cross.y + tCrossV2.z * cross.z) / crossMagSq;
+                        calculatedCenter = {
+                            x: p1.x + v1.x * s,
+                            y: p1.y + v1.y * s,
+                            z: p1.z + v1.z * s
+                        };
+                    }
+                }
+
+                if (!calculatedCenter) {
+                    calculatedCenter = { x: (pt1.x + pt2.x)/2, y: (pt1.y + pt2.y)/2, z: (pt1.z + pt2.z)/2 };
+                }
+                comp.centrePoint = calculatedCenter;
+            }
 
             if (comp.centrePoint) {
                  const centerId = findOrAddNode(comp.centrePoint);

@@ -9,6 +9,24 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+export const clippingPlanes = [
+    new THREE.Plane(new THREE.Vector3( 1,  0,  0), 10000), // MinX
+    new THREE.Plane(new THREE.Vector3(-1,  0,  0), 10000), // MaxX
+    new THREE.Plane(new THREE.Vector3( 0,  1,  0), 10000), // MinY
+    new THREE.Plane(new THREE.Vector3( 0, -1,  0), 10000), // MaxY
+    new THREE.Plane(new THREE.Vector3( 0,  0,  1), 10000), // MinZ
+    new THREE.Plane(new THREE.Vector3( 0,  0, -1), 10000)  // MaxZ
+];
+
+export function setClippingBounds(minX, maxX, minY, maxY, minZ, maxZ) {
+    clippingPlanes[0].constant = -minX;
+    clippingPlanes[1].constant = maxX;
+    clippingPlanes[2].constant = -minY;
+    clippingPlanes[3].constant = maxY;
+    clippingPlanes[4].constant = -minZ;
+    clippingPlanes[5].constant = maxZ;
+}
+
 // ── Color palette ──────────────────────────────────────────────────
 const COLORS = {
     PIPE: 0x1e90ff,  // Dodger Blue
@@ -42,7 +60,7 @@ function createCylinder(startVec, endVec, radius, color) {
     const quat = new THREE.Quaternion().setFromUnitVectors(axis, diff.clone().normalize());
 
     const geo = new THREE.CylinderGeometry(radius, radius, length, 16);
-    const mat = new THREE.MeshStandardMaterial({ color });
+    const mat = new THREE.MeshStandardMaterial({ color, clippingPlanes });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(mid);
     mesh.quaternion.copy(quat);
@@ -52,7 +70,7 @@ function createCylinder(startVec, endVec, radius, color) {
 // ── Disc (flat cylinder) helper ────────────────────────────────────
 function createDisc(pos, normal, outerRadius, thickness, color) {
     const geo = new THREE.CylinderGeometry(outerRadius, outerRadius, thickness, 20);
-    const mat = new THREE.MeshStandardMaterial({ color });
+    const mat = new THREE.MeshStandardMaterial({ color, clippingPlanes });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(pos);
     // Align cylinder Y-axis to normal
@@ -63,7 +81,7 @@ function createDisc(pos, normal, outerRadius, thickness, color) {
 
 function createSphere(pos, radius, color) {
     const geo = new THREE.SphereGeometry(radius, 16, 16);
-    const mat = new THREE.MeshStandardMaterial({ color });
+    const mat = new THREE.MeshStandardMaterial({ color, clippingPlanes });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(pos);
     return mesh;
@@ -73,8 +91,8 @@ function createSphere(pos, radius, color) {
 function createBox(pos, hw, color, wireframe = false) {
     const geo = new THREE.BoxGeometry(hw, hw, hw);
     const mat = wireframe
-        ? new THREE.MeshBasicMaterial({ color, wireframe: true })
-        : new THREE.MeshStandardMaterial({ color });
+        ? new THREE.MeshBasicMaterial({ color, wireframe: true, clippingPlanes })
+        : new THREE.MeshStandardMaterial({ color, clippingPlanes });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(pos);
     return mesh;
@@ -126,6 +144,7 @@ export class PcfViewer3D {
 
         // Renderer
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.localClippingEnabled = true;
         this.renderer.setSize(w, h);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
