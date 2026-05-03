@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Activity } from 'lucide-react';
 import { useAnalysisStore } from '../3d-analysis';
 import { useAppStore } from '../store/appStore';
-import { PcfViewer3D } from '../utils/viewer3d';
+import { PcfViewer3D, setClippingBounds } from '../utils/viewer3d';
 import { parsePcfWithDiagnostics } from '../pcf/pcfParser';
 import { serializePcf } from '../pcf/pcfSerializer';
 import { log } from '../utils/logger';
@@ -21,6 +21,23 @@ export const Viewer3DTab = () => {
   const geometryDiagnostics = useAppStore(state => state.geometryDiagnostics);
 
   const containerRef = useRef(null);
+
+  const [clipBounds, setClipBounds] = React.useState({
+    minX: -10000, maxX: 10000,
+    minY: -10000, maxY: 10000,
+    minZ: -10000, maxZ: 10000
+  });
+
+  const handleClipChange = (axis, isMin, value) => {
+    const num = Number(value);
+    setClipBounds(prev => {
+      const next = { ...prev };
+      next[isMin ? `min${axis}` : `max${axis}`] = num;
+      setClippingBounds(next.minX, next.maxX, next.minY, next.maxY, next.minZ, next.maxZ);
+      return next;
+    });
+  };
+
   const viewerRef = useRef(null);
 
   // Status for selected geometry
@@ -178,6 +195,32 @@ export const Viewer3DTab = () => {
               placeholder="Paste PCF content here, or click 📂 to open a file..."
               className="absolute inset-0 w-full h-full bg-transparent text-[#21808e] font-mono text-[11px] leading-tight p-3 outline-none resize-none custom-scrollbar whitespace-pre"
             />
+          </div>
+
+
+          {/* Section Box Panel */}
+          <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-600">
+            <div className="font-bold mb-1">Section Box</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between"><span>X Min:</span> <span>{clipBounds.minX}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.minX} onChange={(e) => handleClipChange('X', true, e.target.value)} />
+                <div className="flex justify-between"><span>X Max:</span> <span>{clipBounds.maxX}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxX} onChange={(e) => handleClipChange('X', false, e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between"><span>Y Min:</span> <span>{clipBounds.minY}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.minY} onChange={(e) => handleClipChange('Y', true, e.target.value)} />
+                <div className="flex justify-between"><span>Y Max:</span> <span>{clipBounds.maxY}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxY} onChange={(e) => handleClipChange('Y', false, e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between"><span>Z Min:</span> <span>{clipBounds.minZ}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.minZ} onChange={(e) => handleClipChange('Z', true, e.target.value)} />
+                <div className="flex justify-between"><span>Z Max:</span> <span>{clipBounds.maxZ}</span></div>
+                <input type="range" min="-10000" max="10000" value={clipBounds.maxZ} onChange={(e) => handleClipChange('Z', false, e.target.value)} />
+              </div>
+            </div>
           </div>
 
           <div className="p-2 border-t border-slate-200 flex items-center bg-[#f8fafc]">

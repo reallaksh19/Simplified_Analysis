@@ -73,6 +73,9 @@ export const NodeEditorPanel = () => {
                         <option value="support">Resting Support (+Y)</option>
                         <option value="guide">Directional Guide</option>
                         <option value="fitting">Fitting (legacy)</option>
+                        <option value="valve">Valve</option>
+                        <option value="flange">Flange</option>
+                        <option value="reducer">Reducer</option>
                         <option value="elbow">Elbow (needs 2 pipes)</option>
                         <option value="tee">Tee (needs 3 pipes)</option>
                     </select>
