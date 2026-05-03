@@ -295,11 +295,11 @@ export const useAnalysisStore = create((set, get) => ({
 
     set({
         activeSolver: 'GC3D',
-        legResults: result.legResults,
-        nodeResults: result.nodeResults,
-        criticalNode: result.criticalNode,
-        overallResult: result.overallResult,
-        debugLog: [...get().debugLog, ...result.debugLog]
+        legResults: result.results?.legResults || [],
+        nodeResults: result.results?.nodeResults || [],
+        criticalNode: result.results?.criticalNode || null,
+        overallResult: result.results?.overallResult || null,
+        debugLog: [...get().debugLog, ...(result.results?.debugLog || [])]
     });
   },
 
@@ -440,6 +440,50 @@ export const useAnalysisStore = create((set, get) => ({
      get().runAnalysis();
   },
 
+  splitSegment: (segId, ratio) => {
+    const state = get();
+    const segIdx = state.segments.findIndex(s => s.id === segId);
+    if (segIdx === -1) return;
+
+    const seg = state.segments[segIdx];
+    const n1 = state.nodes[seg.startNode];
+    const n2 = state.nodes[seg.endNode];
+
+    // Linear Interpolation
+    const newPos = [
+        n1.pos[0] + (n2.pos[0] - n1.pos[0]) * ratio,
+        n1.pos[1] + (n2.pos[1] - n1.pos[1]) * ratio,
+        n1.pos[2] + (n2.pos[2] - n1.pos[2]) * ratio,
+    ];
+
+    const newNodeId = `N_${Date.now()}`;
+    const newSeg1Id = `S_${Date.now()}_1`;
+    const newSeg2Id = `S_${Date.now()}_2`;
+
+    const newNodes = { ...state.nodes, [newNodeId]: { pos: newPos, type: 'free' } };
+
+    const newSegments = [...state.segments];
+    newSegments.splice(segIdx, 1); // Remove old segment
+
+    // Push new segments (preserving OD, WT, Material, etc.)
+    newSegments.push({ ...seg, id: newSeg1Id, endNode: newNodeId, length_in: seg.length_in * ratio });
+    newSegments.push({ ...seg, id: newSeg2Id, startNode: newNodeId, length_in: seg.length_in * (1 - ratio) });
+
+    set({ nodes: newNodes, segments: newSegments });
+    get().runAnalysis();
+  },
+
+  deleteNode: (nodeId) => {
+    const state = get();
+    const newNodes = { ...state.nodes };
+    delete newNodes[nodeId];
+
+    const newSegments = state.segments.filter(s => s.startNode !== nodeId && s.endNode !== nodeId);
+
+    set({ nodes: newNodes, segments: newSegments });
+    get().runAnalysis();
+  },
+
   // Import directly from the Sketcher graph (nodes: {id: {pos, type}}, segments: [{id, startNode, endNode, properties}], settings: { designTemperature })
   importFromSketcher: (sketchNodes, sketchSegments, sketchSettings = {}) => {
       const nodes = {};
@@ -531,10 +575,8 @@ export const useAnalysisStore = create((set, get) => ({
 }));
 
 // PLACEHOLDERS
-export function splitSegment(segId, ratio) { console.warn('[GC3D] PLACEHOLDER: splitSegment() called but not implemented'); return null; }
 export function joinSegments(segId1, segId2) { console.warn('[GC3D] PLACEHOLDER: joinSegments() called but not implemented'); return null; }
 export function addNode(pos, type) { console.warn('[GC3D] PLACEHOLDER: addNode() called but not implemented'); return null; }
-export function deleteNode(nodeId) { console.warn('[GC3D] PLACEHOLDER: deleteNode() called but not implemented'); return null; }
 export function editProperty(segId, propName, newValue) { console.warn('[GC3D] PLACEHOLDER: editProperty() called but not implemented'); return null; }
 export function exportToCAESAR(format) { console.warn('[GC3D] PLACEHOLDER: exportToCAESAR() called but not implemented'); return null; }
 export function importFromCSV(csvText) { console.warn('[GC3D] PLACEHOLDER: importFromCSV() called but not implemented'); return null; }

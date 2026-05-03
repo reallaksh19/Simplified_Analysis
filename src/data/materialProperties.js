@@ -78,17 +78,14 @@ export const materialPropertyTable = {
   },
   GRE_FRP_PLACEHOLDER: {
     materialId: 'GRE_FRP_PLACEHOLDER',
-    displayName: 'GRE / FRP placeholder',
-    aliases: ['GRE', 'FRP'],
-    group: 'Non-metallic',
-    temperatureUnit: 'F',
-    validTemperatureRange_F: [0, 0],
-    elasticModulusByTemperature_psi: {},
-    thermalExpansionByTemperature_in_in_F: {},
-    allowableStressBasis: 'NOT_QUALIFIED: requires dedicated vendor/design method',
-    source: 'Placeholder only',
-    sourceRevision: 'N/A',
-    dataStatus: 'NOT_QUALIFIED'
+    name: 'Glass-Reinforced Epoxy (GRE)',
+    isAnisotropic: true,
+    E_axial_psi: 2000000,
+    E_hoop_psi: 3000000,
+    Sa_axial_psi: 15000,
+    Sa_hoop_psi: 20000,
+    alpha_in_in_F: 0.000012,
+    density_lb_in3: 0.065
   }
 };
 

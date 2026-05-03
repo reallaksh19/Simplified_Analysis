@@ -186,16 +186,66 @@ export function solveGC3D(payload) {
       return legSeg && (legSeg.startNode === nodeId || legSeg.endNode === nodeId);
     });
 
-    const combined = combineStressAtNode(connectedLegs.map((leg) => leg.Sb_psi || 0));
-    const { ratio, result } = stressCheck(combined, SA);
+    // Check if the node connects to an anisotropic material
+    let isAnisotropic = false;
+    let materialProps = null;
+    let nodeS_axial = 0;
+    let nodeS_hoop = 0;
 
-    if (ratio > maxRatio) {
-      maxRatio = ratio;
-      critical = nodeId;
+    for (const leg of connectedLegs) {
+      const seg = segments.find(s => s.id === leg.legId);
+      if (seg && seg.materialProps && seg.materialProps.isAnisotropic) {
+        isAnisotropic = true;
+        materialProps = seg.materialProps;
+      }
     }
-    if (result === 'FAIL') overallResult = 'FAIL';
 
-    nodeResults.push({ nodeId, SE_psi: combined, SA_psi: SA, ratio, result });
+    if (payload.params && payload.params.material && payload.params.material.isAnisotropic) {
+       isAnisotropic = true;
+       materialProps = payload.params.material;
+    }
+
+    const combined = combineStressAtNode(connectedLegs.map((leg) => leg.Sb_psi || 0));
+
+    let ratio, result;
+
+    if (isAnisotropic && materialProps) {
+      // From instructions: bypass standard Tresca logic.
+      // Compute Ratio_Axial = S_axial / Sa_axial and Ratio_Hoop = S_hoop / Sa_hoop
+      // S_axial and S_hoop are assumed to be provided in payload or extracted from inputs.
+      const S_axial = payload.params?.S_axial || combined;
+      const S_hoop = payload.params?.S_hoop || 0;
+
+      const ratioAxial = S_axial / materialProps.Sa_axial_psi;
+      const ratioHoop = S_hoop / materialProps.Sa_hoop_psi;
+      const controllingRatio = Math.max(ratioAxial, ratioHoop);
+
+      ratio = controllingRatio;
+      result = ratio > 1.0 ? 'FAIL' : (ratio > 0.95 ? 'MARGINAL' : 'PASS');
+
+      if (ratio > maxRatio) {
+        maxRatio = controllingRatio;
+        critical = nodeId;
+        if (!formulaTrace.some(t => t.name === 'Anisotropic Independent Stress Check')) {
+          formulaTrace.push({ name: 'Anisotropic Independent Stress Check', expression: 'max(S_axial/Sa_axial, S_hoop/Sa_hoop)', values: { S_axial, S_hoop, Sa_axial: materialProps.Sa_axial_psi, Sa_hoop: materialProps.Sa_hoop_psi } });
+        }
+      }
+
+      nodeResults.push({ nodeId, SE_psi: Math.max(S_axial, S_hoop), SA_psi: Math.min(materialProps.Sa_axial_psi, materialProps.Sa_hoop_psi), ratio, result, S_axial, S_hoop });
+    } else {
+      const res = stressCheck(combined, SA);
+      ratio = res.ratio;
+      result = res.result;
+
+      if (ratio > maxRatio) {
+        maxRatio = ratio;
+        critical = nodeId;
+      }
+
+      nodeResults.push({ nodeId, SE_psi: combined, SA_psi: SA, ratio, result });
+    }
+
+    if (result === 'FAIL') overallResult = 'FAIL';
   });
 
   if (!hasAnchors) warnings.push('Missing anchor nodes in geometry.');
