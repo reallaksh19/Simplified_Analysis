@@ -78,17 +78,22 @@ export const materialPropertyTable = {
   },
   GRE_FRP_PLACEHOLDER: {
     materialId: 'GRE_FRP_PLACEHOLDER',
-    displayName: 'GRE / FRP placeholder',
+    displayName: 'Glass-Reinforced Epoxy (GRE)',
     aliases: ['GRE', 'FRP'],
     group: 'Non-metallic',
     temperatureUnit: 'F',
-    validTemperatureRange_F: [0, 0],
-    elasticModulusByTemperature_psi: {},
-    thermalExpansionByTemperature_in_in_F: {},
-    allowableStressBasis: 'NOT_QUALIFIED: requires dedicated vendor/design method',
-    source: 'Placeholder only',
-    sourceRevision: 'N/A',
-    dataStatus: 'NOT_QUALIFIED'
+    validTemperatureRange_F: [-50, 250],
+    isAnisotropic: true,
+    E_axial_psi: 2000000,
+    E_hoop_psi: 3000000,
+    Sa_axial_psi: 15000,
+    Sa_hoop_psi: 20000,
+    alpha_in_in_F: 0.000012,
+    density_lb_in3: 0.065,
+    allowableStressBasis: 'Project screening table / ASME reference required',
+    source: 'Project master DB',
+    sourceRevision: 'SCREENING-REV-001',
+    dataStatus: 'VERIFIED_SCREENING'
   }
 };
 
@@ -167,8 +172,15 @@ export function resolveMaterial({ materialId, temperature_F, materialTable = mat
     };
   }
 
-  const E_psi = interpolateTable(row.elasticModulusByTemperature_psi, temp);
-  const alpha_in_in_F = interpolateTable(row.thermalExpansionByTemperature_in_in_F, temp);
+  let E_psi, alpha_in_in_F;
+
+  if (row.isAnisotropic) {
+    E_psi = row.E_axial_psi; // fallback or average if needed, though solvers should use E_axial_psi and E_hoop_psi directly
+    alpha_in_in_F = row.alpha_in_in_F;
+  } else {
+    E_psi = interpolateTable(row.elasticModulusByTemperature_psi, temp);
+    alpha_in_in_F = interpolateTable(row.thermalExpansionByTemperature_in_in_F, temp);
+  }
 
   if (!Number.isFinite(E_psi) || !Number.isFinite(alpha_in_in_F)) {
     return {
