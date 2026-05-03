@@ -13,6 +13,7 @@ import { SettingsTab } from './settings/SettingsTab';
 import { DiagnosticsTab } from './components/DiagnosticsTab';
 import { BenchmarksValidationTab } from './components/BenchmarksValidationTab';
 import PipeRackTab from './piperack/components/PipeRackTab';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   const activeTab = useAppStore(state => state.activeTab);
@@ -26,16 +27,18 @@ function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', background: '#0f172a' }}>
       <TopNav />
 
-      {activeTab === 'home' && <Viewer3DTab />}
-      {activeTab === 'pcf' && <DataTableTab />}
-      {activeTab === 'sketcher' && <SketcherTab />}
-      {activeTab === 'simpAnalysis' && <CalcExtendedTab />}
-      {activeTab === '3d-analysis' && <AnalysisTab />}
-      {activeTab === 'reports' && <ReportsTab />}
-      {activeTab === 'benchmarks' && <BenchmarksValidationTab />}
-      {activeTab === 'settings' && <SettingsTab />}
-      {activeTab === 'diagnostics' && <DiagnosticsTab />}
-</div>
+      <ErrorBoundary>
+        {activeTab === 'home' && <Viewer3DTab />}
+        {activeTab === 'pcf' && <DataTableTab />}
+        {activeTab === 'sketcher' && <SketcherTab />}
+        {activeTab === 'simpAnalysis' && <CalcExtendedTab />}
+        {activeTab === '3d-analysis' && <AnalysisTab />}
+        {activeTab === 'reports' && <ReportsTab />}
+        {activeTab === 'benchmarks' && <BenchmarksValidationTab />}
+        {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'diagnostics' && <DiagnosticsTab />}
+      </ErrorBoundary>
+    </div>
   );
 }
 
