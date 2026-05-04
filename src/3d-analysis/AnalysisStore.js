@@ -562,14 +562,14 @@ export const useAnalysisStore = create((set, get) => ({
       });
 
       // Apply global settings (Design Temperature)
-      const currentConfig = get().config;
+      const currentParams = { ...get().params };
       if (sketchSettings.designTemperature) {
-          currentConfig.params.deltaT_F = sketchSettings.designTemperature; // Approximation: assuming ambient is 0 for simplicity, or we just override the parameter. Usually deltaT is Design Temp - 70F.
+          currentParams.deltaT_F = sketchSettings.designTemperature; // Approximation: assuming ambient is 0 for simplicity, or we just override the parameter. Usually deltaT is Design Temp - 70F.
           // Let's set deltaT to Design Temp - 70
-          currentConfig.params.deltaT_F = sketchSettings.designTemperature - 70;
+          currentParams.deltaT_F = sketchSettings.designTemperature - 70;
       }
 
-      set({ nodes, segments, fittingData, config: currentConfig });
+      set({ nodes, segments, fittingData, params: currentParams });
       get().runAnalysis();
   },
 

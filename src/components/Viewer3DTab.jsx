@@ -27,9 +27,9 @@ export const Viewer3DTab = () => {
   // Section Box State
   const [showSectionBox, setShowSectionBox] = React.useState(false);
   const [clipBounds, setClipBounds] = React.useState({
-    minX: -10000, maxX: 10000,
-    minY: -10000, maxY: 10000,
-    minZ: -10000, maxZ: 10000
+    minX: -1000000, maxX: 1000000,
+    minY: -1000000, maxY: 1000000,
+    minZ: -1000000, maxZ: 1000000
   });
 
   // Status for selected geometry
@@ -336,27 +336,27 @@ export const Viewer3DTab = () => {
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-slate-600"><span>Min X: {clipBounds.minX}</span><span>Max X: {clipBounds.maxX}</span></div>
                   <div className="flex gap-2">
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minX} onChange={e => handleClipChange('minX', e.target.value)} className="w-1/2" />
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxX} onChange={e => handleClipChange('maxX', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.minX} onChange={e => handleClipChange('minX', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.maxX} onChange={e => handleClipChange('maxX', e.target.value)} className="w-1/2" />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-slate-600"><span>Min Y: {clipBounds.minY}</span><span>Max Y: {clipBounds.maxY}</span></div>
                   <div className="flex gap-2">
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minY} onChange={e => handleClipChange('minY', e.target.value)} className="w-1/2" />
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxY} onChange={e => handleClipChange('maxY', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.minY} onChange={e => handleClipChange('minY', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.maxY} onChange={e => handleClipChange('maxY', e.target.value)} className="w-1/2" />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-slate-600"><span>Min Z: {clipBounds.minZ}</span><span>Max Z: {clipBounds.maxZ}</span></div>
                   <div className="flex gap-2">
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.minZ} onChange={e => handleClipChange('minZ', e.target.value)} className="w-1/2" />
-                    <input type="range" min="-10000" max="10000" step="10" value={clipBounds.maxZ} onChange={e => handleClipChange('maxZ', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.minZ} onChange={e => handleClipChange('minZ', e.target.value)} className="w-1/2" />
+                    <input type="range" min="-1000000" max="1000000" step="10" value={clipBounds.maxZ} onChange={e => handleClipChange('maxZ', e.target.value)} className="w-1/2" />
                   </div>
                 </div>
                 <button
                   className="mt-2 w-full py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded transition-colors"
-                  onClick={() => setClipBounds({ minX: -10000, maxX: 10000, minY: -10000, maxY: 10000, minZ: -10000, maxZ: 10000 })}
+                  onClick={() => setClipBounds({ minX: -1000000, maxX: 1000000, minY: -1000000, maxY: 1000000, minZ: -1000000, maxZ: 1000000 })}
                 >
                   Reset Bounds
                 </button>
