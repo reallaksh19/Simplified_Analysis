@@ -5,17 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 // Inject build timestamp for VersionBadge component
 const buildTime = new Date().toISOString();
 
-const getBasePath = () => {
-  if (process.env.GITHUB_REPOSITORY) {
-    const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
-    return `/${repo}/`;
-  }
-  return '/Simplified_Analysis/';
-};
-
 // https://vite.dev/config/
 export default defineConfig({
-  base: getBasePath(),
+  base: '/Simplified_Analysis/',
   plugins: [react(), tailwindcss()],
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
