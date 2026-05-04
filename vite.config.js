@@ -10,7 +10,7 @@ const getBasePath = () => {
     const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
     return `/${repo}/`;
   }
-  return '/';
+  return '/Simplified_Analysis/';
 };
 
 // https://vite.dev/config/
