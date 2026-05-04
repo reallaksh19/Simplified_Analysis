@@ -10,12 +10,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export const clippingPlanes = [
-    new THREE.Plane(new THREE.Vector3( 1,  0,  0), 10000), // MinX
-    new THREE.Plane(new THREE.Vector3(-1,  0,  0), 10000), // MaxX
-    new THREE.Plane(new THREE.Vector3( 0,  1,  0), 10000), // MinY
-    new THREE.Plane(new THREE.Vector3( 0, -1,  0), 10000), // MaxY
-    new THREE.Plane(new THREE.Vector3( 0,  0,  1), 10000), // MinZ
-    new THREE.Plane(new THREE.Vector3( 0,  0, -1), 10000)  // MaxZ
+    new THREE.Plane(new THREE.Vector3( 1,  0,  0), 1000000), // MinX
+    new THREE.Plane(new THREE.Vector3(-1,  0,  0), 1000000), // MaxX
+    new THREE.Plane(new THREE.Vector3( 0,  1,  0), 1000000), // MinY
+    new THREE.Plane(new THREE.Vector3( 0, -1,  0), 1000000), // MaxY
+    new THREE.Plane(new THREE.Vector3( 0,  0,  1), 1000000), // MinZ
+    new THREE.Plane(new THREE.Vector3( 0,  0, -1), 1000000)  // MaxZ
 ];
 
 export function setClippingBounds(minX, maxX, minY, maxY, minZ, maxZ) {
@@ -180,7 +180,7 @@ export class PcfViewer3D {
         this.scene.add(dir);
 
         // Grid + Axes
-        const grid = new THREE.GridHelper(10000, 20, 0x3a4255, 0x252a3a);
+        const grid = new THREE.GridHelper(1000000, 20, 0x3a4255, 0x252a3a);
         grid.position.y = -500;
         this.scene.add(grid);
 
