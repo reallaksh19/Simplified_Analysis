@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { getSIFData } from './GC3DSIFEngine.js';
-import { getMaterialProperties } from '../utils/materialUtils.js';
+import { getSIFData } from './GC3DSIFEngine';
+import { getMaterialProperties } from '../utils/materialUtils';
 import { solveGC3D } from '../solvers/3d/solveGC3D.js';
 
 export const useAnalysisStore = create((set, get) => ({
