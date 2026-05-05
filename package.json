@@ -17,11 +17,12 @@
     "check:registry": "node scripts/validate-module-registry.mjs",
     "check:syntax": "node scripts/syntax-check.mjs",
     "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
+    "check:u0": "node scripts/u0-certification-check.mjs",
     "check:smoke": "node scripts/smoke-check.mjs",
     "check:full": "node scripts/full-check.mjs",
     "check:qa": "node scripts/qa-check.mjs",
     "check:e2e": "playwright test",
-    "ci:u0": "npm run check:full && npm run check:qa && npm run build"
+    "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
