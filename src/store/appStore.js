@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { pcfToCanonicalGeometry } from '../core/geometry/adapters/pcfToCanonicalGeometry';
+import { DEFAULT_ENGINEERING_SETTINGS } from '../data/engineeringDefaults/defaults';
+import { resolveEngineeringSettings } from '../core/settings/resolveEngineeringSettings';
 
 const emptyCanonicalGeometry = Object.freeze({
   schemaVersion: 'canonical-geometry-v1',
@@ -57,37 +59,47 @@ export const useAppStore = create((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
 
 
-  engineeringDefaults: {
-    projectUnitSystem: 'imperial',
-    defaultLengthUnit: 'ft',
-    defaultForceUnit: 'lbf',
-    defaultStressUnit: 'psi',
-    pipeDataSource: 'internal-screening-db',
-    materialDataSource: 'internal-screening-db',
-    rackFrictionFactor: 0.3,
-    rackSpacingMargin: 75,
-    shortDropLimit_ft: 3.0,
-    allowPlaceholderLoads: false,
-    reportTimestampPolicy: 'exclude-from-deterministic-hash',
-    benchmarkCertificationRequired: true
-  },
+  engineeringDefaults: DEFAULT_ENGINEERING_SETTINGS,
+  resolvedEngineeringSettings: resolveEngineeringSettings({ engineeringDefaults: DEFAULT_ENGINEERING_SETTINGS }),
   resultsStale: false,
   currentBenchmarkMock: null,
-  setEngineeringDefault: (key, value) => set((state) => ({
-    engineeringDefaults: { ...state.engineeringDefaults, [key]: value },
-    resultsStale: true
-  })),
-  setEngineeringDefaults: (patch) => set((state) => ({
-    engineeringDefaults: { ...state.engineeringDefaults, ...(patch || {}) },
-    resultsStale: true
-  })),
+  setEngineeringDefault: (key, value) => set((state) => {
+    const engineeringDefaults = { ...state.engineeringDefaults, [key]: value };
+    return {
+      engineeringDefaults,
+      resolvedEngineeringSettings: resolveEngineeringSettings({ engineeringDefaults }),
+      resultsStale: true
+    };
+  }),
+  setEngineeringDefaults: (patch) => set((state) => {
+    const engineeringDefaults = { ...state.engineeringDefaults, ...(patch || {}) };
+    return {
+      engineeringDefaults,
+      resolvedEngineeringSettings: resolveEngineeringSettings({ engineeringDefaults }),
+      resultsStale: true
+    };
+  }),
+  getResolvedEngineeringSettings: (overrides = {}) => resolveEngineeringSettings({
+    engineeringDefaults: get().engineeringDefaults,
+    moduleOverrides: overrides.moduleOverrides,
+    fixtureOverrides: overrides.fixtureOverrides,
+    userOverrides: overrides.userOverrides
+  }),
   markResultsStale: () => set({ resultsStale: true }),
   clearResultsStale: () => set({ resultsStale: false }),
-  loadBenchmarkMock: (mock) => set({
-    currentBenchmarkMock: mock || null,
-    activeTab: mock?.loadTargetTab || get().activeTab,
-    analysisPayload: mock?.benchmarkInput || get().analysisPayload,
-    resultsStale: true
+  loadBenchmarkMock: (mock) => set((state) => {
+    const fixtureOverrides = mock?.engineeringSettings || mock?.settings || {};
+    const resolvedEngineeringSettings = resolveEngineeringSettings({
+      engineeringDefaults: state.engineeringDefaults,
+      fixtureOverrides
+    });
+    return {
+      currentBenchmarkMock: mock || null,
+      activeTab: mock?.loadTargetTab || get().activeTab,
+      analysisPayload: mock?.benchmarkInput || get().analysisPayload,
+      resolvedEngineeringSettings,
+      resultsStale: true
+    };
   }),
 
   components: [],
