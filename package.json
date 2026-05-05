@@ -11,6 +11,7 @@
     "syntax": "node scripts/syntax-check.mjs",
     "syntax:strict": "node scripts/syntax-check.mjs --strict",
     "test": "node scripts/smoke-check.mjs",
+    "check": "npm run check:full",
     "check:package-json": "node scripts/check-package-json-duplicates.mjs",
     "check:imports": "node scripts/import-check.mjs",
     "check:registry": "node scripts/validate-module-registry.mjs",
@@ -19,7 +20,8 @@
     "check:smoke": "node scripts/smoke-check.mjs",
     "check:full": "node scripts/full-check.mjs",
     "check:qa": "node scripts/qa-check.mjs",
-    "check:e2e": "playwright test"
+    "check:e2e": "playwright test",
+    "ci:u0": "npm run check:full && npm run check:qa && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
