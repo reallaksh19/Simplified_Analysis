@@ -16,6 +16,7 @@ import PipeRackTab from './piperack/components/PipeRackTab';
 
 function App() {
   const activeTab = useAppStore(state => state.activeTab);
+  const isViewerTab = activeTab === 'home' || activeTab === 'viewer';
 
   // Expose store for e2e testing
   if (typeof window !== 'undefined') {
@@ -26,7 +27,7 @@ function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', background: '#0f172a' }}>
       <TopNav />
 
-      {activeTab === 'home' && <Viewer3DTab />}
+      {isViewerTab && <Viewer3DTab />}
       {activeTab === 'pcf' && <DataTableTab />}
       {activeTab === 'sketcher' && <SketcherTab />}
       {activeTab === 'simpAnalysis' && <CalcExtendedTab />}
