@@ -27,9 +27,24 @@ Fix: `CalcExtendedTab.jsx` now detects a simplified 2D payload from either `anal
 
 Result: Sketcher → Analyze 2D routes to the visible 2D solver view.
 
-### U1-03 — Static workflow guard
+### U1-03 — GC3D preflight for unsupported Sketcher topology
 
-Added `scripts/u1-workflow-check.mjs` and package scripts:
+Problem: Sketcher can create tee/branch/olet-style topology, while deterministic GC3D screening is not a branch-aware solver. Previously, that workflow could push unsupported geometry into GC3D and rely on the downstream solver to reject it.
+
+Fix: `AnalysisStore.js` now defines a Sketcher-to-GC3D preflight path:
+
+```js
+const UNSUPPORTED_GC3D_SKETCHER_NODE_TYPES = new Set(['tee', 'branch', 'olet']);
+const UNSUPPORTED_GC3D_SKETCHER_SEGMENT_TYPES = new Set(['TEE', 'BRANCH', 'OLET']);
+```
+
+The preflight returns `UNSUPPORTED_GEOMETRY` with a deterministic `GC3D_PREFLIGHT` diagnostic when unsupported topology is detected.
+
+Result: unsupported branch/tee/olet geometry is explicitly identified before GC3D result tables are populated.
+
+### U1-04 — Static workflow guard
+
+Added and extended `scripts/u1-workflow-check.mjs` and package scripts:
 
 ```bash
 npm run check:u1
@@ -40,7 +55,10 @@ The static guard verifies:
 
 - `App.jsx` renders the viewer for both `home` and `viewer` tab IDs;
 - `CalcExtendedTab.jsx` detects `simplified-2d-v1` payloads;
-- `CalcExtendedTab.jsx` forces the 2D subtab for Sketcher analysis handoff.
+- `CalcExtendedTab.jsx` forces the 2D subtab for Sketcher analysis handoff;
+- `AnalysisStore.js` defines unsupported tee/branch/olet preflight sets;
+- `AnalysisStore.js` returns `UNSUPPORTED_GEOMETRY` and writes a `GC3D_PREFLIGHT` diagnostic;
+- `AnalysisStore.js` returns the preflight result instead of silently continuing.
 
 ## U1 certification commands
 
@@ -59,10 +77,10 @@ npm run ci:u1
 The following U1 items are still pending and should be implemented in the next U1 patch:
 
 1. Add a visible Sketcher workflow status banner.
-2. Add GC3D preflight before pushing tee/branch/olet geometry.
-3. Replace alert-only workflow feedback with non-blocking diagnostics.
-4. Add browser-level Playwright tests for Sketcher → Sync 3D and Sketcher → Analyze 2D.
-5. Fix Sketcher fitting connected-bore lookup in `GraphRenderer`.
+2. Replace alert-only workflow feedback with non-blocking diagnostics.
+3. Add browser-level Playwright tests for Sketcher → Sync 3D and Sketcher → Analyze 2D.
+4. Fix Sketcher fitting connected-bore lookup in `GraphRenderer`.
+5. Show the GC3D preflight diagnostic directly in Sketcher before navigation.
 
 ## Pass criteria for this patch
 
