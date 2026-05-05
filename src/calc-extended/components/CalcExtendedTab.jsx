@@ -59,6 +59,8 @@ const styles = {
 export function CalcExtendedTab() {
   const { activeSubTab, setActiveSubTab, methodology, setMethodology, importFromCanonicalGeometry } = useExtendedStore();
   const activeCanonicalGeometry = useAppStore(state => state.activeCanonicalGeometry);
+  const simplifiedGeometry = useAppStore(state => state.simplifiedGeometry);
+  const analysisPayload = useAppStore(state => state.analysisPayload);
 
   // Auto-import geometry from the Phase 2/3 canonical geometry store.
   // Calc Extended no longer reads non-existent appStore.nodes/appStore.segments.
@@ -67,6 +69,17 @@ export function CalcExtendedTab() {
       importFromCanonicalGeometry(activeCanonicalGeometry, 'calc-extended-active-canonical');
     }
   }, [importFromCanonicalGeometry, activeCanonicalGeometry]);
+
+  // U1 workflow guard: Sketcher "Analyze 2D" stores a simplified-2d payload in
+  // appStore before navigating here. Force the 2D subtab so the user lands on the
+  // solver they requested instead of the default 3D dashboard.
+  useEffect(() => {
+    const hasSimplifiedPayload = analysisPayload?.schemaVersion === 'simplified-2d-v1'
+      || simplifiedGeometry?.schemaVersion === 'simplified-2d-v1';
+    if (hasSimplifiedPayload && activeSubTab !== '2d') {
+      setActiveSubTab('2d');
+    }
+  }, [activeSubTab, analysisPayload, simplifiedGeometry, setActiveSubTab]);
 
   // Force re-render of canvases after tab switch to avoid resize bugs
   const [mounted, setMounted] = useState(false);
