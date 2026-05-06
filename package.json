@@ -19,12 +19,14 @@
     "check:benchmarks": "node scripts/run-engineering-benchmarks.mjs",
     "check:u0": "node scripts/u0-certification-check.mjs",
     "check:u1": "node scripts/u1-workflow-check.mjs",
+    "check:u2": "node scripts/u2-settings-contract-check.mjs",
     "check:smoke": "node scripts/smoke-check.mjs",
     "check:full": "node scripts/full-check.mjs",
     "check:qa": "node scripts/qa-check.mjs",
     "check:e2e": "playwright test",
     "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
-    "ci:u1": "npm run check:full && npm run check:qa && npm run check:u0 && npm run check:u1 && npm run build"
+    "ci:u1": "npm run check:full && npm run check:qa && npm run check:u0 && npm run check:u1 && npm run build",
+    "ci:u2": "npm run check:full && npm run check:qa && npm run check:u0 && npm run check:u1 && npm run check:u2 && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
