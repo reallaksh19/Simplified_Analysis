@@ -7,7 +7,7 @@ const fieldGroups = {
   'Unit system': ['defaultLengthUnit', 'defaultForceUnit', 'defaultStressUnit'],
   'Pipe database source': ['pipeDataSource'],
   'Material database source': ['materialDataSource'],
-  'Rack defaults': ['rackFrictionFactor', 'rackSpacingMargin'],
+  'Rack defaults': ['rackFrictionFactor', 'rackSpacingMargin', 'rackDefaultSpacingFt', 'rackAnchorDistanceFt', 'rackAllowableStressPsi'],
   'Guided cantilever defaults': ['shortDropLimit_ft'],
   'Sketcher defaults': ['defaultDesignTemperature_F', 'defaultPipeBore_mm'],
   'Calc Extended defaults': ['defaultInstallTemperature_F', 'defaultPipeSize_in', 'defaultSchedule', 'defaultMaterial', 'extendedCorrosionAllowance_in', 'extendedMillTolerance_pct'],
