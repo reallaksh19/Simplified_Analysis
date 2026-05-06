@@ -21,16 +21,21 @@ function Field({ name, value, onChange }) {
   const defaultValue = DEFAULT_ENGINEERING_SETTINGS[name];
   const isBoolean = typeof defaultValue === 'boolean';
   const isNumber = typeof defaultValue === 'number';
+  const commonProps = {
+    'data-testid': `settings-field-${name}`,
+    'aria-label': name,
+    style: inputStyle
+  };
   return (
     <label style={{ display: 'grid', gap: 6, color: '#cbd5e1', fontSize: 13 }}>
       <span>{name}</span>
       {isBoolean ? (
-        <select value={String(value)} onChange={(e) => onChange(name, e.target.value === 'true')} style={inputStyle}>
+        <select {...commonProps} value={String(value)} onChange={(e) => onChange(name, e.target.value === 'true')}>
           <option value="true">true</option>
           <option value="false">false</option>
         </select>
       ) : (
-        <input value={value ?? ''} type={isNumber ? 'number' : 'text'} step="any" onChange={(e) => onChange(name, isNumber ? Number(e.target.value) : e.target.value)} style={inputStyle} />
+        <input {...commonProps} value={value ?? ''} type={isNumber ? 'number' : 'text'} step="any" onChange={(e) => onChange(name, isNumber ? Number(e.target.value) : e.target.value)} />
       )}
     </label>
   );
@@ -49,11 +54,11 @@ export const SettingsTab = () => {
       <h2 style={{ marginTop: 0 }}>Settings / Defaults</h2>
       <p style={{ color: '#cbd5e1' }}>Changing settings marks current results stale/recalculation required.</p>
       {resolvedEngineeringSettings?.settingsHash && (
-        <div style={{ background: '#0f172a', border: '1px solid #334155', color: '#93c5fd', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13 }}>
+        <div data-testid="settings-contract-hash" style={{ background: '#0f172a', border: '1px solid #334155', color: '#93c5fd', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13 }}>
           Resolved settings contract: <strong>{resolvedEngineeringSettings.settings.schemaVersion}</strong> · Hash: <code>{resolvedEngineeringSettings.settingsHash}</code>
         </div>
       )}
-      {resultsStale && <div style={{ background: '#422006', border: '1px solid #f59e0b', color: '#fde68a', borderRadius: 10, padding: 12, marginBottom: 16 }}>Current results are stale. Recalculate before issuing a report.</div>}
+      {resultsStale && <div data-testid="settings-results-stale-banner" style={{ background: '#422006', border: '1px solid #f59e0b', color: '#fde68a', borderRadius: 10, padding: 12, marginBottom: 16 }}>Current results are stale. Recalculate before issuing a report.</div>}
       <div style={{ display: 'grid', gap: 18 }}>
         {SETTINGS_GROUPS.map((group) => (
           <section key={group} style={{ background: '#111827', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
