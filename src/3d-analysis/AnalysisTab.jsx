@@ -4,17 +4,19 @@ import { AnalysisCanvas } from './AnalysisCanvas';
 import { ComponentPanel } from './ComponentPanel';
 import { DebugConsole } from './DebugConsole';
 import { DebugTable } from './DebugTable';
-import { ConfigPanel } from './ConfigPanel';
 import { Activity } from 'lucide-react';
 import { VERSION_STRING } from '../config/version';
+import { EngineeringSettingsHydrator } from './EngineeringSettingsHydrator';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export const AnalysisTab = () => {
   const { includeSIF, setIncludeSIF, colorMode, setColorMode, dataGridCollapsed, toggleDataGrid } = useAnalysisStore();
+  const engineeringSettingsHash = useAnalysisStore(s => s.engineeringSettingsHash);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+      <EngineeringSettingsHydrator />
       <div style={{ height: '56px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#f8fafc', fontWeight: 'bold', fontSize: '18px' }}>
           <Activity size={24} color="#3b82f6" />
@@ -22,6 +24,11 @@ export const AnalysisTab = () => {
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'normal', marginLeft: '8px' }}>
             {VERSION_STRING}
           </span>
+          {engineeringSettingsHash && (
+            <span data-testid="gc3d-settings-hash" style={{ fontSize: '11px', color: '#93c5fd', fontWeight: 'normal' }}>
+              settings: {engineeringSettingsHash}
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
