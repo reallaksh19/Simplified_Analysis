@@ -19,6 +19,9 @@ const appStore = read('src/store/appStore.js');
 const settingsTab = read('src/settings/SettingsTab.jsx');
 const extendedStore = read('src/calc-extended/store/useExtendedStore.js');
 const dashboard = read('src/calc-extended/components/DashboardView.jsx');
+const extendedSolver = read('src/calc-extended/solver/ExtendedSolver.js');
+const sketcherStore = read('src/sketcher/SketcherStore.js');
+const behaviorTest = read('scripts/u2-settings-behavior-test.mjs');
 
 for (const key of [
   'defaultDesignTemperature_F',
@@ -58,4 +61,17 @@ requireIncludes(dashboard, 'settingsHash', 'Dashboard must pass settingsHash int
 requireIncludes(dashboard, 'getResolvedEngineeringSettings', 'Dashboard must resolve settings at run time.');
 requireIncludes(dashboard, 'hydrateEngineeringSettings', 'Dashboard must hydrate Calc Extended store when settings change.');
 
-console.log('U2 settings contract check passed: deterministic settings resolver, app store, UI, and Calc Extended wiring are present.');
+requireIncludes(extendedSolver, 'resolveShortDropLimitFt', 'ExtendedSolver must resolve configurable short-drop limit.');
+requireIncludes(extendedSolver, 'shortDropLimit_ft', 'ExtendedSolver must expose shortDropLimit_ft in parsed results/meta.');
+requireIncludes(extendedSolver, 'parseGeometry(nodes, segments, anchors.anchor1, anchors.anchor2, settings)', 'runExtendedSolver must pass resolved settings into parseGeometry.');
+
+requireIncludes(sketcherStore, 'useAppStore', 'SketcherStore must read the global app settings store.');
+requireIncludes(sketcherStore, 'sketcherDefaults', 'SketcherStore must centralize defaults from resolved engineering settings.');
+requireIncludes(sketcherStore, 'defaultPipeBore_mm', 'SketcherStore must hydrate default pipe bore from settings.');
+requireIncludes(sketcherStore, 'engineeringSettingsHash', 'SketcherStore must preserve the active settings hash.');
+
+requireIncludes(behaviorTest, 'assertNotEqual(base.settingsHash, changed.settingsHash', 'U2 behavior test must prove settings hash changes.');
+requireIncludes(behaviorTest, 'analyzeShortDropGeometry', 'U2 behavior test must exercise short-drop solver behavior.');
+requireIncludes(behaviorTest, 'shortDropLimit_ft: 2.0', 'U2 behavior test must override shortDropLimit_ft.');
+
+console.log('U2 settings contract check passed: deterministic settings resolver, app store, UI, Sketcher, Calc Extended, and behavior tests are guarded.');
