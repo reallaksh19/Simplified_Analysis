@@ -1,6 +1,22 @@
 import { create } from 'zustand';
 import { buildGraphFromComponents, buildComponentsFromGraph } from './GraphTranslator';
 import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../core/geometry/adapters/sketcherToCanonicalGeometry';
+import { useAppStore } from '../store/appStore';
+
+function getResolvedSettings() {
+  const resolver = useAppStore.getState().getResolvedEngineeringSettings;
+  return resolver ? resolver().settings : useAppStore.getState().resolvedEngineeringSettings?.settings;
+}
+
+function sketcherDefaults() {
+  const settings = getResolvedSettings() || {};
+  return {
+    gridSize: Number(settings.gc3dGridSnap_mm ?? 100),
+    designTemperature: Number(settings.defaultDesignTemperature_F ?? 450),
+    defaultPipeBore_mm: Number(settings.defaultPipeBore_mm ?? 100),
+    defaultMaterial: settings.defaultMaterial || 'CARBON STEEL'
+  };
+}
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
@@ -43,18 +59,29 @@ export const useSketchStore = create((set, get) => ({
 
   nodes: {},
   segments: [],
-  workingPlane: 'XY', // 'XY', 'XZ', 'YZ'
+  workingPlane: 'XY',
   workingElevation: 0,
-  activeTool: 'select', // 'select', 'draw_pipe', 'add_node'
+  activeTool: 'select',
   snapToGrid: true,
 
   draftingState: { isDrawing: false, startNodeId: null, currentPos: null },
-  snapNodeId: null, // OSnap feature: ID of the node currently hovered for snapping
+  snapNodeId: null,
   setSnapNodeId: (id) => set({ snapNodeId: id }),
-  gridSize: 100,
+  gridSize: sketcherDefaults().gridSize,
+  defaultPipeBore_mm: sketcherDefaults().defaultPipeBore_mm,
+  engineeringSettingsHash: useAppStore.getState().resolvedEngineeringSettings?.settingsHash || null,
 
-  designTemperature: 450, // Global default temperature (F)
+  designTemperature: sketcherDefaults().designTemperature,
   setDesignTemperature: (temp) => set({ designTemperature: temp }),
+  hydrateEngineeringSettings: () => set((state) => {
+      const settings = sketcherDefaults();
+      return {
+          gridSize: settings.gridSize,
+          defaultPipeBore_mm: settings.defaultPipeBore_mm,
+          designTemperature: settings.designTemperature,
+          engineeringSettingsHash: useAppStore.getState().resolvedEngineeringSettings?.settingsHash || state.engineeringSettingsHash,
+      };
+  }),
 
   setWorkingPlane: (plane) => set({ workingPlane: plane, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
   setActiveTool: (tool) => set({ activeTool: tool, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
@@ -66,7 +93,6 @@ export const useSketchStore = create((set, get) => ({
   autoCenterTrigger: 0,
   triggerAutoCenter: () => set(s => ({ autoCenterTrigger: s.autoCenterTrigger + 1 })),
 
-  // Annotation Settings
   annotationScale: 1.0,
   showNodeLabels: true,
   showLengthLabels: true,
@@ -120,12 +146,14 @@ export const useSketchStore = create((set, get) => ({
 
   importFromComponents: (components) => {
       get().saveSnapshot();
+      get().hydrateEngineeringSettings();
       const { nodes, segments, warnings } = buildGraphFromComponents(components);
       set({ nodes, segments, importWarnings: warnings || [] });
   },
 
   importFromCanonicalGeometry: (geometry) => {
       get().saveSnapshot();
+      get().hydrateEngineeringSettings();
       const { nodes, segments, warnings } = canonicalGeometryToSketcher(geometry);
       set({ nodes, segments, importWarnings: warnings || [] });
   },
@@ -140,7 +168,6 @@ export const useSketchStore = create((set, get) => ({
       return buildComponentsFromGraph(nodes, segments);
   },
 
-  // Geometric Actions
   createNode: (pos, type = 'free') => {
       get().saveSnapshot();
       const { nodes } = get();
@@ -162,7 +189,8 @@ export const useSketchStore = create((set, get) => ({
 
   createSegment: (startNodeId, endNodeId, properties = {}) => {
       get().saveSnapshot();
-      const { segments } = get();
+      const { segments, defaultPipeBore_mm } = get();
+      const settings = sketcherDefaults();
 
       let maxNum = 0;
       segments.forEach(seg => {
@@ -174,8 +202,14 @@ export const useSketchStore = create((set, get) => ({
 
       const nextNumStr = String(maxNum + 1).padStart(3, '0');
       const id = `S${nextNumStr}`;
+      const resolvedProperties = {
+          type: 'PIPE',
+          bore: defaultPipeBore_mm || settings.defaultPipeBore_mm,
+          material: settings.defaultMaterial,
+          ...properties
+      };
 
-      set(s => ({ segments: [...s.segments, { id, startNode: startNodeId, endNode: endNodeId, ...properties }] }));
+      set(s => ({ segments: [...s.segments, { id, startNode: startNodeId, endNode: endNodeId, ...resolvedProperties }] }));
       return id;
   },
 
@@ -199,12 +233,20 @@ export const useSketchStore = create((set, get) => ({
   
   clearSketch: () => {
       get().saveSnapshot();
-      set({ nodes: {}, segments: [] });
+      const settings = sketcherDefaults();
+      set({
+          nodes: {},
+          segments: [],
+          gridSize: settings.gridSize,
+          defaultPipeBore_mm: settings.defaultPipeBore_mm,
+          designTemperature: settings.designTemperature,
+          engineeringSettingsHash: useAppStore.getState().resolvedEngineeringSettings?.settingsHash || null,
+      });
   },
 
   exportSketch: () => {
-      const { nodes, segments, workingPlane, workingElevation } = get();
-      const data = { version: 1, workingPlane, workingElevation, nodes, segments };
+      const { nodes, segments, workingPlane, workingElevation, engineeringSettingsHash } = get();
+      const data = { version: 1, workingPlane, workingElevation, engineeringSettingsHash, nodes, segments };
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -222,6 +264,7 @@ export const useSketchStore = create((set, get) => ({
           const data = JSON.parse(jsonText);
           if (!data.nodes || !data.segments) throw new Error('Invalid sketch file — missing nodes or segments.');
           get().saveSnapshot();
+          get().hydrateEngineeringSettings();
           set({
               nodes: data.nodes,
               segments: data.segments,
@@ -235,7 +278,6 @@ export const useSketchStore = create((set, get) => ({
       }
   },
 
-  // Centralized interaction handler for the canvas
   handleInteractionClick: (ePoint, targetNodeId, shiftKey, isAltHeld) => {
       const state = get();
       const { activeTool, draftingState, resolve3DPoint, createNode, createSegment, setSelectedNodeId, updateNode, nodes } = state;
@@ -244,11 +286,9 @@ export const useSketchStore = create((set, get) => ({
       let pt3D;
 
       if (targetNodeId && nodes[targetNodeId] && !shiftKey) {
-          // Snapped to an existing node
           targetId = targetNodeId;
           pt3D = nodes[targetNodeId].pos;
       } else {
-          // Free space click
           if ((shiftKey || isAltHeld) && draftingState.isDrawing && draftingState.currentPos) {
               if (isAltHeld) {
                   pt3D = [
@@ -295,25 +335,20 @@ export const useSketchStore = create((set, get) => ({
           if (!targetId) {
               createNode(pt3D, 'anchor');
           } else {
-              // Convert existing node to anchor
               updateNode(targetId, { type: 'anchor' });
           }
       }
       else if (activeTool === 'draw_pipe') {
           if (!draftingState.isDrawing) {
-              // First click: start drawing
               const startId = targetId || createNode(pt3D, 'free');
               const nextPos = { x: pt3D[0], y: pt3D[1], z: pt3D[2] };
               set(s => ({ draftingState: { ...s.draftingState, isDrawing: true, startNodeId: startId, currentPos: nextPos } }));
           } else {
-              // Second click: end drawing, create segment, continue from new node
-              // Do not allow zero length segments (clicking on start node)
               if (targetId && targetId === draftingState.startNodeId) return;
 
               const endId = targetId || createNode(pt3D, 'free');
-              createSegment(draftingState.startNodeId, endId, { type: 'PIPE', bore: 100, material: 'CARBON STEEL' });
+              createSegment(draftingState.startNodeId, endId);
 
-              // Continue drawing from the new end node
               const nextPos = { x: pt3D[0], y: pt3D[1], z: pt3D[2] };
               set(s => ({ draftingState: { ...s.draftingState, startNodeId: endId, currentPos: nextPos } }));
           }
