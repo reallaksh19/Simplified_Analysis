@@ -3,6 +3,9 @@ import { DEFAULT_ENGINEERING_SETTINGS } from '../../data/engineeringDefaults/def
 const NUMERIC_KEYS = new Set([
   'rackFrictionFactor',
   'rackSpacingMargin',
+  'rackDefaultSpacingFt',
+  'rackAnchorDistanceFt',
+  'rackAllowableStressPsi',
   'shortDropLimit_ft',
   'defaultDesignTemperature_F',
   'defaultInstallTemperature_F',
@@ -72,11 +75,13 @@ export function resolveEngineeringSettings({ engineeringDefaults = {}, moduleOve
 
   const deltaT_F = settings.defaultDesignTemperature_F - settings.defaultInstallTemperature_F;
   const calcExtendedUnitSystem = settings.projectUnitSystem === 'metric' ? 'Metric' : 'Imperial';
+  const gc3dUnitSystem = settings.projectUnitSystem === 'metric' ? 'si' : 'imperial';
 
   const resolved = Object.freeze({
     ...settings,
     deltaT_F,
     calcExtendedUnitSystem,
+    gc3dUnitSystem,
     schemaVersion: 'engineering-settings-v1'
   });
 
