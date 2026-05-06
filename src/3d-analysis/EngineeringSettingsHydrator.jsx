@@ -2,6 +2,12 @@ import { useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useAnalysisStore } from './AnalysisStore';
 
+function resolveGc3dMaterial(settings, fallback) {
+  const material = settings.defaultMaterial || fallback;
+  if (material === 'Carbon Steel') return 'Carbon steels, C ≤ 0.3%';
+  return material;
+}
+
 function buildGc3dParams(settings) {
   const Sc_psi = Number(settings.gc3dSc_psi ?? 20000);
   const Sh_psi = Number(settings.gc3dSh_psi ?? 19400);
@@ -28,28 +34,18 @@ export function EngineeringSettingsHydrator() {
 
     const params = buildGc3dParams(settings);
     useAnalysisStore.setState((state) => ({
-      unitSystem: settings.gc3dUnitSystem || state.unitSystem,
+      unitSystem: settings.projectUnitSystem || state.unitSystem,
       params,
       config: {
         ...state.config,
         gridSnap_mm: Number(settings.gc3dGridSnap_mm ?? state.config.gridSnap_mm),
-        defaultMaterial: settings.defaultMaterial || state.config.defaultMaterial,
+        defaultMaterial: resolveGc3dMaterial(settings, state.config.defaultMaterial),
       },
       engineeringSettingsHash: resolvedEngineeringSettings.settingsHash,
-      debugLog: [
-        ...state.debugLog,
-        {
-          step: 'SETTINGS_HYDRATE',
-          msg: `GC3D settings hydrated from ${resolvedEngineeringSettings.settingsHash}`,
-          sequence: state.logCounter || 0,
-          timestamp: `settings-${String(state.logCounter || 0).padStart(3, '0')}`,
-        },
-      ],
-      logCounter: (state.logCounter || 0) + 1,
     }));
 
-    // Existing runAnalysis clears debug log and recalculates with hydrated params.
     useAnalysisStore.getState().runAnalysis();
+    useAnalysisStore.getState().log('SETTINGS_HYDRATE', `GC3D settings hydrated from ${resolvedEngineeringSettings.settingsHash}`);
   }, [resolvedEngineeringSettings?.settingsHash]);
 
   return null;
