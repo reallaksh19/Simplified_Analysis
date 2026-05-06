@@ -60,6 +60,11 @@ const getPipeProps = (size, schedule, warnings = []) => {
   return pipe || pipeProps[0];
 };
 
+function resolveShortDropLimitFt(settings = {}) {
+  const value = Number(settings.shortDropLimit_ft ?? settings.shortDropLimitFt ?? 3.0);
+  return Number.isFinite(value) && value >= 0 ? value : 3.0;
+}
+
 // Geometry Parsing & Filtering Short Drops (Rule of Rigidity)
 /**
  * Parses canonical geometry nodes/segments.
@@ -68,7 +73,7 @@ const getPipeProps = (size, schedule, warnings = []) => {
  * for converting mm/in → ft before calling this function.
  * bendingLegs output units: feet (for use in calcAxis with FT2_TO_IN2/FT3_TO_IN3 constants)
  */
-const parseGeometry = (nodes, segments, anchor1Id, anchor2Id) => {
+const parseGeometry = (nodes, segments, anchor1Id, anchor2Id, settings = {}) => {
   const n1 = nodes.find(n => n.id === anchor1Id);
   const n2 = nodes.find(n => n.id === anchor2Id);
   if (!n1 || !n2) throw new Error("Anchors not found in nodes");
@@ -79,6 +84,7 @@ const parseGeometry = (nodes, segments, anchor1Id, anchor2Id) => {
 
   let bX = 0, bY = 0, bZ = 0;
   let shortDropsIgnored = 0;
+  const shortDropLimit_ft = resolveShortDropLimitFt(settings);
 
   segments.forEach(seg => {
     const s1 = nodes.find(n => n.id === seg.startNodeId);
@@ -89,8 +95,7 @@ const parseGeometry = (nodes, segments, anchor1Id, anchor2Id) => {
     const dy = Math.abs(s2.y - s1.y);
     const dz = Math.abs(s2.z - s1.z);
 
-    // Rule: Filter out Z-axis drops <= 3 ft. Coordinates are feet, not inches.
-    const shortDropLimit_ft = 3.0;
+    // Rule: Filter out Z-axis drops <= configured short-drop limit. Coordinates are feet, not inches.
     if (dz > 0 && dx === 0 && dy === 0 && dz <= shortDropLimit_ft) {
       shortDropsIgnored++;
       return; // Ignore this segment for flexibility
@@ -109,7 +114,7 @@ const parseGeometry = (nodes, segments, anchor1Id, anchor2Id) => {
     netDiff: { x: diffX, y: diffY, z: diffZ },
     bendingLegs: { x: bX, y: bY, z: bZ },
     shortDropsIgnored,
-    shortDropLimit_ft: 3.0,
+    shortDropLimit_ft,
     unitSystem: { coordinate: 'ft' }
   };
 };
@@ -139,7 +144,7 @@ const getDesignStress = (material) => {
 
 // Guided Cantilever Approximation Solver
 export const runExtendedSolver = (payload) => {
-  const { nodes, segments, anchors, inputs, vessel, boundaryMovement, constraints, methodology } = payload;
+  const { nodes, segments, anchors, inputs, vessel, boundaryMovement, constraints, methodology, settings = {} } = payload;
   const { material, pipeSize, schedule, tOperate, corrosionAllowance, millTolerance, frictionFactor } = inputs;
   const warnings = [];
   const formulaTrace = [];
@@ -160,8 +165,8 @@ export const runExtendedSolver = (payload) => {
     I_eff = (Math.PI / 64) * (Math.pow(OD, 4) - Math.pow(ID_eff, 4));
   }
 
-  const { netDiff, bendingLegs, shortDropsIgnored } = parseGeometry(nodes, segments, anchors.anchor1, anchors.anchor2);
-  formulaTrace.push({ name: 'Geometry decomposition', expression: 'netDiff = anchor2 - anchor1; bending legs by perpendicular runs', values: { netDiff, bendingLegs, shortDropsIgnored } });
+  const { netDiff, bendingLegs, shortDropsIgnored, shortDropLimit_ft } = parseGeometry(nodes, segments, anchors.anchor1, anchors.anchor2, settings);
+  formulaTrace.push({ name: 'Geometry decomposition', expression: 'netDiff = anchor2 - anchor1; bending legs by perpendicular runs; short drops ignored when dz <= shortDropLimit_ft', values: { netDiff, bendingLegs, shortDropsIgnored, shortDropLimit_ft } });
 
   // Phase 1: Global Piping Reactions (Fluor vs 2D Bundle)
   const calcAxis = (axis, net, bendLeg, boundMovement) => {
@@ -288,7 +293,7 @@ export const runExtendedSolver = (payload) => {
     formulaIds: ['KOVES_EQUIVALENT_LOAD'],
     unitSystem: { coordinate: 'ft', force: 'lbf', stress: 'psi', moment: 'in-lbf', length: 'in' },
     status: mistStatus === 'NOT_QUALIFIED' ? 'SCREENING_ONLY' : (flangeStatus === 'PASS' ? 'PASSED' : 'FAILED'),
-    meta: { schemaVersion: 'extended-calc-v1', shortDropsIgnored, shortDropLimit_ft: 3.0, unitSystem: { coordinate: 'ft' }, e, E, I_eff, OD, pipeSize, pipeSchedule: schedule }
+    meta: { schemaVersion: 'extended-calc-v1', shortDropsIgnored, shortDropLimit_ft, unitSystem: { coordinate: 'ft' }, e, E, I_eff, OD, pipeSize, pipeSchedule: schedule }
   };
 };
 
@@ -314,12 +319,12 @@ function extendedContract({ methodId, formulaIds, inputs, results, status = 'PAS
   };
 }
 
-export function analyzeShortDropGeometry({ nodes, segments, anchor1Id = 'A1', anchor2Id = 'A2' }) {
-  const parsed = parseGeometry(nodes, segments, anchor1Id, anchor2Id);
+export function analyzeShortDropGeometry({ nodes, segments, anchor1Id = 'A1', anchor2Id = 'A2', settings = {}, shortDropLimit_ft }) {
+  const parsed = parseGeometry(nodes, segments, anchor1Id, anchor2Id, { ...settings, shortDropLimit_ft });
   return extendedContract({
     methodId: 'GC_ANCHOR_GUIDE_3EI',
     formulaIds: ['GUIDED_CANTILEVER_F_3EID_OVER_L3'],
-    inputs: { nodes, segments, anchor1Id, anchor2Id },
+    inputs: { nodes, segments, anchor1Id, anchor2Id, settings: { shortDropLimit_ft: parsed.shortDropLimit_ft } },
     results: {
       shortDropLimit_ft: parsed.shortDropLimit_ft,
       shortDropsIgnored: parsed.shortDropsIgnored,
