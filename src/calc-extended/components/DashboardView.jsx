@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useExtendedStore } from '../store/useExtendedStore';
+import { useAppStore } from '../../store/appStore';
 import { runExtendedSolver } from '../solver/ExtendedSolver';
 
 import { Canvas } from '@react-three/fiber';
@@ -51,7 +52,7 @@ const SegmentMesh = ({ start, end, results, heatmapMode }) => {
   const up = new THREE.Vector3(0, 1, 0);
   const quaternion = new THREE.Quaternion().setFromUnitVectors(up, axis);
 
-  let color = '#cbd5e1'; // Light grey high-contrast default
+  let color = '#cbd5e1';
   if (results && results.axes) {
     let primaryAxis = 'X';
     if (Math.abs(axis.y) > 0.5) primaryAxis = 'Y';
@@ -81,8 +82,13 @@ const SegmentMesh = ({ start, end, results, heatmapMode }) => {
 };
 
 export default function DashboardView() {
-  const { unitSystem, methodology, calculationStatus, heatmapMode, setHeatmapMode, setAnchor, inputs, vessel, boundaryMovement, constraints, results, nodes, segments, anchors, setResults } = useExtendedStore();
+  const { unitSystem, methodology, calculationStatus, heatmapMode, setHeatmapMode, setAnchor, inputs, vessel, boundaryMovement, constraints, results, nodes, segments, anchors, setResults, hydrateEngineeringSettings } = useExtendedStore();
+  const resolvedEngineeringSettings = useAppStore(state => state.resolvedEngineeringSettings);
   const [resultsExpanded, setResultsExpanded] = useState(true);
+
+  useEffect(() => {
+    hydrateEngineeringSettings();
+  }, [resolvedEngineeringSettings?.settingsHash, hydrateEngineeringSettings]);
 
   const handleNodeClick = (nodeId) => {
     if (!anchors.anchor1) setAnchor(1, nodeId);
@@ -92,7 +98,9 @@ export default function DashboardView() {
   const handleRun = () => {
     if (calculationStatus !== 'READY' && calculationStatus !== 'CALCULATED') return;
 
-    // PRE-PROCESSOR: Engine expects Imperial. If UI is Metric, convert inputs down to Imperial before running.
+    const settingsContract = useAppStore.getState().getResolvedEngineeringSettings?.() || resolvedEngineeringSettings;
+    const settings = settingsContract?.settings || {};
+
     const engineInputs = { ...inputs };
     const engineVessel = { ...vessel };
     const engineBounds = { ...boundaryMovement };
@@ -109,17 +117,34 @@ export default function DashboardView() {
       engineBounds.z = MetricToImperial.mm_to_in(boundaryMovement.z);
     }
 
-    const payload = { nodes, segments, anchors, inputs: engineInputs, vessel: engineVessel, boundaryMovement: engineBounds, constraints, methodology };
+    const payload = {
+      nodes,
+      segments,
+      anchors,
+      inputs: engineInputs,
+      vessel: engineVessel,
+      boundaryMovement: engineBounds,
+      constraints,
+      methodology,
+      settings,
+      settingsHash: settingsContract?.settingsHash
+    };
 
     const res = runExtendedSolver(payload);
     res.meta.methodologyUsed = methodology === '2D_BUNDLE' ? 'SIMPLIFIED_3D_METHOD' : 'FLUOR_MIST';
+    res.meta.settingsHash = settingsContract?.settingsHash || null;
     setResults(res);
   };
 
   return (
     <div style={styles.layout}>
-      {/* LEFT DOCK */}
       <div style={styles.leftDock}>
+        {resolvedEngineeringSettings?.settingsHash && (
+          <div style={{ ...styles.section, borderColor: '#2563eb' }}>
+            <div style={styles.header}>Resolved Settings</div>
+            <div style={{ fontSize: '11px', color: '#93c5fd', wordBreak: 'break-all' }}>Hash: {resolvedEngineeringSettings.settingsHash}</div>
+          </div>
+        )}
         <div style={styles.section}>
           <div style={styles.header}>Piping Inputs</div>
           <div style={styles.row}><span>Material:</span> <select style={styles.input} value={inputs.material} onChange={e => useExtendedStore.getState().updateInput('material', e.target.value)}><option>Carbon Steel</option><option>Austenitic Stainless Steel 18 Cr 8 Ni</option></select></div>
@@ -183,9 +208,7 @@ export default function DashboardView() {
         </button>
       </div>
 
-      {/* MAIN CONTENT */}
       <div style={styles.mainContent}>
-
         <div style={styles.canvasContainer}>
           <div style={styles.toolsPanel}>
             <div style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>R3F TOOLS:</div>
@@ -243,8 +266,6 @@ export default function DashboardView() {
 
           {results && resultsExpanded && (
             <div style={{ display: 'flex', gap: '16px' }}>
-
-              {/* Left DataGrid (Piping Stress / Axes) */}
               <div style={{ flex: 1.5, background: '#020617', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#38bdf8', marginBottom: '8px' }}>1. PIPING STRESS (Global Reactions)</div>
                 <table style={styles.table}>
@@ -277,7 +298,6 @@ export default function DashboardView() {
                 </table>
               </div>
 
-              {/* Right Evaluation Blocks (MIST & Flange) */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ background: '#020617', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
                   <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#a78bfa', marginBottom: '8px' }}>2. VESSEL SHELL (MIST)</div>
@@ -297,7 +317,6 @@ export default function DashboardView() {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
         </div>
