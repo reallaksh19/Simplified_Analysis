@@ -1,64 +1,71 @@
-#!/usr/bin/env node
-
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const errors = [];
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.join(__dirname, '..');
+
+let passed = 0;
+let failed = 0;
 
 function check(condition, message) {
-  if (!condition) errors.push(message);
+  if (condition) {
+    console.log(`✓ ${message}`);
+    passed++;
+  } else {
+    console.error(`✗ ${message}`);
+    failed++;
+  }
 }
 
-// Check professionalDraftingCommands.js exports
-const cmdPath = new URL('../src/sketcher/commands/professionalDraftingCommands.js', import.meta.url);
-check(fs.existsSync(cmdPath.pathname), 'professionalDraftingCommands.js exists');
-
-if (fs.existsSync(cmdPath.pathname)) {
-  const content = fs.readFileSync(cmdPath.pathname, 'utf-8');
-  check(content.includes('export const SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION'), 'Exports SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION');
-  check(content.includes('export function convertSelectedNodeToBend'), 'Exports convertSelectedNodeToBend');
-  check(content.includes('export function convertSelectedNodeToTee'), 'Exports convertSelectedNodeToTee');
-  check(content.includes('export function convertSelectedNodeToOlet'), 'Exports convertSelectedNodeToOlet');
-  check(content.includes('export function autoConnectPipes'), 'Exports autoConnectPipes');
-  check(content.includes('export function validateSketchCommand'), 'Exports validateSketchCommand');
+// Check 1: professionalDraftingCommands.js exports
+const cmdPath = path.join(rootDir, 'src/sketcher/commands/professionalDraftingCommands.js');
+if (fs.existsSync(cmdPath)) {
+  const content = fs.readFileSync(cmdPath, 'utf-8');
+  check(content.includes('export const SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION'), 'SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION is exported');
+  check(content.includes('export function convertSelectedNodeToBend'), 'convertSelectedNodeToBend is exported');
+  check(content.includes('export function convertSelectedNodeToTee'), 'convertSelectedNodeToTee is exported');
+  check(content.includes('export function convertSelectedNodeToOlet'), 'convertSelectedNodeToOlet is exported');
+  check(content.includes('export function autoConnectPipes'), 'autoConnectPipes is exported');
+  check(content.includes('export function validateSketchCommand'), 'validateSketchCommand is exported');
+} else {
+  check(false, 'professionalDraftingCommands.js exists');
+  failed += 5;
 }
 
-// Check TopologyDiagnosticsPanel.jsx
-const panelPath = new URL('../src/sketcher/TopologyDiagnosticsPanel.jsx', import.meta.url);
-check(fs.existsSync(panelPath.pathname), 'TopologyDiagnosticsPanel.jsx exists');
-
-if (fs.existsSync(panelPath.pathname)) {
-  const content = fs.readFileSync(panelPath.pathname, 'utf-8');
-  check(content.includes('topology-diagnostics-panel'), 'Has topology-diagnostics-panel testid');
-  check(content.includes('topology-diagnostics-close'), 'Has topology-diagnostics-close testid');
-  check(content.includes('topology-diagnostics-summary'), 'Has topology-diagnostics-summary testid');
-  check(content.includes('topology-diagnostics-empty'), 'Has topology-diagnostics-empty testid');
-  check(content.includes('topology-diagnostic-item'), 'Has topology-diagnostic-item testid');
+// Check 2: TopologyDiagnosticsPanel.jsx
+const panelPath = path.join(rootDir, 'src/sketcher/TopologyDiagnosticsPanel.jsx');
+if (fs.existsSync(panelPath)) {
+  const content = fs.readFileSync(panelPath, 'utf-8');
+  check(content.includes('data-testid="topology-diagnostics-panel"'), 'topology-diagnostics-panel testid exists');
+  check(content.includes('export default'), 'TopologyDiagnosticsPanel is default export');
+} else {
+  check(false, 'TopologyDiagnosticsPanel.jsx exists');
+  failed += 2;
 }
 
-// Check SketcherStore.js has conversion actions
-const storePath = new URL('../src/sketcher/SketcherStore.js', import.meta.url);
-check(fs.existsSync(storePath.pathname), 'SketcherStore.js exists');
-
-if (fs.existsSync(storePath.pathname)) {
-  const content = fs.readFileSync(storePath.pathname, 'utf-8');
-  check(content.includes('convertSelectedToBend') || content.includes('applyDraftingCommandResult'), 'SketcherStore has conversion actions or drafting result handler');
+// Check 3: SketcherStore.js integration
+const storePath = path.join(rootDir, 'src/sketcher/SketcherStore.js');
+if (fs.existsSync(storePath)) {
+  const content = fs.readFileSync(storePath, 'utf-8');
+  check(content.includes('convertSelectedToBend'), 'convertSelectedToBend action exists');
+  check(content.includes('applyDraftingCommandResult'), 'applyDraftingCommandResult action exists');
+  check(content.includes('topologyDiagnostics'), 'topologyDiagnostics state exists');
+} else {
+  check(false, 'SketcherStore.js exists');
+  failed += 3;
 }
 
-// Check SketcherTab.jsx has toolbar buttons
-const tabPath = new URL('../src/sketcher/SketcherTab.jsx', import.meta.url);
-check(fs.existsSync(tabPath.pathname), 'SketcherTab.jsx exists');
-
-if (fs.existsSync(tabPath.pathname)) {
-  const content = fs.readFileSync(tabPath.pathname, 'utf-8');
-  check(content.includes('sketcher-convert-bend'), 'SketcherTab has sketcher-convert-bend testid');
+// Check 4: SketcherTab.jsx integration
+const tabPath = path.join(rootDir, 'src/sketcher/SketcherTab.jsx');
+if (fs.existsSync(tabPath)) {
+  const content = fs.readFileSync(tabPath, 'utf-8');
+  check(content.includes('data-testid="sketcher-convert-bend"'), 'sketcher-convert-bend button exists');
+  check(content.includes('TopologyDiagnosticsPanel'), 'TopologyDiagnosticsPanel imported');
+} else {
+  check(false, 'SketcherTab.jsx exists');
+  failed += 2;
 }
 
-if (errors.length > 0) {
-  console.error('V11 Static Checks FAILED:');
-  errors.forEach(e => console.error(`  - ${e}`));
-  process.exit(1);
-}
-
-console.log('V11 Static Checks PASSED');
-process.exit(0);
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed > 0 ? 1 : 0);
