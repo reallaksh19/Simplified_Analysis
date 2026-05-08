@@ -1,0 +1,21 @@
+Phase index
+V18A PCF/viewer to Sketcher adapter
+V18B Sketcher visual cleanup
+V18C Bottom element listing panel
+V18D Pipe property model
+V18E Component engineering object model
+V18F Insert reducer/FVF commands
+V18G Push to 3D Simplified Calculation
+V18H 3D assignment panel
+V18I Support deadweight load solver
+V18J Guided-cantilever thermal suite
+V18J2 Force action solver
+V18K Report integration
+V18L Browser workflow certification
+V19 Legacy PCF Studio weight master adapter
+V19B Flange dimensional master DB
+V19C-A Rating/class input patch
+V19C Master DB editor tab
+V19D Master DB validation gates
+V19E B16.9 reducer/tee fitting master
+V20 Apply and certify

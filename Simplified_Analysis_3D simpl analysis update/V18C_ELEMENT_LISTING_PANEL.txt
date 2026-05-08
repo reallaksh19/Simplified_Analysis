@@ -1,0 +1,36 @@
+V18C — Bottom Element Listing Panel
+===================================
+
+Goal
+----
+Add collapsible bottom panel with Pipes, Fittings, Valves/Flanges, Supports, Warnings. Render below canvas in SketcherTab.
+
+Files / paths
+-------------
+- src/sketcher/ElementListingPanel.jsx
+- scripts/v18c-element-listing-panel-check.mjs
+- scripts/v18c-element-listing-panel-behavior-test.mjs
+
+Required tokens / checks
+------------------------
+- sketcher-element-listing-panel
+- PipesTable
+- NodesTable
+- WarningsTable
+- element-panel-tab-pipes
+- element-panel-tab-components
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

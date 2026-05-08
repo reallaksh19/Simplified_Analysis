@@ -1,0 +1,33 @@
+V18J — Guided-Cantilever Suite Integration
+==========================================
+
+Goal
+----
+Run support loads and guided-cantilever thermal as separate screening methods and combine only at report/result level.
+
+Files / paths
+-------------
+- src/3d-analysis/solverSuite/run3DSimplifiedCalculationSuite.js
+- src/3d-analysis/SimplifiedCalculationSuitePanel.jsx
+
+Required tokens / checks
+------------------------
+- SIMPLIFIED_3D_SUITE_SCHEMA_VERSION
+- buildGC3DPayloadFromCalculationModel
+- runGuidedCantileverFromCalculationModel
+- run3DSimplifiedCalculationSuite
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

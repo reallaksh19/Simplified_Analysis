@@ -1,0 +1,35 @@
+V19C-A — Rating/Class Input in 2D Sketcher
+==========================================
+
+Goal
+----
+Add ratingClass, faceType, flangeType, valveType to segment model and use selected segment data for FVF resolver.
+
+Files / paths
+-------------
+- src/sketcher/pipeProperties/pipePropertyModel.js
+- src/sketcher/SegmentEditorPanel.jsx
+
+Required tokens / checks
+------------------------
+- lineClass
+- ratingClass
+- faceType
+- flangeType
+- valveType
+- segment-rating-class
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

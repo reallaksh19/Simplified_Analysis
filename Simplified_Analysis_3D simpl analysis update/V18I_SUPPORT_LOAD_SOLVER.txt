@@ -1,0 +1,34 @@
+V18I — Support Deadweight Load Solver
+=====================================
+
+Goal
+----
+Calculate pipe + fluid + insulation + component loads and distribute to supports by tributary screening method.
+
+Files / paths
+-------------
+- src/core/solvers/supportLoads/solveSupportLoads3D.js
+- src/3d-analysis/SupportLoadResultsPanel.jsx
+
+Required tokens / checks
+------------------------
+- SUPPORT_LOAD_SOLVER_SCHEMA_VERSION
+- solveSupportLoads3D
+- PIPE_METAL_WEIGHT_AREA_DENSITY
+- FLUID_WEIGHT_ID_AREA_DENSITY
+- INSULATION_WEIGHT_ANNULUS_DENSITY
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

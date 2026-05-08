@@ -1,0 +1,35 @@
+V18A — PCF / Viewer to 2D Sketcher Adapter
+==========================================
+
+Goal
+----
+Normalize PCF/viewer components to Sketcher nodes/segments, preserve raw attributes, diagnostics and loss contract.
+
+Files / paths
+-------------
+- src/sketcher/adapters/viewerToSketcherAdapter.js
+- scripts/v18a-viewer-to-sketcher-adapter-check.mjs
+- scripts/v18a-viewer-to-sketcher-adapter-behavior-test.mjs
+
+Required tokens / checks
+------------------------
+- VIEWER_TO_SKETCHER_ADAPTER_SCHEMA_VERSION
+- convertViewerComponentsToSketcher
+- lastImportDiagnostics
+- lastImportLossContract
+- importFromViewerComponents
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

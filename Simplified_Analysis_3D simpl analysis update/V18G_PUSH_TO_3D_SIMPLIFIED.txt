@@ -1,0 +1,34 @@
+V18G — Push to 3D Simplified Calculation
+========================================
+
+Goal
+----
+Build calculation-ready model from Sketcher and import into 3D Simplified Calculation store.
+
+Files / paths
+-------------
+- src/sketcher/adapters/sketcherTo3DCalculationModel.js
+
+Required tokens / checks
+------------------------
+- SKETCHER_TO_3D_CALC_MODEL_SCHEMA_VERSION
+- build3DCalculationModelFromSketcher
+- validate3DCalculationModel
+- pipeProperties
+- loadCases
+- supports
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

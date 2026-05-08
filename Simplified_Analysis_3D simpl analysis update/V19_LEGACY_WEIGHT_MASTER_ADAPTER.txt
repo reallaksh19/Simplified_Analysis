@@ -1,0 +1,36 @@
+V19 — Legacy PCF Studio Weight Master Adapter
+=============================================
+
+Goal
+----
+Copy PCF Studio wtValveweights.json and use it for valve/component weight and face-to-face lookup.
+
+Files / paths
+-------------
+- src/data/legacy/wtValveweights.json
+- src/data/componentWeightMasterDb.js
+- src/core/engineering-data/resolveComponentData.js
+- src/sketcher/componentProperties/componentMasterResolver.js
+
+Required tokens / checks
+------------------------
+- COMPONENT_WEIGHT_MASTER_SCHEMA_VERSION
+- normalizeLegacyWeightRow
+- resolveComponentWeightFromMaster
+- resolveValveFromMaster
+- resolveFlangeFromMaster
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

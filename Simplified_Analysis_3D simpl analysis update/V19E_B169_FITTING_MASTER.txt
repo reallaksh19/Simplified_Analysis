@@ -1,0 +1,35 @@
+V19E — B16.9 Fitting Master for Reducer/Tee
+===========================================
+
+Goal
+----
+Add B16.9-style reducer length and tee run/branch C2E master data. Wire reducer quick insert and tee assignment foundation.
+
+Files / paths
+-------------
+- src/data/b169FittingDimensionalMasterDb.js
+- src/core/engineering-data/resolveB169FittingData.js
+- src/sketcher/componentProperties/b169FittingMasterResolver.js
+
+Required tokens / checks
+------------------------
+- B169_FITTING_DIMENSIONAL_SCHEMA_VERSION
+- resolveReducerDimensions
+- resolveTeeDimensions
+- B169_REDUCER_DIMENSION_SCREENING_SAMPLE
+- B169_TEE_DIMENSION_SCREENING_SAMPLE
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

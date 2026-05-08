@@ -1,0 +1,34 @@
+V18E — Component Engineering Object Model
+=========================================
+
+Goal
+----
+Create reducer, tee, valve, flange and FVF engineering objects, validation and summaries. Add SketcherStore components map.
+
+Files / paths
+-------------
+- src/sketcher/componentProperties/componentEngineeringModel.js
+
+Required tokens / checks
+------------------------
+- COMPONENT_ENGINEERING_SCHEMA_VERSION
+- createReducerComponent
+- createTeeComponent
+- createValveComponent
+- createFlangeComponent
+- createFlangeValveFlangeAssembly
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

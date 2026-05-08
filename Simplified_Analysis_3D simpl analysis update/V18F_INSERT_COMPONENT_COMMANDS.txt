@@ -1,0 +1,32 @@
+V18F — Insert Component Commands
+================================
+
+Goal
+----
+Split selected pipe for reducer/FVF insertion and support continue insertion from active node. Add QuickInsertButtons.
+
+Files / paths
+-------------
+- src/sketcher/commands/insertComponentCommands.js
+
+Required tokens / checks
+------------------------
+- INSERT_COMPONENT_COMMAND_SCHEMA_VERSION
+- insertFlangeValveFlangeOnSegment
+- insertFlangeValveFlangeContinue
+- insertReducerOnSegment
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

@@ -1,0 +1,30 @@
+{
+  "artifact": "Simplified_Analysis_V20_Phase_Patch_Text_Pack",
+  "generated": "2026-05-08T13:34:44.886510Z",
+  "repo": "reallaksh19/Simplified_Analysis",
+  "phase_files": [
+    "00_PHASE_INDEX.txt",
+    "00_README_APPLY_ORDER.txt",
+    "V18A_PCF_VIEWER_TO_SKETCHER_ADAPTER.txt",
+    "V18B_SKETCHER_VISUAL_CLEANUP.txt",
+    "V18C_ELEMENT_LISTING_PANEL.txt",
+    "V18D_PIPE_PROPERTY_MODEL.txt",
+    "V18E_COMPONENT_ENGINEERING_OBJECT_MODEL.txt",
+    "V18F_INSERT_COMPONENT_COMMANDS.txt",
+    "V18G_PUSH_TO_3D_SIMPLIFIED.txt",
+    "V18H_3D_ASSIGNMENT_PANEL.txt",
+    "V18I_SUPPORT_LOAD_SOLVER.txt",
+    "V18J2_FORCE_ACTION_SOLVER.txt",
+    "V18J_GUIDED_CANTILEVER_SUITE.txt",
+    "V18K_REPORT_INTEGRATION.txt",
+    "V18L_BROWSER_WORKFLOW_CERTIFICATION.txt",
+    "V19B_FLANGE_DIMENSIONAL_MASTER.txt",
+    "V19C_A_RATING_INPUT_PATCH.txt",
+    "V19C_MASTER_DB_EDITOR_TAB.txt",
+    "V19D_MASTER_DB_VALIDATION_GATES.txt",
+    "V19E_B169_FITTING_MASTER.txt",
+    "V19_LEGACY_WEIGHT_MASTER_ADAPTER.txt",
+    "V20_APPLY_AND_CERTIFY.txt"
+  ],
+  "note": "Text patch/work-instruction files for applying V18A-V19E and certifying V20."
+}

@@ -1,0 +1,34 @@
+V19D — Master DB Validation Gates
+=================================
+
+Goal
+----
+Add final-issue blockers for screening/missing/ambiguous/user-defined master data and missing rating/provenance.
+
+Files / paths
+-------------
+- src/core/engineering-data/validateMasterDbGovernance.js
+- src/masterDb/MasterDbValidationPanel.jsx
+
+Required tokens / checks
+------------------------
+- MASTER_DB_GOVERNANCE_SCHEMA_VERSION
+- validateComponentWeightMasterRows
+- validateFlangeDimensionalRows
+- MODEL_SEGMENT_RATING_MISSING
+- MASTER_COMPONENT_ROW_NOT_FINAL_QUALITY
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

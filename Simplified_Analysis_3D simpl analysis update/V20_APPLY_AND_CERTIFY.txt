@@ -1,0 +1,33 @@
+V20 — Apply and Certify
+=======================
+
+Goal
+----
+Apply all patches to branch v20-3d-simplified-sketcher-masterdb, commit in waves, run all checks, prepare PR/zip.
+
+Files / paths
+-------------
+- package.json
+- all phase files
+
+Required tokens / checks
+------------------------
+- ci:v18l
+- ci:v19e
+- check:benchmarks
+- build
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

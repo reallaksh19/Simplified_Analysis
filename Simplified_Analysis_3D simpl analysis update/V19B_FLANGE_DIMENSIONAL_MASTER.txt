@@ -1,0 +1,32 @@
+V19B — Flange Dimensional Master DB
+===================================
+
+Goal
+----
+Add flange thickness and gasket allowance master DB; FVF length = valve F/F + 2 flange thickness + 2 gasket.
+
+Files / paths
+-------------
+- src/data/flangeDimensionalMasterDb.js
+
+Required tokens / checks
+------------------------
+- FLANGE_DIMENSIONAL_MASTER_SCHEMA_VERSION
+- resolveFlangeDimensions
+- FLANGE_DIMENSION_SCREENING_SAMPLE
+- gasketAllowance_mm
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

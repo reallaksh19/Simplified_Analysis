@@ -1,0 +1,33 @@
+V18B — Sketcher Visual Cleanup
+==============================
+
+Goal
+----
+Add display settings to hide lengths/coordinates and reduce eye strain.
+
+Files / paths
+-------------
+- src/sketcher/SketcherDisplaySettingsPanel.jsx
+
+Required tokens / checks
+------------------------
+- sketcher-display-settings-panel
+- sketcher-toggle-node-coordinates
+- sketcher-toggle-segment-lengths
+- sketcher-label-opacity
+- sketcher-grid-opacity
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

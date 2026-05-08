@@ -1,0 +1,38 @@
+V18L — Browser Workflow Certification
+=====================================
+
+Goal
+----
+Add Playwright workflow tests for Sketcher display, element panel, push to 3D, calculations and report.
+
+Files / paths
+-------------
+- e2e/helpers/v18lWorkflowHelpers.js
+- e2e/v18l-sketcher-display.spec.js
+- e2e/v18l-sketcher-element-panel.spec.js
+- e2e/v18l-push-to-3d-simplified.spec.js
+- e2e/v18l-3d-calculation-workflow.spec.js
+
+Required tokens / checks
+------------------------
+- sketcher-display-settings-panel
+- sketcher-element-listing-panel
+- sketcher-push-to-3d-simplified
+- 3d-run-support-loads
+- 3d-run-force-actions
+- 3d-build-report
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.

@@ -1,0 +1,34 @@
+V19C — Master DB Editor Tab
+===========================
+
+Goal
+----
+Add GUI for component weight/F-F and flange dimension overrides, with import/export JSON. Resolvers search overrides first.
+
+Files / paths
+-------------
+- src/data/masterDbOverrides.js
+- src/masterDb/MasterDbEditorTab.jsx
+
+Required tokens / checks
+------------------------
+- MASTER_DB_OVERRIDES_SCHEMA_VERSION
+- master-db-editor-tab
+- master-db-component-weight-editor
+- master-db-flange-dimension-editor
+- master-db-import-export-panel
+
+Patch instructions
+------------------
+Apply this phase after the previous phase. Add missing files, patch imports and store actions, then add package scripts for check:<phase>, check:<phase>:behavior and ci:<phase>.
+
+
+Certification commands:
+- npm run check:<phase>
+- npm run check:<phase>:behavior
+- npm run check:benchmarks
+- npm run build
+
+Acceptance
+----------
+Phase is acceptable only when static check, behavior test, benchmark check and build pass.
