@@ -1,0 +1,913 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Generated from chat content
+Repository: reallaksh19/Simplified_Analysis
+
+NOTE:
+This is Chunk 4. It continues from Chunk 3.
+Some earlier chat sections were marked “Skipped messages” in the UI and cannot be reconstructed exactly.
+
+======================================================================
+CHUNK 4 — V10, V11, AND V12 PATCH INSTRUCTIONS
+======================================================================
+
+======================================================================
+V10 — FULL ENGINEERING DATA MIGRATION
+======================================================================
+
+Branch:
+git checkout phase-v9-browser-workflow-deep-automation
+git pull
+git checkout -b phase-v10-full-engineering-data-migration
+
+Objective:
+Complete the engineering-data migration started in U3.
+
+Main targets:
+1. Remove Sketcher pipe fallback approximation.
+2. Remove Calc Extended legacy local DB fallback path from active calculation.
+3. Make pipe/material lookups go through unified engineering-data resolver.
+4. Add missing-data benchmark behavior tests.
+5. Push engineering data status into UI/report payload.
+
+Known source issue:
+SegmentEditorPanel.jsx imported getAvailableSchedules/getPipeDimensions from src/core/geometry/pipeSchedules.js.
+pipeSchedules.js still returned approximate fallback dimensions for unknown bores.
+
+Unsafe fallback to remove:
+const od = boreMm;
+const wt = boreMm * 0.065;
+return { od, wt, exact: false };
+
+----------------------------------------------------------------------
+V10 files
+----------------------------------------------------------------------
+
+PHASE_V10_FULL_ENGINEERING_DATA_MIGRATION.md
+
+Updated:
+src/core/engineering-data/resolveEngineeringData.js
+src/core/geometry/pipeSchedules.js
+src/sketcher/SegmentEditorPanel.jsx
+src/calc-extended/solver/ExtendedSolver.js
+src/reporting/publishActiveReportContext.js
+src/reporting/buildReportPayload.js
+package.json
+
+New scripts:
+scripts/v10-engineering-data-migration-check.mjs
+scripts/v10-engineering-data-migration-behavior-test.mjs
+
+----------------------------------------------------------------------
+V10 resolver updates
+----------------------------------------------------------------------
+
+In resolveEngineeringData.js add:
+
+export const INCH_TO_MM = 25.4;
+
+function normalizePipeValue(value = {}) {
+  const wall_in = Number(value.wall_in ?? value.wt_in);
+  const od_in = Number(value.od_in);
+  const id_in = Number(value.id_in ?? (od_in - 2 * wall_in));
+  const I_in4 = Number(value.I_in4 ?? (Math.PI / 64 * (od_in ** 4 - id_in ** 4)));
+  const Z_in3 = Number(value.Z_in3 ?? (I_in4 / (od_in / 2)));
+
+  return {
+    ...value,
+    od_in,
+    wall_in,
+    wt_in: wall_in,
+    id_in,
+    I_in4,
+    Z_in3,
+    od_mm: od_in * INCH_TO_MM,
+    wall_mm: wall_in * INCH_TO_MM,
+    wt_mm: wall_in * INCH_TO_MM,
+  };
+}
+
+For user-defined pipe:
+- calculate OD, wall, ID, I, Z
+- return normalized value
+- status USER_DEFINED
+
+For resolved pipe:
+value: normalizePipeValue(resolved.value || resolved)
+
+For material:
+value includes:
+- E_psi
+- alpha_in_in_F
+- displayName
+- source
+- sourceRevision
+
+----------------------------------------------------------------------
+V10 pipeSchedules strict behavior
+----------------------------------------------------------------------
+
+In src/core/geometry/pipeSchedules.js:
+import { resolvePipeSection, DATA_STATUS } from '../engineering-data/resolveEngineeringData.js';
+
+Add DN to NPS mapping:
+15 -> 0.5
+20 -> 0.75
+25 -> 1
+40 -> 1.5
+50 -> 2
+80 -> 3
+100 -> 4
+150 -> 6
+200 -> 8
+250 -> 10
+300 -> 12
+350 -> 14
+400 -> 16
+450 -> 18
+500 -> 20
+600 -> 24
+750 -> 30
+900 -> 36
+
+Add:
+export function resolvePipeDimensions(boreMm, schedule = 'STD') {
+  const nps = dnToNps(boreMm);
+  if (!nps) {
+    return {
+      status: DATA_STATUS.MISSING_DATA,
+      isQualified: false,
+      od: null,
+      wt: null,
+      exact: false,
+      diagnostics: [
+        {
+          code: 'DN_TO_NPS_MISSING',
+          severity: 'error',
+          message: `No DN to NPS mapping for DN ${boreMm}. Pipe dimensions not qualified.`,
+          data: { boreMm, schedule },
+        },
+      ],
+    };
+  }
+
+  const resolved = resolvePipeSection({ nps, schedule });
+  return {
+    status: resolved.status,
+    isQualified: resolved.isQualified,
+    od: resolved.value?.od_mm ?? null,
+    wt: resolved.value?.wt_mm ?? null,
+    exact: resolved.status === DATA_STATUS.PASSED || resolved.status === DATA_STATUS.USER_DEFINED,
+    nps,
+    diagnostics: resolved.diagnostics || [],
+    source: resolved.source,
+    value: resolved.value,
+  };
+}
+
+Change getPipeDimensions:
+export function getPipeDimensions(boreMm, schedule = 'STD') {
+  return resolvePipeDimensions(boreMm, schedule);
+}
+
+Change getAvailableSchedules unknown bore behavior:
+return [];
+
+----------------------------------------------------------------------
+V10 SegmentEditorPanel changes
+----------------------------------------------------------------------
+
+Import:
+import { getAvailableSchedules, getPipeDimensions, resolvePipeDimensions } from '../core/geometry/pipeSchedules';
+
+Add:
+const pipeResolution = resolvePipeDimensions(props.bore ?? 100, props.schedule || 'STD');
+
+When bore changes:
+- set bore
+- set wt: dims.wt ?? props.wt
+- set pipeDataStatus: dims.status
+- set pipeDataDiagnostics: dims.diagnostics || []
+
+When schedule changes:
+- set schedule
+- set wt: dims.wt ?? props.wt
+- set pipeDataStatus
+- set pipeDataDiagnostics
+
+Add status panel:
+data-testid="segment-pipe-data-status"
+
+Panel text:
+Pipe data: <status>
+If not qualified:
+Show first diagnostic message or:
+Pipe data missing. Calculation not qualified.
+
+WT input value:
+props.wt ?? getPipeDimensions(...).wt ?? ''
+
+----------------------------------------------------------------------
+V10 ExtendedSolver changes
+----------------------------------------------------------------------
+
+Replace local getMaterialProps/getPipeProps active values with unified data:
+
+const matProps = {
+  alpha: materialData.value.alpha_in_in_F,
+  E: materialData.value.E_psi,
+  source: materialData.source,
+  status: materialData.status,
+};
+
+const pipe = {
+  OD: pipeData.value.od_in,
+  t: pipeData.value.wall_in,
+  I: pipeData.value.I_in4,
+  source: pipeData.source,
+  status: pipeData.status,
+};
+
+Numeric completeness gate:
+If alpha/E/OD/t/I are not finite:
+return {
+  moduleId: 'calc-extended',
+  methodId: 'ENGINEERING_DATA_GATE',
+  formulaIds: ['DATA_NUMERIC_COMPLETENESS_GATE'],
+  status: 'NOT_QUALIFIED',
+  dataStatus: { ...dataStatus, status: DATA_STATUS.MISSING_DATA },
+  diagnostics: [
+    ...dataStatus.diagnostics,
+    {
+      code: 'ENGINEERING_DATA_NUMERIC_INCOMPLETE',
+      severity: 'error',
+      message: 'Unified pipe/material values are incomplete.'
+    }
+  ],
+  warnings,
+  axes: {},
+  meta: { schemaVersion: 'extended-calc-v1', settingsHash }
+};
+
+Add to result:
+engineeringDataSource: {
+  pipe: {
+    status: pipeData.status,
+    source: pipeData.source,
+    value: pipeData.value,
+  },
+  material: {
+    status: materialData.status,
+    source: materialData.source,
+    value: materialData.value,
+  },
+}
+
+----------------------------------------------------------------------
+V10 reporting changes
+----------------------------------------------------------------------
+
+publishActiveReportContext:
+- include dataStatus
+- include engineeringDataSource
+- append dataStatus diagnostics into diagnostics
+
+buildReportPayload:
+engineeringDataSource:
+activeReportContext?.engineeringDataSource || result.engineeringDataSource || result.dataStatus || {}
+
+----------------------------------------------------------------------
+V10 behavior test
+----------------------------------------------------------------------
+
+Core checks:
+- resolvePipeSection({ nps: 8, schedule: '40' }) -> PASSED
+- resolved pipe exposes od_mm, wt_mm, I_in4
+- resolveMaterialAtTemperature({ materialId: 'Carbon Steel', temperature_F: 300 }) -> PASSED
+- material exposes E_psi and alpha_in_in_F
+- resolvePipeDimensions(200, '40') -> PASSED
+- getPipeDimensions(123, '40') -> MISSING_DATA
+- unknown DN must not invent OD or WT
+- runExtendedSolver with known pipe/material must not block
+- runExtendedSolver with pipeSize 999 schedule XXS -> NOT_QUALIFIED
+- active report context carries engineeringDataSource and dataStatus
+- report payload includes engineeringDataSource
+
+package.json:
+"check:v10": "node scripts/v10-engineering-data-migration-check.mjs"
+"check:v10:behavior": "node scripts/v10-engineering-data-migration-behavior-test.mjs"
+"ci:v10": "npm run ci:v9 && npm run check:v10 && npm run check:v10:behavior && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v10
+npm run check:v10:behavior
+npm run check:benchmarks
+npm run ci:v10
+
+PR title:
+Phase V10 full engineering data migration
+
+Deferred:
+- Flange/gasket resolver unification
+- Pipe Rack full material/pipe property enforcement
+- Master DB editor UI
+- Component master DB with valve/flange/elbow/tee dimensions
+
+======================================================================
+V11 — PROFESSIONAL SKETCHER DRAFTING COMMANDS
+======================================================================
+
+Branch:
+git checkout phase-v10-full-engineering-data-migration
+git pull
+git checkout -b phase-v11-professional-sketcher-drafting-commands
+
+Problem:
+Sketcher had basic draw/import/analyze/push/sync buttons but no real command layer for:
+- Convert Bend
+- Convert Tee
+- Convert Olet
+- Auto Connect Pipes
+- Validate Topology
+
+----------------------------------------------------------------------
+V11 files
+----------------------------------------------------------------------
+
+PHASE_V11_PROFESSIONAL_SKETCHER_DRAFTING_COMMANDS.md
+src/sketcher/commands/professionalDraftingCommands.js
+src/sketcher/TopologyDiagnosticsPanel.jsx
+scripts/v11-sketcher-drafting-commands-check.mjs
+scripts/v11-sketcher-drafting-commands-behavior-test.mjs
+e2e/v11-sketcher-drafting-commands.spec.js
+
+Updated:
+src/sketcher/SketcherStore.js
+src/sketcher/SketcherTab.jsx
+scripts/qa-check.mjs
+package.json
+
+----------------------------------------------------------------------
+V11 command behavior
+----------------------------------------------------------------------
+
+Convert Bend:
+Valid only when selected node has exactly 2 connected segments.
+Result:
+node.type = "elbow"
+
+Convert Tee:
+Valid only when selected node has exactly 3 connected segments.
+Result:
+node.type = "tee"
+
+Convert Olet:
+Valid only when selected node has at least 2 connected segments.
+Result:
+node.type = "olet"
+
+Auto Connect Pipes:
+Merges nodes where distance <= tolerance.
+Default tolerance:
+1.0 mm
+
+Validate Topology:
+Runs validateSketchTopology() and stores diagnostics in Sketcher store.
+
+----------------------------------------------------------------------
+V11 command layer
+----------------------------------------------------------------------
+
+File:
+src/sketcher/commands/professionalDraftingCommands.js
+
+Exports:
+SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION = 'sketch-drafting-command-v1'
+convertSelectedNodeToBend()
+convertSelectedNodeToTee()
+convertSelectedNodeToOlet()
+autoConnectPipes()
+validateSketchCommand()
+
+Core command result shape:
+{
+  schemaVersion,
+  ok,
+  command,
+  nodes,
+  segments,
+  diagnostics,
+  message,
+  meta
+}
+
+Important diagnostic codes:
+NO_SELECTED_NODE
+INVALID_CONNECTION_COUNT
+INSUFFICIENT_CONNECTION_COUNT
+AUTO_CONNECT_PIPES
+VALIDATE_TOPOLOGY
+
+Core helper:
+convertSelectedNodeType({
+  nodes,
+  segments,
+  selectedNodeId,
+  targetType,
+  requiredConnectionCount,
+  minConnectionCount,
+  command,
+})
+
+Validation:
+- use buildConnectionIndex(segments)
+- check selected node exists
+- check connection count
+- update node type and meta
+- run validateSketchTopology()
+- return result
+
+Auto Connect:
+- clone graph
+- scan node pairs
+- if distance <= toleranceMm, remap duplicate to survivor
+- rewire segments
+- remove self-loop segments
+- delete duplicate nodes
+- validate topology
+- return mergeCount and remap
+
+----------------------------------------------------------------------
+V11 TopologyDiagnosticsPanel
+----------------------------------------------------------------------
+
+File:
+src/sketcher/TopologyDiagnosticsPanel.jsx
+
+Test IDs:
+topology-diagnostics-panel
+topology-diagnostics-close
+topology-diagnostics-summary
+topology-diagnostics-empty
+topology-diagnostic-item
+
+Displays:
+- Last command
+- Status PASSED / ISSUES FOUND
+- Nodes
+- Segments
+- Errors
+- Warnings
+- Diagnostic list
+
+Uses SketcherStore:
+topologyDiagnostics
+lastDraftingCommand
+showTopologyDiagnostics
+setShowTopologyDiagnostics
+
+----------------------------------------------------------------------
+V11 SketcherStore additions
+----------------------------------------------------------------------
+
+State:
+topologyDiagnostics
+showTopologyDiagnostics
+lastDraftingCommand
+
+Actions:
+setShowTopologyDiagnostics(show)
+applyDraftingCommandResult(result)
+convertSelectedToBend()
+convertSelectedToTee()
+convertSelectedToOlet()
+autoConnectPipes(toleranceMm = 1.0)
+validateTopology()
+
+Each convert action:
+- saveSnapshot()
+- read nodes, segments, selectedNodeId
+- call pure command
+- applyDraftingCommandResult(result)
+
+applyDraftingCommandResult:
+- updates nodes and segments
+- stores diagnostics
+- stores lastDraftingCommand
+- opens diagnostics panel
+
+----------------------------------------------------------------------
+V11 SketcherTab toolbar
+----------------------------------------------------------------------
+
+Add lucide icons:
+GitBranch
+Wrench
+CheckCircle2
+Link2
+CornerUpRight
+
+Add buttons:
+data-testid="sketcher-convert-bend"
+data-testid="sketcher-convert-tee"
+data-testid="sketcher-convert-olet"
+data-testid="sketcher-auto-connect"
+data-testid="sketcher-validate-topology"
+
+Button labels:
+Convert Bend
+Convert Tee
+Convert Olet
+Auto Connect
+Validate
+
+Add <TopologyDiagnosticsPanel />
+
+Fix connected fitting bore lookup:
+Old logic compared segment id to object.
+New logic handles connected segment object safely:
+const seg = c.seg || segments.find(s => s.id === c.seg?.id || s.id === c.seg);
+
+----------------------------------------------------------------------
+V11 behavior test
+----------------------------------------------------------------------
+
+Test Convert Bend:
+- Node B with two connected segments
+- convertSelectedNodeToBend({ selectedNodeId: 'B' })
+- ok true
+- nodes.B.type === 'elbow'
+- command === 'CONVERT_BEND'
+
+Test bad bend:
+- Node A one connected segment
+- ok false
+- diagnostic INVALID_CONNECTION_COUNT
+
+Test Convert Tee:
+- Node T with WEST/EAST/BRANCH
+- ok true
+- nodes.T.type === 'tee'
+- command CONVERT_TEE
+
+Test Convert Olet:
+- Node T with >=2 connections
+- ok true
+- nodes.T.type === 'olet'
+
+Test Auto Connect:
+- B and B2 within 1 mm
+- mergeCount 1
+- B2 removed
+- segments rewired
+
+Test Validate:
+- command VALIDATE_TOPOLOGY
+- validationSummary includes node count
+- diagnostics array exists
+
+----------------------------------------------------------------------
+V11 browser test
+----------------------------------------------------------------------
+
+File:
+e2e/v11-sketcher-drafting-commands.spec.js
+
+Uses E2E store hook:
+window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__
+
+selectNodeById(page, nodeId):
+state.setSelectedNodeId(id)
+
+Tests:
+1. convert bend and validate topology from toolbar
+2. convert tee and auto connect from toolbar
+
+Expected:
+- topology-diagnostics-panel visible
+- topology-diagnostics-summary contains CONVERT_BEND or CONVERT_TEE or AUTO_CONNECT_PIPES
+
+NOTE:
+Test assumed deterministic node IDs such as N002.
+
+----------------------------------------------------------------------
+V11 scripts
+----------------------------------------------------------------------
+
+package.json:
+"check:v11": "node scripts/v11-sketcher-drafting-commands-check.mjs"
+"check:v11:behavior": "node scripts/v11-sketcher-drafting-commands-behavior-test.mjs"
+"ci:v11": "npm run ci:v10 && npm run check:v11 && npm run check:v11:behavior && npm run check:qa && npm run check:e2e && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v11
+npm run check:v11:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v11
+
+PR title:
+Phase V11 professional sketcher drafting commands
+
+Deferred:
+- Exact fitting C2E trim from master component DB
+- Convert Bend should insert actual bend tangent points
+- Convert Tee should split header by C2E lengths
+- Convert Olet should compute branch reinforcement / BRLEN
+- Dedicated professional icon assets can replace lucide placeholders
+
+======================================================================
+V12 — BRANCH-AWARE SOLVER ARCHITECTURE
+======================================================================
+
+Branch:
+git checkout phase-v11-professional-sketcher-drafting-commands
+git pull
+git checkout -b phase-v12-branch-aware-solver-architecture
+
+Important design decision:
+Do not force tee/olet/branch geometry into GC3D.
+GC3D remains limited to non-branch guided-cantilever screening.
+
+V12 adds:
+1. Topology classifier
+2. Solver router
+3. Branch-screening solver
+4. Branch diagnostics
+5. Routing hint in existing GC3D rejection
+
+----------------------------------------------------------------------
+V12 files
+----------------------------------------------------------------------
+
+PHASE_V12_BRANCH_AWARE_SOLVER_ARCHITECTURE.md
+src/core/solvers/routing/classifySolverTopology.js
+src/core/solvers/branch/solveBranchScreening.js
+src/core/solvers/routing/solveByTopologyRouter.js
+scripts/v12-branch-aware-solver-check.mjs
+scripts/v12-branch-aware-solver-behavior-test.mjs
+
+Updated:
+src/solvers/3d/solveGC3D.js
+package.json
+
+----------------------------------------------------------------------
+V12 topology classifier
+----------------------------------------------------------------------
+
+File:
+src/core/solvers/routing/classifySolverTopology.js
+
+Exports:
+SOLVER_TOPOLOGY_SCHEMA_VERSION = 'solver-topology-classification-v1'
+
+SOLVER_TOPOLOGY_TYPE:
+- EMPTY
+- GC3D_SUPPORTED_ROUTE
+- BRANCH_ROUTE
+- UNSUPPORTED_MIXED_TOPOLOGY
+- INVALID_TOPOLOGY
+
+Main function:
+classifySolverTopology(payload = {})
+
+Inputs:
+- nodes
+- segments
+
+Normalizes:
+- array nodes to object
+- segment startNode/startNodeId
+- segment endNode/endNodeId
+
+Branch indicators:
+Node types:
+tee
+branch
+olet
+
+Segment compType/properties.type:
+TEE
+BRANCH
+OLET
+
+If empty:
+topologyType EMPTY
+route NONE
+canRunGC3D false
+canRunBranchScreening false
+
+If validateSketchTopology fails:
+topologyType INVALID_TOPOLOGY
+route BLOCKED
+
+If no branch:
+topologyType GC3D_SUPPORTED_ROUTE
+route GC3D
+canRunGC3D true
+
+If branch:
+topologyType BRANCH_ROUTE
+route BRANCH_SCREENING
+canRunGC3D false
+canRunBranchScreening true
+
+Branch details:
+- branchNodeId
+- branchType
+- mainSegmentIds
+- branchSegmentId
+- colinearityScore
+- connectionCount
+
+For tee:
+Use classifyTeeMainBranch(nodes, nodeId, connectedSegments)
+
+For olet/branch:
+Use first two connected as main candidates and third as branch placeholder.
+
+----------------------------------------------------------------------
+V12 branch-screening solver
+----------------------------------------------------------------------
+
+File:
+src/core/solvers/branch/solveBranchScreening.js
+
+Exports:
+BRANCH_SCREENING_SCHEMA_VERSION = 'branch-screening-v1'
+solveBranchScreening(payload = {})
+
+Uses:
+createSolverResultContract()
+ENGINEERING_LEVEL.SCREENING
+classifySolverTopology()
+
+Method:
+BRANCH_TOPOLOGY_SCREENING_V1
+
+Formula IDs:
+BRANCH_TOPOLOGY_CLASSIFICATION
+TEE_MAIN_BRANCH_VECTOR_COLINEARITY
+BRLEN_REQUIRED_GATE
+
+Behavior:
+- If topology is not BRANCH_ROUTE:
+  status NOT_QUALIFIED
+  diagnostic NOT_BRANCH_TOPOLOGY
+
+For each branch:
+- check direct fittingData by branchSegmentId or branchNodeId
+- BRLEN recognized if BRLEN_in or BRLEN_mm is finite
+- if missing:
+  diagnostic BRLEN_REQUIRED
+  warning "BRLEN/fitting C2E missing..."
+  branch check status NOT_QUALIFIED_FOR_BRANCH_STRESS
+- if present:
+  branch check status BRANCH_SCREENING_ONLY
+
+Overall status:
+BRANCH_SCREENING_ONLY
+
+Result:
+results: {
+  schemaVersion,
+  topologyType,
+  branchDetails,
+  branchChecks,
+  overallResult,
+  qualification
+}
+
+Important:
+Even with BRLEN, V12 remains screening-only.
+
+----------------------------------------------------------------------
+V12 solver router
+----------------------------------------------------------------------
+
+File:
+src/core/solvers/routing/solveByTopologyRouter.js
+
+Exports:
+SOLVER_ROUTER_SCHEMA_VERSION = 'solver-topology-router-v1'
+solveByTopologyRouter(payload = {}, options = {})
+
+Imports:
+solveGC3D
+solveBranchScreening
+classifySolverTopology
+
+Routing:
+- GC3D_SUPPORTED_ROUTE -> gc3dSolver()
+- BRANCH_ROUTE -> branchSolver()
+- EMPTY -> create NOT_QUALIFIED solver-router result
+- otherwise -> UNSUPPORTED_GEOMETRY solver-router result
+
+Adds routing metadata:
+routing: {
+  schemaVersion,
+  selectedSolver,
+  topologyType,
+  route,
+  canRunGC3D,
+  canRunBranchScreening
+}
+
+Allows dependency injection:
+options.gc3dSolver
+options.branchSolver
+
+----------------------------------------------------------------------
+V12 solveGC3D change
+----------------------------------------------------------------------
+
+Keep existing branch rejection intact, but add routing hint.
+
+Diagnostic message:
+Branch/tee/olet geometry is outside GC3D screening scope. Use solveByTopologyRouter() for branch-aware screening.
+
+Add:
+routingHint: {
+  recommendedRouter: 'solveByTopologyRouter',
+  branchSolver: 'BRANCH_TOPOLOGY_SCREENING_V1'
+}
+
+----------------------------------------------------------------------
+V12 behavior test
+----------------------------------------------------------------------
+
+L route:
+- A anchor, B elbow, C anchor
+- two segments
+Expected:
+classifySolverTopology -> GC3D_SUPPORTED_ROUTE
+route GC3D
+canRunGC3D true
+
+Router with GC3D stub:
+- selectedSolver GC3D
+- status PASSED preserved
+
+Tee route:
+- W, T tee, E, N
+- WEST, EAST, BRANCH
+Expected:
+topologyType BRANCH_ROUTE
+route BRANCH_SCREENING
+canRunGC3D false
+branchDetails length 1
+branchSegmentId BRANCH
+mainSegmentIds EAST/WEST
+
+Branch result:
+- moduleId branch-screening
+- methodId BRANCH_TOPOLOGY_SCREENING_V1
+- status BRANCH_SCREENING_ONLY
+- formulaIds includes BRLEN_REQUIRED_GATE
+- diagnostics includes BRLEN_REQUIRED
+
+Router for tee:
+- selectedSolver BRANCH_SCREENING
+- methodId BRANCH_TOPOLOGY_SCREENING_V1
+
+Tee with BRLEN:
+- fittingData.BRANCH.BRLEN_in = 12
+- status still BRANCH_SCREENING_ONLY
+- hasBRLEN true
+
+Empty:
+solveByTopologyRouter({ nodes: {}, segments: [] })
+-> status NOT_QUALIFIED
+-> methodId SOLVER_TOPOLOGY_ROUTER_V1
+
+----------------------------------------------------------------------
+V12 scripts
+----------------------------------------------------------------------
+
+package.json:
+"check:v12": "node scripts/v12-branch-aware-solver-check.mjs"
+"check:v12:behavior": "node scripts/v12-branch-aware-solver-behavior-test.mjs"
+"ci:v12": "npm run ci:v11 && npm run check:v12 && npm run check:v12:behavior && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v12
+npm run check:v12:behavior
+npm run check:benchmarks
+npm run ci:v12
+
+PR title:
+Phase V12 branch-aware solver architecture
+
+Deferred:
+- Real BRLEN resolver using component master DB
+- Tee/olet C2E dimensional database
+- Branch SIF/flexibility factors
+- Branch local stress calculation
+- WRC/nozzle-style branch reinforcement calculation where applicable
+- Branch-screening UI detail panel
+
+======================================================================
+END OF CHUNK 4
+======================================================================
+Next chunk should continue with:
+V13 — Report export and checker workflow
+V14 — Component Master DB and fitting C2E lengths

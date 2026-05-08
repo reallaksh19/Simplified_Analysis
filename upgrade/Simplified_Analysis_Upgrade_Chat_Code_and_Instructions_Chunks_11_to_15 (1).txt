@@ -1,0 +1,1217 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Repository: reallaksh19/Simplified_Analysis
+Generated from visible chat content.
+
+This file contains Chunks 11 to 15 in one text file.
+These chunks are supplemental continuation material after Chunks 1–10:
+- Chunk 11: Consolidated phase PR bodies and release notes
+- Chunk 12: Agent-wise implementation work instructions
+- Chunk 13: Benchmark / QA / CI matrix
+- Chunk 14: Risk register and source-level audit checklist
+- Chunk 15: V17 production PCF parser/writer detailed work instruction
+
+NOTE:
+Some earlier chat sections were marked “Skipped messages” in the UI and cannot be reconstructed exactly. This file preserves and consolidates the visible instructions and adds structured continuation content for implementation.
+
+======================================================================
+CHUNK 11 — CONSOLIDATED PR BODIES AND RELEASE NOTES
+======================================================================
+
+MASTER RELEASE TITLE
+--------------------
+Simplified Analysis technical audit remediation and engineering workflow upgrade
+
+MASTER RELEASE SUMMARY
+----------------------
+This release stack upgrades Simplified Analysis from a calculator/sketcher prototype into a more controlled engineering-screening workflow with:
+
+1. Settings/defaults contract.
+2. Unified engineering-data resolution.
+3. Sketcher topology validation.
+4. Solver result certification contract.
+5. Active calculation reporting.
+6. Browser workflow automation.
+7. Full engineering-data migration.
+8. Professional Sketcher drafting commands.
+9. Branch-aware solver routing.
+10. Report checker/export workflow.
+11. Component master DB / fitting dimensions.
+12. PCFX fitting roundtrip QA.
+13. PCFX import/export UI and golden fixtures.
+
+IMPORTANT ENGINEERING DISCLAIMER
+--------------------------------
+This stack improves traceability and QA but does not convert screening methods into final code-certified stress analysis.
+
+Screening-only methods must remain labeled as:
+- SCREENING
+- BENCHMARKED_SCREENING
+- BRANCH_SCREENING_ONLY
+
+Final issue must remain blocked when:
+- results are stale
+- data is missing
+- solver status is NOT_QUALIFIED or UNSUPPORTED_GEOMETRY
+- component data is missing
+- method is SCREENING and issue type is FINAL_ISSUE
+- sample component DB rows are still SCREENING_SAMPLE
+
+----------------------------------------------------------------------
+PHASE U3 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U3 engineering data unification
+
+Body:
+## Summary
+Adds a unified engineering-data resolution layer for pipe and material data.
+
+## Changes
+- Adds `src/core/engineering-data/resolveEngineeringData.js`.
+- Wraps existing pipe and material data sources in a consistent contract.
+- Adds explicit data statuses:
+  - PASSED
+  - MISSING_DATA
+  - NOT_QUALIFIED
+  - SCREENING_APPROXIMATION
+  - USER_DEFINED
+- Adds behavior tests to prove missing pipe/material data no longer silently passes.
+- Begins wiring Calc Extended through an engineering-data gate.
+
+## Certification
+npm run check:u3
+npm run check:u3:behavior
+npm run check:benchmarks
+npm run ci:u3
+
+## Deferred
+- Full removal of all legacy local DB fallback paths.
+- Pipe Rack data migration.
+- Flange/gasket data unification.
+
+----------------------------------------------------------------------
+PHASE U4 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U4 sketcher topology and fitting upgrade
+
+Body:
+## Summary
+Adds topology validation and deterministic tee main/branch classification.
+
+## Changes
+- Adds `validateSketchTopology()`.
+- Adds `classifyTeeMainBranch()`.
+- Replaces order-dependent tee main/branch selection with vector-colinearity selection.
+- Adds topology behavior tests.
+- Stores tee metadata:
+  - TEE_CLASSIFICATION
+  - MAIN_SEGMENT_A
+  - MAIN_SEGMENT_B
+  - BRANCH_SEGMENT
+
+## Certification
+npm run check:u4
+npm run check:u4:behavior
+npm run check:benchmarks
+npm run ci:u4
+
+## Deferred
+- Dedicated Sketcher convert toolbar.
+- Exact fitting C2E trimming.
+- Branch-aware solver.
+
+----------------------------------------------------------------------
+PHASE U5 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U5 solver certification contract
+
+Body:
+## Summary
+Introduces a solver result contract so calculation modules return traceable method IDs, formula IDs, engineering level, diagnostics, and units.
+
+## Changes
+- Adds `createSolverResultContract()`.
+- Adds `validateSolverResultContract()`.
+- Adds `unwrapSolverResults()`.
+- Wraps Simplified 2D solver result in the contract.
+- Adds method/formula traceability requirements.
+
+## Certification
+npm run check:u5
+npm run check:u5:behavior
+npm run check:benchmarks
+npm run ci:u5
+
+## Deferred
+- Wrap GC3D, Pipe Rack, and Calc Extended fully.
+- Add formula-specific L/Z/U/offset methods.
+
+----------------------------------------------------------------------
+PHASE U6 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U6 active calculation reporting
+
+Body:
+## Summary
+Replaces demo report behavior with active calculation report context.
+
+## Changes
+- Adds active report context to app store.
+- Adds `publishActiveReportContext()`.
+- Adds `buildReportPayload()`.
+- Calc Extended publishes active report context after calculation.
+- Reports tab shows no-report state if no active calculation exists.
+- Reports tab marks stale results.
+
+## Certification
+npm run check:u6
+npm run check:u6:behavior
+npm run check:benchmarks
+npm run ci:u6
+
+## Deferred
+- Publish active report context from GC3D.
+- Publish active report context from Pipe Rack.
+- Publish active report context from Simplified 2D.
+- PDF export and revision workflow.
+
+----------------------------------------------------------------------
+PHASE U7 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U7 browser QA and deterministic CI
+
+Body:
+## Summary
+Adds browser workflow smoke tests and deterministic source guards.
+
+## Changes
+- Adds Playwright workflow smoke tests.
+- Adds deterministic runtime guard for unapproved:
+  - Math.random
+  - Date.now
+  - new Date(
+  - performance.now
+- Adds required E2E file guard.
+- Strengthens `qa-check.mjs`.
+
+## Certification
+npm run check:u7
+npm run check:qa
+npm run check:e2e
+npm run ci:u7
+
+## Deferred
+- Canvas-level sketching automation.
+- Calc Extended real browser run proof.
+- Browser report workflow proof.
+
+----------------------------------------------------------------------
+PHASE U8 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase U8 release candidate certification
+
+Body:
+## Summary
+Adds release-candidate certification documentation, final pending register, and release gate.
+
+## Changes
+- Adds `RELEASE_CANDIDATE_REGISTER.md`.
+- Adds `FINAL_PENDING_REGISTER.md`.
+- Adds `release-candidate-check.mjs`.
+- Adds release candidate CI workflow.
+
+## Certification
+npm run check:release
+npm run check:benchmarks
+npm run ci:release
+
+## Notes
+U8 is a release control layer, not a feature phase.
+
+----------------------------------------------------------------------
+PHASE V9 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V9 browser workflow deep automation
+
+Body:
+## Summary
+Adds deeper browser-level workflow automation for Settings, Sketcher, GC3D routing, Calc Extended reports, and Benchmark cards.
+
+## Changes
+- Adds E2E helper layer:
+  - appNavigation
+  - elementGuards
+  - reportAssertions
+  - sketcherActions
+- Adds deterministic Sketcher E2E hooks guarded by `window.__SIMPLIFIED_ANALYSIS_E2E__`.
+- Adds workflow tests for:
+  - Settings stale/hash workflow
+  - Sketcher to 2D
+  - Sketcher to GC3D
+  - Calc Extended to Reports
+  - Benchmark cards
+- Adds Playwright artifact configuration.
+
+## Certification
+npm run check:v9
+npm run check:qa
+npm run check:e2e
+npm run ci:v9
+
+## Deferred
+V10 full engineering data migration.
+
+----------------------------------------------------------------------
+PHASE V10 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V10 full engineering data migration
+
+Body:
+## Summary
+Completes the engineering-data migration by removing unsafe Sketcher pipe fallback approximation and using unified engineering data in Calc Extended.
+
+## Changes
+- Normalizes pipe values:
+  - OD
+  - wall
+  - ID
+  - I
+  - Z
+  - imperial and metric units
+- Normalizes material values:
+  - E_psi
+  - alpha_in_in_F
+- Replaces `OD=bore` / `WT=6.5% bore` fallback with MISSING_DATA.
+- Segment editor displays pipe data status.
+- Calc Extended uses unified pipe/material values.
+- Reports carry engineeringDataSource and dataStatus.
+
+## Certification
+npm run check:v10
+npm run check:v10:behavior
+npm run check:benchmarks
+npm run ci:v10
+
+## Deferred
+- Flange/gasket unification.
+- Pipe Rack property enforcement.
+- Master DB editor.
+
+----------------------------------------------------------------------
+PHASE V11 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V11 professional sketcher drafting commands
+
+Body:
+## Summary
+Adds professional Sketcher drafting commands.
+
+## Changes
+- Adds command layer:
+  - Convert Bend
+  - Convert Tee
+  - Convert Olet
+  - Auto Connect Pipes
+  - Validate Topology
+- Adds topology diagnostics panel.
+- Wires command buttons into Sketcher toolbar.
+- Adds behavior and browser tests.
+
+## Certification
+npm run check:v11
+npm run check:v11:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v11
+
+## Deferred
+- Exact bend C2E tangent trim.
+- Tee header/branch split.
+- Olet BRLEN formula fallback.
+- Professional custom icon assets.
+
+----------------------------------------------------------------------
+PHASE V12 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V12 branch-aware solver architecture
+
+Body:
+## Summary
+Adds topology classification and solver routing so branch geometry is not forced into GC3D.
+
+## Key decision
+GC3D remains limited to non-branch guided-cantilever screening. Branch topology routes to branch screening.
+
+## Changes
+- Adds `classifySolverTopology()`.
+- Adds `solveBranchScreening()`.
+- Adds `solveByTopologyRouter()`.
+- Keeps GC3D branch rejection and adds routing hint.
+- Adds branch diagnostics for tee/olet/branch cases.
+
+## Certification
+npm run check:v12
+npm run check:v12:behavior
+npm run check:benchmarks
+npm run ci:v12
+
+## Deferred
+- Real BRLEN resolver.
+- Branch SIF/flexibility factors.
+- Branch local stress calculation.
+
+----------------------------------------------------------------------
+PHASE V13 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V13 report export and checker workflow
+
+Body:
+## Summary
+Adds report export and checker/issue workflow.
+
+## Changes
+- Adds issue states:
+  - DRAFT
+  - CHECKED
+  - ISSUED
+  - VOID
+- Adds issue types:
+  - SCREENING_ISSUE
+  - FINAL_ISSUE
+- Adds revision ID.
+- Adds checker/reviewer fields.
+- Adds Markdown, JSON, HTML export.
+- Adds report history.
+- Adds issue blockers.
+
+## Certification
+npm run check:v13
+npm run check:v13:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v13
+
+## Deferred
+- PDF export.
+- Digital signature.
+- Server-side report archive.
+
+----------------------------------------------------------------------
+PHASE V14 PR BODY
+----------------------------------------------------------------------
+
+Title:
+Phase V14 component master DB and fitting dimensions
+
+Body:
+## Summary
+Adds component master DB and fitting dimension resolvers.
+
+## Changes
+- Adds component DB sample rows.
+- Adds resolvers:
+  - resolveElbowC2E
+  - resolveTeeC2E
+  - resolveOletBRLEN
+  - resolveValveFaceToFace
+  - resolveFlangeThickness
+- Convert Bend/Tee/Olet attaches componentData.
+- Branch screening reads component data.
+- Report issue blocks missing component data.
+
+## Certification
+npm run check:v14
+npm run check:v14:behavior
+npm run check:benchmarks
+npm run ci:v14
+
+## Data governance
+Initial component rows are SCREENING_SAMPLE only.
+
+## Deferred
+- Excel import.
+- Real C2E geometry trimming.
+- Tee header/branch split.
+- PCF/PCFX roundtrip tests.
+
+======================================================================
+CHUNK 12 — AGENT-WISE IMPLEMENTATION WORK INSTRUCTIONS
+======================================================================
+
+PURPOSE
+-------
+Use this chunk to split work among multiple coding agents without overlap.
+
+GLOBAL AGENT RULES
+------------------
+1. One agent owns one phase or one bounded submodule.
+2. Avoid broad refactors outside assigned files.
+3. Keep code additions under 200–300 lines per agent when possible.
+4. Every agent must add:
+   - static check
+   - behavior test
+   - package script
+   - phase report section
+5. Every agent must provide numeric/pass criteria.
+6. Do not use hidden fallback values unless explicitly marked SCREENING_SAMPLE or USER_DEFINED.
+7. Do not downgrade safety blocks.
+
+----------------------------------------------------------------------
+AGENT A — SETTINGS / ENGINEERING DATA
+----------------------------------------------------------------------
+
+Owns:
+U2, U3, V10
+
+Files:
+src/core/settings/resolveEngineeringSettings.js
+src/core/engineering-data/resolveEngineeringData.js
+src/core/geometry/pipeSchedules.js
+src/sketcher/SegmentEditorPanel.jsx
+src/calc-extended/solver/ExtendedSolver.js
+
+Pass criteria:
+1. Settings hash changes when setting value changes.
+2. Results stale flag appears on settings change.
+3. Known pipe resolves PASSED.
+4. Unknown pipe resolves MISSING_DATA.
+5. Unknown DN does not invent OD/WT.
+6. Known material resolves E and alpha.
+7. Unknown material blocks calculation.
+8. Calc Extended unknown pipe returns NOT_QUALIFIED.
+9. Report payload carries dataStatus and engineeringDataSource.
+
+Numeric pass:
+- Missing unknown DN OD = null.
+- Missing unknown DN WT = null.
+- check:v10:behavior exits 0.
+
+----------------------------------------------------------------------
+AGENT B — SKETCHER TOPOLOGY / DRAFTING
+----------------------------------------------------------------------
+
+Owns:
+U4, V11, V14 Sketcher integration
+
+Files:
+src/sketcher/topology/validateSketchTopology.js
+src/sketcher/topology/classifyTeeMainBranch.js
+src/sketcher/commands/professionalDraftingCommands.js
+src/sketcher/TopologyDiagnosticsPanel.jsx
+src/sketcher/SketcherStore.js
+src/sketcher/SketcherTab.jsx
+
+Pass criteria:
+1. Elbow requires exactly 2 connected segments.
+2. Tee requires exactly 3 connected segments.
+3. Olet requires at least 2 connected segments.
+4. Tee main run selected by max colinearity, not order.
+5. Convert Bend sets node.type elbow.
+6. Convert Tee sets node.type tee.
+7. Convert Olet sets node.type olet.
+8. Auto Connect merges nodes within tolerance and rewires segments.
+9. Diagnostics panel shows command result.
+10. Convert commands attach componentData after V14.
+
+Numeric pass:
+- Tee branch segment must equal BRANCH in test fixture.
+- Auto Connect mergeCount must equal 1 for near duplicate test.
+
+----------------------------------------------------------------------
+AGENT C — SOLVER CERTIFICATION / ROUTING
+----------------------------------------------------------------------
+
+Owns:
+U5, V12
+
+Files:
+src/core/solvers/certification/solverResultContract.js
+src/core/solvers/routing/classifySolverTopology.js
+src/core/solvers/routing/solveByTopologyRouter.js
+src/core/solvers/branch/solveBranchScreening.js
+src/solvers/3d/solveGC3D.js
+
+Pass criteria:
+1. All solver results include schemaVersion.
+2. All solver results include moduleId, methodId, formulaIds.
+3. L route classifies GC3D_SUPPORTED_ROUTE.
+4. Tee route classifies BRANCH_ROUTE.
+5. Tee route does not run GC3D directly.
+6. Branch route returns BRANCH_SCREENING_ONLY.
+7. Missing BRLEN creates BRLEN_REQUIRED diagnostic.
+8. Existing GC3D branch rejection remains.
+
+Numeric pass:
+- Branch details length = 1 for single tee fixture.
+- Tee main segments sorted = EAST|WEST.
+- Branch segment = BRANCH.
+
+----------------------------------------------------------------------
+AGENT D — REPORTING / ISSUE WORKFLOW
+----------------------------------------------------------------------
+
+Owns:
+U6, V13, V14 report blocking, V16 report debug export
+
+Files:
+src/reporting/publishActiveReportContext.js
+src/reporting/buildReportPayload.js
+src/reporting/ReportsTab.jsx
+src/reporting/reportIssueWorkflow.js
+src/reporting/reportExportUtils.js
+src/reporting/reportPcfxDebugSnapshot.js
+src/store/appStore.js
+
+Pass criteria:
+1. Reports tab does not show demo report without active context.
+2. Active report contains method ID and formula IDs.
+3. Stale results show stale warning.
+4. CHECKED requires checkedBy.
+5. ISSUED requires preparedBy, checkedBy, approvedBy.
+6. Missing data blocks issue.
+7. Screening final issue blocks.
+8. Missing component data blocks issue.
+9. Markdown/JSON/HTML exports exist.
+10. Report PCFX debug snapshot preserves methodId and revisionId.
+
+Numeric pass:
+- Clean screening issue blockers length = 0.
+- Missing data issue blockers include DATA_NOT_QUALIFIED.
+- Missing component issue blockers include COMPONENT_DATA_NOT_QUALIFIED.
+
+----------------------------------------------------------------------
+AGENT E — PCFX / ROUNDTRIP
+----------------------------------------------------------------------
+
+Owns:
+V15, V16
+
+Files:
+src/core/pcfx/pcfxRoundtripAdapter.js
+src/core/pcfx/pcfxFileUtils.js
+benchmarks/fixtures/pcfx-roundtrip/*
+e2e/v16-pcfx-import-export.spec.js
+
+Pass criteria:
+1. Bend roundtrip preserves elbow.
+2. Tee roundtrip preserves tee.
+3. Tee roundtrip preserves main/branch metadata.
+4. Olet roundtrip preserves BRLEN/componentData.
+5. rawAttributes survive roundtrip.
+6. Missing component data goes to lossContract.
+7. No duplicate segment IDs.
+8. No self-loop segments.
+9. Golden fixtures import and validate.
+10. Browser PCFX buttons visible.
+
+Numeric pass:
+- V16 fixture loop imports 4 fixtures.
+- Each fixture node count > 0.
+- Each fixture segment count > 0.
+- Tee fixture branchSegment = BRANCH.
+
+----------------------------------------------------------------------
+AGENT F — BROWSER QA / CI
+----------------------------------------------------------------------
+
+Owns:
+U7, U8, V9, QA check updates for V11/V13/V16
+
+Files:
+playwright.config.js
+scripts/qa-check.mjs
+scripts/release-candidate-check.mjs
+e2e/helpers/*
+e2e/*.spec.js
+.github/workflows/*
+
+Pass criteria:
+1. Required E2E specs exist.
+2. Playwright artifacts are enabled on failure.
+3. Date/random deterministic guard works.
+4. Settings workflow test passes.
+5. Sketcher-to-2D test passes.
+6. Sketcher-to-GC3D test passes.
+7. Calc Extended-to-report test passes.
+8. Benchmark card test passes.
+9. V16 PCFX UI smoke passes.
+10. Release candidate check passes.
+
+======================================================================
+CHUNK 13 — BENCHMARK / QA / CI MATRIX
+======================================================================
+
+QA PRINCIPLE
+------------
+Engineering software must fail closed. A warning in console is not enough.
+
+Each calculation path must have:
+1. Known-good benchmark.
+2. Missing-data negative benchmark.
+3. Fallback/status assertion.
+4. Report visibility check.
+5. Browser workflow check where UI exists.
+
+----------------------------------------------------------------------
+CORE BENCHMARK TARGETS
+----------------------------------------------------------------------
+
+Calc Extended:
+- EXT-GLOBAL-001
+- EXT-FLANG-001
+- EXT-MIST-001
+- EXT-SHORT-DROP-001
+- EXT-SHORT-DROP-002
+
+Expected behaviors:
+EXT-GLOBAL-001:
+- global reaction benchmark
+- per-axis forces checked
+- stress checked
+
+EXT-FLANG-001:
+- Koves flange equivalent load around 6329.67 lbf
+- allowable around 1,356,560 lbf
+- status PASSED
+
+EXT-MIST-001:
+- vendor loads missing
+- returns NOT_QUALIFIED
+- diagnostic "Vendor nozzle loads missing"
+
+EXT-SHORT-DROP-001:
+- vertical drop <= 3 ft ignored
+- ignored short drops count 1
+
+EXT-SHORT-DROP-002:
+- vertical drop > 3 ft retained
+- ignored short drops count 0
+
+Simplified 2D:
+- L shape
+- Z shape
+- loop
+- offset
+- straight/no absorbing leg
+- missing geometry
+
+GC3D:
+- L route supported
+- branch/tee/olet unsupported
+- short drop handling
+- complex rigidity
+
+Pipe Rack:
+- persistence
+- load calculation smoke
+- report export after active context integration
+
+PCFX:
+- bend
+- tee
+- olet
+- missing component data
+
+----------------------------------------------------------------------
+STATIC CHECK MATRIX
+----------------------------------------------------------------------
+
+check:u3:
+- resolver exists
+- DATA_STATUS exists
+- missing pipe/material handling exists
+
+check:u4:
+- validateSketchTopology exists
+- classifyTeeMainBranch exists
+- GraphTranslator uses vector colinearity
+
+check:u5:
+- solver result contract exists
+- Simplified 2D uses contract
+
+check:u6:
+- activeReportContext exists
+- ReportsTab no demo report
+- buildReportPayload exists
+
+check:u7:
+- browser tests exist
+- deterministic timestamp guard
+
+check:release:
+- all required docs/scripts/source files exist
+
+check:v9:
+- E2E helpers and specs exist
+- Playwright artifacts enabled
+
+check:v10:
+- no boreMm * 0.065 fallback
+- no const od = boreMm fallback
+- unified data values used in ExtendedSolver
+
+check:v11:
+- drafting command layer exists
+- toolbar buttons exist
+- diagnostics panel exists
+
+check:v12:
+- classifier/router/branch solver exists
+- GC3D has routing hint
+
+check:v13:
+- issue workflow exists
+- export utils exist
+- ReportsTab checker/export UI exists
+
+check:v14:
+- component DB exists
+- component resolvers exist
+- componentData attached by convert commands
+- component-data issue blocker exists
+
+check:v15:
+- PCFX adapter exists
+- roundtrip functions exist
+- tee metadata preserved
+
+check:v16:
+- PCFX file utils exist
+- golden fixtures exist
+- Sketcher PCFX UI exists
+- Report PCFX debug export exists
+
+----------------------------------------------------------------------
+E2E MATRIX
+----------------------------------------------------------------------
+
+Required:
+e2e/smoke.spec.js
+e2e/u2-settings-hydration.spec.js
+e2e/u7-workflow-smoke.spec.js
+e2e/v9-settings-workflow.spec.js
+e2e/v9-sketcher-to-2d.spec.js
+e2e/v9-sketcher-to-gc3d.spec.js
+e2e/v9-calc-extended-report.spec.js
+e2e/v9-benchmark-cards.spec.js
+e2e/v11-sketcher-drafting-commands.spec.js
+e2e/v13-report-export-checker.spec.js
+e2e/v16-pcfx-import-export.spec.js
+
+Browser pass criteria:
+- app loads
+- settings tab reachable
+- settings hash changes
+- stale flag visible
+- sketcher route can be created by E2E hook
+- Sketcher can analyze/push without blank route
+- branch route shows unsupported/branch diagnostics
+- Calc Extended report appears in Reports tab
+- report is not demo
+- checker/export controls appear
+- PCFX import/export controls appear
+
+----------------------------------------------------------------------
+DETERMINISM MATRIX
+----------------------------------------------------------------------
+
+Prohibited unless whitelisted:
+Math.random
+Date.now()
+new Date(
+performance.now(
+
+Allowed only in documented files:
+src/sketcher/SketcherStore.js
+src/reporting/index.js
+and any explicitly added whitelist entries with justification.
+
+Reason:
+Snapshots, report hashes, benchmark outputs, and UI tests must be deterministic.
+
+======================================================================
+CHUNK 14 — RISK REGISTER AND SOURCE-LEVEL AUDIT CHECKLIST
+======================================================================
+
+TOP RISKS
+---------
+
+RISK 1 — Hidden fallback values
+Impact:
+Wrong engineering result can appear valid.
+
+Controls:
+- V10 removes Sketcher pipe approximation.
+- Missing data returns MISSING_DATA.
+- Reports carry dataStatus.
+- Issue workflow blocks missing data.
+
+RISK 2 — Screening methods presented as final
+Impact:
+User may trust simplified result as code-certified stress analysis.
+
+Controls:
+- ENGINEERING_LEVEL.
+- report issue type.
+- SCREENING_LEVEL_NOT_FINAL blocker.
+- branch solver returns BRANCH_SCREENING_ONLY.
+
+RISK 3 — Branch topology pushed into GC3D
+Impact:
+GC3D formulas not valid for tee/olet branch systems.
+
+Controls:
+- GC3D branch rejection remains.
+- V12 solver router routes branch to branch screening.
+- GC3D includes routing hint.
+
+RISK 4 — Tee branch misclassification
+Impact:
+Wrong main/branch path, wrong downstream stress/fitting interpretation.
+
+Controls:
+- vector-colinearity classification.
+- PCFX stores tee classification metadata.
+- V15/V16 fixtures verify branchSegment.
+
+RISK 5 — Component DB sample data used as final
+Impact:
+Fitting dimensions/weights may not match project standard.
+
+Controls:
+- sourceStatus SCREENING_SAMPLE.
+- issue workflow component-data blocker for missing/not-qualified.
+- Future V17 should block SCREENING_SAMPLE for FINAL_ISSUE.
+
+RISK 6 — Report generated from mock/demo data
+Impact:
+Wrong report issued.
+
+Controls:
+- activeReportContext.
+- Reports tab no-active-report state.
+- V9/V13 E2E tests assert no demo report.
+
+RISK 7 — PCFX roundtrip data loss
+Impact:
+Edited fitting metadata lost during import/export.
+
+Controls:
+- rawAttributes, normalized, derived preserved.
+- lossContract.
+- V15 roundtrip validation.
+- V16 golden fixtures.
+
+----------------------------------------------------------------------
+SOURCE-LEVEL AUDIT CHECKLIST
+----------------------------------------------------------------------
+
+General:
+[ ] No silent fallback in solver path.
+[ ] All fallback/status paths emit diagnostics.
+[ ] All solvers return methodId and formulaIds.
+[ ] Units visible in result.
+[ ] Settings hash visible in result/report.
+[ ] Results stale when settings/geometry change.
+[ ] Report blocks issue when stale.
+[ ] Report blocks issue when data missing.
+[ ] Report blocks final issue for SCREENING.
+
+Sketcher:
+[ ] Nodes have stable IDs.
+[ ] Segments have valid start/end nodes.
+[ ] No self-loop segments.
+[ ] No zero-length segments.
+[ ] Elbow count exactly 2.
+[ ] Tee count exactly 3.
+[ ] Olet count at least 2.
+[ ] Auto Connect rewires segments.
+[ ] Convert commands save undo snapshot.
+[ ] Topology diagnostics visible.
+[ ] PCFX export preserves node meta.
+
+Engineering data:
+[ ] Unknown pipe returns MISSING_DATA.
+[ ] Unknown material returns MISSING_DATA.
+[ ] Pipe OD/WT/I finite for known pipe.
+[ ] Material E/alpha finite for known material.
+[ ] Sample component DB rows are SCREENING_SAMPLE.
+[ ] Missing component returns MISSING_COMPONENT_DATA.
+[ ] No OD=bore fallback remains.
+[ ] No WT=0.065*bore fallback remains.
+
+Solvers:
+[ ] Simplified 2D labels assumptions.
+[ ] GC3D rejects branch geometry.
+[ ] Branch router does not call GC3D for tee/olet.
+[ ] Branch screening says screening-only.
+[ ] Missing BRLEN emits diagnostic.
+[ ] Pipe/material data gate blocks incomplete values.
+[ ] SRSS behavior benchmarked.
+
+Reporting:
+[ ] No report without activeReportContext.
+[ ] Report includes methodId.
+[ ] Report includes formulaIds.
+[ ] Report includes dataStatus.
+[ ] Report includes engineeringDataSource.
+[ ] Report includes componentDataStatus where applicable.
+[ ] Revision ID deterministic.
+[ ] Exports Markdown/JSON/HTML.
+[ ] PCFX debug export includes normalized method/formula/status.
+
+PCFX:
+[ ] Export contains schemaVersion.
+[ ] Export contains pcfxVersion.
+[ ] Export contains nodes.
+[ ] Export contains segments.
+[ ] Export contains components.
+[ ] Export contains rawAttributes.
+[ ] Export contains normalized.
+[ ] Export contains derived.
+[ ] Export contains lossContract.
+[ ] Import restores node type.
+[ ] Import restores componentData.
+[ ] Validate detects duplicate segment IDs.
+[ ] Validate detects self-loops.
+
+CI:
+[ ] check:qa passes.
+[ ] check:e2e passes.
+[ ] check:benchmarks passes.
+[ ] build passes.
+[ ] ci:v16 passes.
+
+======================================================================
+CHUNK 15 — V17 PRODUCTION PCF PARSER/WRITER DETAILED WORK INSTRUCTION
+======================================================================
+
+Next phase:
+V17 — Production PCF parser/writer and CA attribute mapping
+
+OBJECTIVE
+---------
+Move from PCFX screening/debug JSON to production-grade PCF import/export foundations.
+
+V17 must not claim complete PCF support until golden real-project fixtures pass.
+
+SCOPE
+-----
+1. PCF parser.
+2. PCF writer.
+3. CA attribute mapping.
+4. PCF -> canonical graph -> PCFX -> PCF roundtrip.
+5. Loss contract for unsupported PCF records.
+6. Golden real PCF fixtures.
+7. XML PCFX1 profile skeleton.
+8. Compatibility notes for CRF and PCF Studio.
+
+PROPOSED FILES
+--------------
+PHASE_V17_PRODUCTION_PCF_PARSER_WRITER_CA_MAPPING.md
+
+src/core/pcf/pcfParser.js
+src/core/pcf/pcfWriter.js
+src/core/pcf/pcfAttributeMapping.js
+src/core/pcf/pcfLossContract.js
+src/core/pcf/pcfRoundtripValidator.js
+
+src/core/pcfx/xmlPcfx1Profile.js
+
+benchmarks/fixtures/pcf-roundtrip/simple-bend.pcf
+benchmarks/fixtures/pcf-roundtrip/simple-tee.pcf
+benchmarks/fixtures/pcf-roundtrip/simple-olet.pcf
+benchmarks/fixtures/pcf-roundtrip/unsupported-records.pcf
+
+scripts/v17-pcf-parser-writer-check.mjs
+scripts/v17-pcf-parser-writer-behavior-test.mjs
+
+e2e/v17-pcf-import-export.spec.js
+
+ATTRIBUTE MAPPING
+-----------------
+Preserve:
+CA1
+CA2
+CA3
+CA4
+CA5
+CA6
+CA7
+CA8
+CA9
+CA10
+CA97
+CA98
+
+Storage:
+rawAttributes:
+  verbatim PCF attributes
+
+normalized:
+  mapped stable fields:
+  refNo from CA97
+  seqNo from CA98
+  lineNoKey
+  pipelineRef
+  component type
+  node anchors
+
+derived:
+  computed values:
+  length
+  direction vector
+  c2e
+  brlen
+  validation flags
+  formula provenance
+
+LOSS CONTRACT
+-------------
+Unsupported records must not disappear.
+
+lossContract item:
+{
+  severity,
+  code,
+  message,
+  recordType,
+  rawText,
+  lineNumber,
+  preservationAction
+}
+
+Preservation actions:
+PRESERVED_RAW_ONLY
+MAPPED_CANONICAL
+DROPPED_UNSUPPORTED_WITH_WARNING
+BLOCKED_UNSUPPORTED_REQUIRED
+
+Parser rules:
+1. Never invent fitting dimensions.
+2. Never invent material data.
+3. Preserve all unknown attributes in rawAttributes.
+4. Unknown record types go to lossContract.
+5. Required unsupported records block final issue.
+
+Writer rules:
+1. Write only fields that are known/mapped.
+2. Preserve rawAttributes when available.
+3. Emit warning if writer cannot reproduce unsupported raw record.
+4. Roundtrip must be deterministic.
+5. Do not write SCREENING_SAMPLE as VERIFIED.
+
+V17 BEHAVIOR TESTS
+------------------
+Test 1 — Simple bend PCF:
+PCF import -> canonical graph
+Expected:
+- elbow component exists
+- CA97 preserved
+- CA98 preserved
+- no fatal lossContract
+
+Test 2 — Simple tee PCF:
+Expected:
+- tee component exists
+- main/branch classification exists
+- branch segment preserved
+- raw CA fields preserved
+
+Test 3 — Olet PCF:
+Expected:
+- olet component exists
+- branch point preserved
+- BRLEN preserved if present
+- if BRLEN missing, lossContract/diagnostic emitted
+
+Test 4 — Unsupported records:
+Expected:
+- unsupported records in lossContract
+- parser does not crash
+- final issue blocked if unsupported required record exists
+
+Test 5 — PCF -> PCFX -> PCF:
+Expected:
+- raw CA fields preserved
+- no duplicate segments
+- no self-loops
+- deterministic output hash
+
+V17 STATIC CHECK
+----------------
+Check files exist.
+Check parser exports:
+parsePCFText
+parsePCFFile
+pcfRecordsToCanonicalGraph
+
+Check writer exports:
+writeCanonicalGraphToPCF
+writePCFRecord
+serializePCFAttributes
+
+Check mapping exports:
+PCF_CA_ATTRIBUTE_MAP
+mapPCFAttributesToCanonical
+mapCanonicalToPCFAttributes
+
+Check loss contract exports:
+createPCFLossItem
+normalizePCFLossContract
+
+Check package scripts:
+check:v17
+check:v17:behavior
+ci:v17
+
+PACKAGE SCRIPTS
+---------------
+"check:v17": "node scripts/v17-pcf-parser-writer-check.mjs"
+"check:v17:behavior": "node scripts/v17-pcf-parser-writer-behavior-test.mjs"
+"ci:v17": "npm run ci:v16 && npm run check:v17 && npm run check:v17:behavior && npm run check:e2e && npm run check:benchmarks && npm run build"
+
+V17 PR TITLE
+------------
+Phase V17 production PCF parser writer and CA attribute mapping
+
+V17 PR BODY SUMMARY
+-------------------
+Adds production PCF parser/writer foundation, CA attribute mapping, loss contract, golden PCF fixtures, and deterministic PCF/PCFX roundtrip checks. This does not yet certify full PCF support for all real-world records.
+
+V17 PASS CRITERIA
+-----------------
+1. CA1..CA10, CA97, CA98 preserved.
+2. Simple bend fixture imports.
+3. Simple tee fixture imports.
+4. Simple olet fixture imports.
+5. Unsupported records are captured in lossContract.
+6. Writer emits deterministic PCF.
+7. PCF -> PCFX -> PCF roundtrip keeps raw attributes.
+8. No hidden fitting data invention.
+9. check:v17 and check:v17:behavior pass.
+10. ci:v17 passes.
+
+END OF CHUNKS 11 TO 15

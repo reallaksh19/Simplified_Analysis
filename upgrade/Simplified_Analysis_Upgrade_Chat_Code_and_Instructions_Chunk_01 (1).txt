@@ -1,0 +1,452 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Generated from chat content
+Repository: reallaksh19/Simplified_Analysis
+
+NOTE:
+Some earlier messages in the ChatGPT UI are marked as “Skipped messages”. Those skipped sections cannot be reconstructed exactly unless pasted again. This text file captures the visible phase-wise patches, commands, PR bodies, and instructions from the chat.
+
+======================================================================
+CHUNK 1 — INDEX AND MASTER APPLY ORDER
+======================================================================
+
+MASTER OBJECTIVE
+----------------
+Technical audit and staged upgrade of the connected GitHub app:
+
+Simplified Analysis
+
+Audit and upgrade targets:
+1. Bugs
+2. Formulas
+3. Benchmark tests
+4. Fallbacks
+5. Mock/hidden values
+6. Settings/defaults
+7. Source-level checks
+8. Calculation modules
+9. 2D Sketcher workflow:
+   - draw in 2D sketcher
+   - push to solvers
+   - verify function
+10. Enhancement plan
+11. Report-ready engineering workflow
+
+======================================================================
+OVERALL PHASE STACK
+======================================================================
+
+U0 — Baseline certification
+U1 — Workflow hardening
+U2 — Settings contract
+U3 — Engineering data unification
+U4 — Sketcher topology and fitting upgrade
+U5 — Solver certification contract
+U6 — Active calculation reporting
+U7 — Browser QA and deterministic CI
+U8 — Release candidate certification
+
+V9  — Browser workflow deep automation
+V10 — Full engineering data migration
+V11 — Professional Sketcher drafting commands
+V12 — Branch-aware solver architecture
+V13 — Report export and checker workflow
+V14 — Component Master DB and fitting C2E lengths
+V15 — PCF / PCFX fitting roundtrip QA
+V16 — Production PCF / PCFX import-export UI and golden fixtures
+V17 — Proposed next: Production PCF parser/writer and CA attribute mapping
+
+======================================================================
+MASTER MERGE ORDER
+======================================================================
+
+1. PR #59 — U0 baseline certification
+2. PR #60 — U1 workflow hardening
+3. PR #61 — U2 settings contract
+4. U3 — engineering data unification
+5. U4 — sketcher topology/fittings
+6. U5 — solver certification contract
+7. U6 — active calculation reporting
+8. U7 — browser QA / deterministic CI
+9. U8 — release candidate certification
+10. V9 — browser workflow deep automation
+11. V10 — full engineering data migration
+12. V11 — professional Sketcher drafting commands
+13. V12 — branch-aware solver architecture
+14. V13 — report export/checker workflow
+15. V14 — component master DB / fitting dimensions
+16. V15 — PCF/PCFX fitting roundtrip QA
+17. V16 — production PCFX import/export UI and golden fixtures
+
+IMPORTANT:
+Do not merge stacked PRs out of order unless each PR is rebased onto main.
+
+Known older open PRs outside the stack:
+- PR #56 — old GitHub Pages deployment fix
+- PR #50 — old Wave 3 / 3D analysis update
+
+These should be reviewed separately and not merged into U0–V16 without conflict review.
+
+======================================================================
+COMMON CERTIFICATION PRINCIPLE
+======================================================================
+
+Each phase adds:
+1. A phase report markdown file
+2. Source patches
+3. Static check script
+4. Behavior test script where required
+5. package.json scripts
+6. CI aggregate script
+7. PR body
+8. Explicit deferred items
+
+Typical certification sequence:
+
+npm ci
+npm run check:<phase>
+npm run check:<phase>:behavior
+npm run check:benchmarks
+npm run build
+npm run ci:<phase>
+
+Browser-heavy phases also require:
+
+npm run check:qa
+npm run check:e2e
+
+======================================================================
+U3 — ENGINEERING DATA UNIFICATION
+======================================================================
+
+Branch:
+
+git checkout phase-u2-settings-contract
+git pull
+git checkout -b phase-u3-engineering-data-unification
+
+Objective:
+Current problem: pipe/material resolution is inconsistent across modules.
+
+Existing strict master resolvers:
+- src/data/pipeProperties.js
+  - resolvePipeProperty()
+  - returns PASSED for verified screening rows
+  - returns MISSING_DATA when NPS/schedule is not found
+
+- src/data/materialProperties.js
+  - resolveMaterial()
+  - supports aliases such as Carbon Steel
+  - returns MISSING_DATA for missing materials or out-of-range temperatures
+  - returns NOT_QUALIFIED for material rows that require a special method
+
+U3 creates a single wrapper contract around these master resolvers and begins wiring Calc Extended to use it as a calculation gate.
+
+Typical files:
+- PHASE_U3_ENGINEERING_DATA_UNIFICATION.md
+- src/core/engineering-data/resolveEngineeringData.js
+- scripts/u3-engineering-data-check.mjs
+- scripts/u3-engineering-data-behavior-test.mjs
+
+Certification:
+npm run check:u3
+npm run check:u3:behavior
+npm run check:benchmarks
+npm run ci:u3
+
+======================================================================
+U4 — SKETCHER TOPOLOGY AND FITTING UPGRADE
+======================================================================
+
+Branch:
+
+git checkout phase-u3-engineering-data-unification
+git pull
+git checkout -b phase-u4-sketcher-topology-fitting-upgrade
+
+Objective:
+Fix GraphTranslator tee main/branch classification and add topology validation.
+
+Key source problem:
+GraphTranslator previously treated “first two connected tee segments as main, third as branch”.
+That is order-dependent and unsafe after import/edit/delete/undo/roundtrip.
+
+Files added:
+- PHASE_U4_SKETCHER_TOPOLOGY_FITTINGS.md
+- src/sketcher/topology/validateSketchTopology.js
+- src/sketcher/topology/classifyTeeMainBranch.js
+- scripts/u4-sketcher-topology-check.mjs
+- scripts/u4-sketcher-topology-behavior-test.mjs
+
+Files modified:
+- src/sketcher/GraphTranslator.js
+- package.json
+
+Core U4 behavior:
+1. buildConnectionIndex()
+2. validateSketchTopology()
+3. classifyTeeMainBranch()
+4. buildComponentsFromGraphWithDiagnostics()
+
+Important exported metadata:
+- MAIN_SEGMENT_A
+- MAIN_SEGMENT_B
+- BRANCH_SEGMENT
+- TEE_CLASSIFICATION = VECTOR_COLINEARITY
+
+Pass criteria:
+1. L-route topology validates with zero errors.
+2. Zero-length pipe segment is rejected.
+3. Elbow node requires exactly two connections.
+4. Tee node requires exactly three connections.
+5. Tee main/branch classification is invariant under segment order.
+6. Exported tee component stores main and branch segment IDs.
+7. Existing buildComponentsFromGraph() remains backward compatible.
+
+Certification:
+npm run check:u4
+npm run check:u4:behavior
+npm run check:benchmarks
+npm run ci:u4
+
+PR title:
+Phase U4 sketcher topology and fitting upgrade
+
+======================================================================
+U5 — SOLVER CERTIFICATION CONTRACT
+======================================================================
+
+Branch:
+
+git checkout phase-u4-sketcher-topology-fitting-upgrade
+git pull
+git checkout -b phase-u5-solver-certification-contract
+
+Objective:
+Create a standard result envelope for every active calculation module.
+
+Problem:
+Some solvers return methodId/formulaIds, others return loose result objects. Simplified 2D previously returned:
+- status
+- stats
+- classification
+- diagnostics
+- summary
+
+U5 standardizes:
+- schemaVersion
+- moduleId
+- methodId
+- formulaIds
+- unitSystem
+- settingsHash
+- dataStatus
+- engineeringLevel
+- status
+- input
+- results
+- diagnostics
+- warnings
+- formulaTrace
+- meta
+- summary
+
+Files added:
+- PHASE_U5_SOLVER_CERTIFICATION_CONTRACT.md
+- src/core/solvers/certification/solverResultContract.js
+- scripts/u5-solver-certification-check.mjs
+- scripts/u5-solver-certification-behavior-test.mjs
+
+File modified:
+- src/core/solvers/simplified2d/solveSimplified2D.js
+- package.json
+
+Engineering levels:
+- MOCK
+- SCREENING
+- BENCHMARKED_SCREENING
+- CERTIFIED
+
+Simplified 2D method IDs:
+- SIMPLIFIED_2D_EMPTY
+- SIMPLIFIED_2D_SINGLE_LEG
+- SIMPLIFIED_2D_STRAIGHT_RUN
+- SIMPLIFIED_2D_L_SHAPE
+- SIMPLIFIED_2D_Z_SHAPE
+- SIMPLIFIED_2D_LOOP_OR_MULTI_LEG
+- SIMPLIFIED_2D_OFFSET
+- SIMPLIFIED_2D_MULTI_LEG
+
+Certification:
+npm run check:u5
+npm run check:u5:behavior
+npm run check:benchmarks
+npm run ci:u5
+
+PR title:
+Phase U5 solver certification contract
+
+======================================================================
+U6 — ACTIVE CALCULATION REPORTING
+======================================================================
+
+Branch:
+
+git checkout phase-u5-solver-certification-contract
+git pull
+git checkout -b phase-u6-active-calculation-reporting
+
+Objective:
+Reports tab must use active solver result, not demo/mock benchmark data.
+
+Problem:
+ReportsTab.jsx previously built demoReport from currentBenchmarkMock. This could show a report even when no active calculation had been run.
+
+Files added:
+- PHASE_U6_ACTIVE_CALCULATION_REPORTING.md
+- src/reporting/publishActiveReportContext.js
+- src/reporting/buildReportPayload.js
+- scripts/u6-active-reporting-check.mjs
+- scripts/u6-active-reporting-behavior-test.mjs
+
+Files modified:
+- src/store/appStore.js
+- src/calc-extended/components/DashboardView.jsx
+- src/reporting/ReportsTab.jsx
+- package.json
+
+New appStore fields:
+- activeReportContext
+- reportContextSequence
+- setActiveReportContext()
+- clearActiveReportContext()
+
+Active report context fields:
+- schemaVersion
+- moduleId
+- methodId
+- title
+- input
+- result
+- settings
+- settingsHash
+- diagnostics
+- warnings
+- benchmarkStatus
+- createdSequence
+
+Stale guard:
+If resultsStale === true, Reports tab shows:
+STALE — Recalculate before issue.
+
+Certification:
+npm run check:u6
+npm run check:u6:behavior
+npm run check:benchmarks
+npm run ci:u6
+
+PR title:
+Phase U6 active calculation reporting
+
+======================================================================
+U7 — BROWSER QA AND DETERMINISTIC CI
+======================================================================
+
+Branch:
+
+git checkout phase-u6-active-calculation-reporting
+git pull
+git checkout -b phase-u7-browser-qa-deterministic-ci
+
+Objective:
+Upgrade QA from shallow load checks to workflow smoke tests and deterministic runtime guards.
+
+Files added:
+- PHASE_U7_BROWSER_QA_DETERMINISTIC_CI.md
+- e2e/u7-workflow-smoke.spec.js
+- scripts/u7-browser-qa-check.mjs
+
+Files modified:
+- scripts/qa-check.mjs
+- package.json
+
+Workflow smoke scenarios:
+1. App loads and Settings tab opens.
+2. Settings edit marks results stale.
+3. GC3D exposes hydrated settings hash.
+4. Pipe Rack exposes hydrated settings hash.
+5. Reports tab shows no active report before calculation.
+6. Benchmark tab is reachable if present.
+
+Deterministic timestamp guard:
+qa-check scans for:
+- Date.now()
+- new Date(
+- performance.now(
+
+Existing Math.random guard remains.
+
+Allowed timestamp files:
+- src/sketcher/SketcherStore.js
+- src/reporting/index.js
+
+Certification:
+npm run check:u7
+npm run check:qa
+npm run check:e2e
+npm run ci:u7
+
+PR title:
+Phase U7 browser QA and deterministic CI
+
+======================================================================
+U8 — RELEASE CANDIDATE CERTIFICATION
+======================================================================
+
+Branch:
+
+git checkout phase-u7-browser-qa-deterministic-ci
+git pull
+git checkout -b phase-u8-release-candidate-certification
+
+Objective:
+Final control layer for U0-U7 merge and release readiness.
+
+Files added:
+- RELEASE_CANDIDATE_REGISTER.md
+- FINAL_PENDING_REGISTER.md
+- scripts/release-candidate-check.mjs
+- .github/workflows/release-candidate.yml
+
+Package scripts:
+- check:release
+- ci:release
+
+Release blocker examples:
+1. npm run build fails.
+2. npm run check:benchmarks fails.
+3. npm run check:qa fails.
+4. Browser smoke tests cannot open Settings, GC3D, Pipe Rack, and Reports.
+5. Reports tab displays demo report output without active calculation context.
+6. Missing pipe/material data returns a clean PASSED.
+7. Settings changes do not mark current results stale.
+8. Solver result lacks method ID or formula IDs.
+9. Runtime source contains unapproved Math.random, Date.now, new Date, or performance.now.
+10. Stacked PRs are merged out of order.
+
+Certification:
+npm run check:release
+npm run check:benchmarks
+npm run ci:release
+
+PR title:
+Phase U8 release candidate certification
+
+======================================================================
+END CHUNK 1
+======================================================================
+
+Next chunk should cover:
+- V9 browser workflow deep automation
+- V10 full engineering data migration
+- V11 professional Sketcher drafting commands
+- V12 branch-aware solver architecture

@@ -1,0 +1,994 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Generated from chat content
+Repository: reallaksh19/Simplified_Analysis
+
+NOTE:
+This is Chunk 5. It continues from Chunk 4.
+Some earlier chat sections were marked “Skipped messages” in the UI and cannot be reconstructed exactly.
+
+======================================================================
+CHUNK 5 — V13 AND V14 PATCH INSTRUCTIONS
+======================================================================
+
+======================================================================
+V13 — REPORT EXPORT AND CHECKER WORKFLOW
+======================================================================
+
+Branch:
+git checkout phase-v12-branch-aware-solver-architecture
+git pull
+git checkout -b phase-v13-report-export-checker-workflow
+
+Objective:
+Upgrade reporting from preview-only to controlled engineering issue workflow.
+
+V13 adds:
+1. Report revision ID
+2. Reviewer/checker fields
+3. Issue status:
+   - DRAFT
+   - CHECKED
+   - ISSUED
+   - VOID
+4. Issue type:
+   - SCREENING_ISSUE
+   - FINAL_ISSUE
+5. Markdown export
+6. JSON snapshot export
+7. HTML print export
+8. Report history table
+9. Issue blocking rules
+
+Safety rule:
+The app must not allow a clean issued report when:
+- results are stale
+- dataStatus is MISSING_DATA or NOT_QUALIFIED
+- solver status is NOT_QUALIFIED / UNSUPPORTED_GEOMETRY / MISSING_DATA
+- engineeringLevel is SCREENING and user tries to issue as final
+- benchmark certification is required but not passed
+
+----------------------------------------------------------------------
+V13 files
+----------------------------------------------------------------------
+
+PHASE_V13_REPORT_EXPORT_CHECKER_WORKFLOW.md
+src/reporting/reportIssueWorkflow.js
+src/reporting/reportExportUtils.js
+scripts/v13-report-export-checker-check.mjs
+scripts/v13-report-export-checker-behavior-test.mjs
+e2e/v13-report-export-checker.spec.js
+
+Updated:
+src/store/appStore.js
+src/reporting/ReportsTab.jsx
+scripts/qa-check.mjs
+package.json
+
+----------------------------------------------------------------------
+V13 workflow states
+----------------------------------------------------------------------
+
+DRAFT:
+Allowed for all active reports.
+Purpose:
+Engineer working copy. Not checked. Not for issue.
+
+CHECKED:
+Allowed when checker name is provided.
+Still blocked from final issue if calculation is stale, not qualified, or missing data.
+
+ISSUED:
+Allowed only when all issue blockers are clear.
+For screening-level methods, final issue is blocked unless issue type remains SCREENING_ISSUE.
+
+VOID:
+Allowed for any saved revision.
+Purpose:
+Superseded or cancelled revision.
+
+----------------------------------------------------------------------
+V13 issue blocker IDs
+----------------------------------------------------------------------
+
+STALE_RESULTS
+NO_ACTIVE_REPORT
+MISSING_METHOD_ID
+MISSING_FORMULA_IDS
+MISSING_DATA_STATUS
+DATA_NOT_QUALIFIED
+SOLVER_NOT_QUALIFIED
+SCREENING_LEVEL_NOT_FINAL
+BENCHMARK_NOT_CERTIFIED
+CHECKER_REQUIRED
+PREPARED_BY_REQUIRED
+CHECKED_BY_REQUIRED
+APPROVED_BY_REQUIRED
+
+----------------------------------------------------------------------
+V13 reportIssueWorkflow.js
+----------------------------------------------------------------------
+
+Exports:
+REPORT_ISSUE_SCHEMA_VERSION = 'report-issue-workflow-v1'
+
+REPORT_ISSUE_STATUS:
+DRAFT
+CHECKED
+ISSUED
+VOID
+
+REPORT_ISSUE_TYPE:
+SCREENING_ISSUE
+FINAL_ISSUE
+
+Functions:
+stableReportWorkflowHash(input)
+evaluateReportIssueEligibility(...)
+createReportRevision(...)
+
+Important constants:
+BLOCKING_STATUSES:
+- NOT_QUALIFIED
+- MISSING_DATA
+- UNSUPPORTED_GEOMETRY
+- BENCHMARK_NOT_CERTIFIED
+- FAILED
+
+NON_ISSUE_DATA_STATUSES:
+- MISSING_DATA
+- NOT_QUALIFIED
+- UNSUPPORTED_GEOMETRY
+
+Stable hash:
+- canonicalizes objects by sorted keys
+- excludes generatedAt / timestamp / createdAt
+- FNV-like hash
+- returns rpt-xxxxxxxx
+
+Eligibility input:
+{
+  activeReportContext,
+  reportPayload,
+  resultsStale,
+  targetStatus,
+  issueType,
+  reviewerChecker,
+  benchmarkCertificationRequired
+}
+
+Eligibility output:
+{
+  schemaVersion,
+  targetStatus,
+  issueType,
+  canSaveDraft,
+  canCheck,
+  canIssue,
+  blockers,
+  warnings,
+  resultStatus,
+  dataStatus,
+  engineeringLevel,
+  benchmarkStatus
+}
+
+Key rules:
+- If no activeReportContext -> NO_ACTIVE_REPORT
+- If methodId missing/UNKNOWN -> MISSING_METHOD_ID
+- If formulaIds empty -> MISSING_FORMULA_IDS
+- If resultsStale -> STALE_RESULTS
+- If solver status in blocking statuses -> SOLVER_NOT_QUALIFIED
+- If dataStatus missing -> MISSING_DATA_STATUS
+- If dataStatus in non-issue statuses -> DATA_NOT_QUALIFIED
+- If benchmark required and not PASSED -> BENCHMARK_NOT_CERTIFIED
+- If target CHECKED and checkedBy missing -> CHECKER_REQUIRED
+- If target ISSUED:
+  - preparedBy required
+  - checkedBy required
+  - approvedBy required
+  - if engineeringLevel SCREENING and issueType FINAL_ISSUE -> SCREENING_LEVEL_NOT_FINAL
+
+createReportRevision output includes:
+schemaVersion
+revisionId
+sequence
+issueStatus
+issueType
+title
+moduleId
+methodId
+settingsHash
+reportStableHash
+reviewerChecker
+eligibility
+markdown
+html
+jsonSnapshot
+
+----------------------------------------------------------------------
+V13 reportExportUtils.js
+----------------------------------------------------------------------
+
+Functions:
+sanitizeFilename(value)
+renderHtmlPrintCalculationSheet(report, markdown)
+makeDownloadableTextFile(filename, content, mimeType)
+createReportExportBundle({ report, markdown, jsonSnapshot, revision })
+
+HTML print:
+- Full <!doctype html>
+- Title
+- Status
+- Module
+- Method ID
+- Formula IDs
+- Unit System
+- Benchmark Status
+- Markdown in pre-wrap block
+- Print CSS
+
+Export bundle:
+markdown:
+  filename .md
+  mimeType text/markdown
+  content markdown
+
+json:
+  filename .json
+  mimeType application/json
+  content JSON.stringify({ revision, jsonSnapshot }, null, 2)
+
+html:
+  filename .html
+  mimeType text/html
+  content html
+
+----------------------------------------------------------------------
+V13 appStore additions
+----------------------------------------------------------------------
+
+reportReviewState:
+{
+  preparedBy: '',
+  checkedBy: '',
+  approvedBy: '',
+  checkerNotes: '',
+  issueStatus: 'DRAFT',
+  issueType: 'SCREENING_ISSUE',
+}
+
+Actions:
+updateReportReviewState(updates)
+saveReportRevision(revision)
+clearReportHistory()
+
+State:
+reportHistory: []
+reportRevisionSequence: 0
+
+saveReportRevision:
+- increments sequence
+- inserts revision at start
+- limits history to 50 items
+
+----------------------------------------------------------------------
+V13 ReportsTab changes
+----------------------------------------------------------------------
+
+Imports:
+REPORT_ISSUE_STATUS
+REPORT_ISSUE_TYPE
+createReportRevision
+evaluateReportIssueEligibility
+createReportExportBundle
+makeDownloadableTextFile
+
+Store reads:
+activeReportContext
+resultsStale
+reportReviewState
+updateReportReviewState
+reportHistory
+saveReportRevision
+reportRevisionSequence
+
+Build:
+reportPayload = buildReportPayload(...)
+report = createEngineeringCalculationReport(reportPayload)
+markdown = renderMarkdownCalculationSheet(report)
+jsonSnapshot = createReportJsonSnapshot(reportPayload)
+
+reviewerChecker:
+preparedBy
+checkedBy
+approvedBy
+checkerNotes
+
+eligibility:
+evaluateReportIssueEligibility({
+  activeReportContext,
+  reportPayload,
+  resultsStale,
+  targetStatus: reportReviewState.issueStatus,
+  issueType: reportReviewState.issueType,
+  reviewerChecker,
+  benchmarkCertificationRequired: activeReportContext?.settings?.benchmarkCertificationRequired === true,
+})
+
+revision:
+createReportRevision({
+  activeReportContext,
+  reportPayload,
+  jsonSnapshot,
+  markdown,
+  reviewerChecker,
+  issueStatus,
+  issueType,
+  sequence: reportRevisionSequence + 1,
+  eligibility,
+})
+
+exportBundle:
+createReportExportBundle({ report, markdown, jsonSnapshot, revision })
+
+UI test IDs:
+report-checker-workflow
+report-prepared-by
+report-checked-by
+report-approved-by
+report-issue-status
+report-issue-type
+report-checker-notes
+report-issue-eligibility
+report-issue-blockers
+report-issue-warnings
+report-save-revision
+report-export-markdown
+report-export-json
+report-export-html
+report-history
+report-history-empty
+
+Checker workflow panel shows:
+- Prepared By
+- Checked By
+- Approved By
+- Issue Status select
+- Issue Type select
+- Checker Notes
+- Eligibility result
+- Revision ID
+- Result status
+- Data status
+- Engineering level
+- blockers
+- warnings
+- Save Revision
+- Export buttons
+
+Report history table columns:
+- Revision
+- Status
+- Method
+- Prepared
+- Checked
+- Approved
+
+----------------------------------------------------------------------
+V13 behavior test
+----------------------------------------------------------------------
+
+Main cases:
+1. Draft save eligibility:
+active report exists -> canSaveDraft true
+
+2. CHECKED missing checkedBy:
+targetStatus CHECKED with no checkedBy -> CHECKER_REQUIRED
+
+3. Final issue of SCREENING:
+engineeringLevel SCREENING + issueType FINAL_ISSUE -> SCREENING_LEVEL_NOT_FINAL
+
+4. Stale issue:
+resultsStale true + ISSUED -> STALE_RESULTS
+
+5. Missing data:
+dataStatus MISSING_DATA -> DATA_NOT_QUALIFIED
+
+6. Clean screening issue:
+status PASSED
+dataStatus PASSED
+engineeringLevel BENCHMARKED_SCREENING
+issueType SCREENING_ISSUE
+preparedBy/checkedBy/approvedBy set
+-> blockers length 0
+-> canIssue true
+
+7. HTML:
+renderHtmlPrintCalculationSheet includes <!doctype html> and method ID
+
+8. Revision:
+revisionId starts rpt-
+issueStatus preserved
+checkedBy preserved
+
+9. Export bundle:
+markdown .md
+json .json
+html .html
+
+10. sanitizeFilename:
+'A/B:C Report' -> 'A-B-C-Report'
+
+----------------------------------------------------------------------
+V13 browser test
+----------------------------------------------------------------------
+
+File:
+e2e/v13-report-export-checker.spec.js
+
+Test 1:
+- open app
+- open Simplified Analysis
+- click Calc Extended / Dashboard
+- click Run Calculation
+- open Reports
+- expect checker workflow visible
+- expect prepared/checked/approved/status/type visible
+- expect export buttons visible
+
+Test 2:
+- run calculation
+- open Reports
+- fill:
+  Engineer A
+  Checker B
+  Approver C
+- click Save Revision
+- report-history contains rpt-
+- contains Engineer A
+- contains Checker B
+
+----------------------------------------------------------------------
+V13 scripts
+----------------------------------------------------------------------
+
+package.json:
+"check:v13": "node scripts/v13-report-export-checker-check.mjs"
+"check:v13:behavior": "node scripts/v13-report-export-checker-behavior-test.mjs"
+"ci:v13": "npm run ci:v12 && npm run check:v13 && npm run check:v13:behavior && npm run check:qa && npm run check:e2e && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v13
+npm run check:v13:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v13
+
+PR title:
+Phase V13 report export and checker workflow
+
+Deferred:
+- PDF export
+- Digital signature / approval lock
+- User identity integration
+- Report revision comparison/diff
+- Server-side report archive
+
+======================================================================
+V14 — COMPONENT MASTER DB AND FITTING C2E LENGTHS
+======================================================================
+
+Branch:
+git checkout phase-v13-report-export-checker-workflow
+git pull
+git checkout -b phase-v14-component-master-db-fitting-dimensions
+
+Objective:
+Add the data layer needed to make V11/V12 more engineering-real.
+
+V14 provides:
+1. Component Master DB
+2. Fitting C2E / BRLEN / face-to-face resolvers
+3. Sketcher convert-command integration
+4. Branch-screening fitting-data integration
+5. Report issue blocking when component data is missing
+
+Important data-governance note:
+Initial rows are screening/sample records only.
+They are not a substitute for project-approved ASME/vendor/component database values.
+
+sourceStatus values:
+VERIFIED
+SCREENING_SAMPLE
+USER_DEFINED
+MISSING_COMPONENT_DATA
+
+----------------------------------------------------------------------
+V14 files
+----------------------------------------------------------------------
+
+PHASE_V14_COMPONENT_MASTER_DB_FITTING_DIMENSIONS.md
+src/data/componentMasterDb/defaultComponentMasterDb.js
+src/core/component-data/resolveComponentDimensions.js
+src/components/ComponentMasterDbTab.jsx
+scripts/v14-component-master-db-check.mjs
+scripts/v14-component-master-db-behavior-test.mjs
+
+Updated:
+src/sketcher/commands/professionalDraftingCommands.js
+src/core/solvers/branch/solveBranchScreening.js
+src/reporting/reportIssueWorkflow.js
+src/reporting/publishActiveReportContext.js
+src/reporting/buildReportPayload.js
+package.json
+
+----------------------------------------------------------------------
+V14 component master DB
+----------------------------------------------------------------------
+
+File:
+src/data/componentMasterDb/defaultComponentMasterDb.js
+
+Exports:
+COMPONENT_MASTER_DB_SCHEMA_VERSION = 'component-master-db-v1'
+
+COMPONENT_SOURCE_STATUS:
+VERIFIED
+SCREENING_SAMPLE
+USER_DEFINED
+MISSING_COMPONENT_DATA
+
+COMPONENT_TYPES:
+ELBOW_90_LR
+ELBOW_45_LR
+TEE_EQUAL
+TEE_REDUCING
+OLET_WELDOLET
+VALVE_BALL
+FLANGE_WN
+
+DEFAULT_COMPONENT_MASTER_ROWS:
+screening sample rows:
+- CMP-ELBOW90LR-NPS4-SCH40-SCREEN
+- CMP-ELBOW90LR-NPS8-SCH40-SCREEN
+- CMP-ELBOW45LR-NPS8-SCH40-SCREEN
+- CMP-TEE-EQUAL-NPS8-SCH40-SCREEN
+- CMP-TEE-REDUCING-NPS8X4-SCH40-SCREEN
+- CMP-WELDOLET-NPS8X4-SCREEN
+- CMP-BALLVALVE-NPS8-CL300-SCREEN
+- CMP-FLANGE-WN-NPS8-CL300-SCREEN
+
+Sample dimensions:
+NPS 4 elbow 90 LR Sch40:
+c2e_in 6
+c2e_mm 152.4
+
+NPS 8 elbow 90 LR Sch40:
+c2e_in 12
+c2e_mm 304.8
+
+NPS 8 elbow 45 LR Sch40:
+c2e_in 8
+c2e_mm 203.2
+
+NPS 8x8 equal tee:
+runC2E_in 8
+branchC2E_in 8
+
+NPS 8x4 reducing tee:
+runC2E_in 8
+branchC2E_in 6
+
+NPS 8x4 weldolet:
+brlen_in 6
+brlen_mm 152.4
+
+NPS 8 class 300 ball valve:
+faceToFace_in 15
+faceToFace_mm 381
+
+NPS 8 class 300 WN flange:
+thickness_in 1.75
+thickness_mm 44.45
+
+All initial rows:
+sourceStatus SCREENING_SAMPLE
+source text says verify against project component master DB / vendor data.
+
+----------------------------------------------------------------------
+V14 component dimension resolver
+----------------------------------------------------------------------
+
+File:
+src/core/component-data/resolveComponentDimensions.js
+
+Exports:
+COMPONENT_DATA_SCHEMA_VERSION = 'component-dimension-resolution-v1'
+
+COMPONENT_DATA_STATUS:
+PASSED
+SCREENING_SAMPLE
+USER_DEFINED
+MISSING_COMPONENT_DATA
+NOT_QUALIFIED
+
+Functions:
+resolveComponentDimension(query, rows)
+resolveElbowC2E(...)
+resolveTeeC2E(...)
+resolveOletBRLEN(...)
+resolveValveFaceToFace(...)
+resolveFlangeThickness(...)
+
+Matching fields:
+componentType
+standard
+nps
+branchNps
+dn
+branchDn
+schedule
+rating
+
+Status mapping:
+sourceStatus VERIFIED -> PASSED
+sourceStatus USER_DEFINED -> USER_DEFINED
+sourceStatus SCREENING_SAMPLE -> SCREENING_SAMPLE
+otherwise -> NOT_QUALIFIED
+
+Result shape:
+{
+  schemaVersion,
+  masterDbSchemaVersion,
+  moduleId: 'component-data',
+  methodId: 'COMPONENT_MASTER_DB_LOOKUP',
+  formulaIds,
+  status,
+  isQualified,
+  sourceStatus,
+  source,
+  row,
+  value,
+  diagnostics
+}
+
+Screening sample warning diagnostic:
+COMPONENT_DATA_SCREENING_SAMPLE
+
+Missing result:
+status MISSING_COMPONENT_DATA
+isQualified false
+sourceStatus MISSING_COMPONENT_DATA
+formulaIds ['COMPONENT_MASTER_DB_REQUIRED']
+diagnostic MISSING_COMPONENT_DATA
+
+resolveElbowC2E:
+inputs:
+nps, dn, schedule, angle, radiusType
+componentType:
+angle 45 -> ELBOW_45_LR
+else -> ELBOW_90_LR
+returns c2e_in/c2e_mm
+
+resolveTeeC2E:
+inputs:
+nps, branchNps, dn, branchDn, schedule
+componentType:
+same size -> TEE_EQUAL
+different -> TEE_REDUCING
+returns:
+runC2E_in/mm
+branchC2E_in/mm
+
+resolveOletBRLEN:
+inputs:
+nps, branchNps, dn, branchDn, rating, schedule
+componentType OLET_WELDOLET
+returns:
+BRLEN_in/mm
+
+resolveValveFaceToFace:
+inputs:
+nps, dn, rating
+componentType default VALVE_BALL
+returns faceToFace_in/mm
+
+resolveFlangeThickness:
+inputs:
+nps, dn, rating
+componentType default FLANGE_WN
+returns thickness_in/mm
+
+----------------------------------------------------------------------
+V14 ComponentMasterDbTab
+----------------------------------------------------------------------
+
+File:
+src/components/ComponentMasterDbTab.jsx
+
+Purpose:
+View/edit/add/export component master DB rows.
+
+State:
+rows = DEFAULT_COMPONENT_MASTER_ROWS
+filter
+
+Actions:
+addRow()
+updateRow(index, key, value)
+exportJson()
+exportCsv()
+
+UI test IDs:
+component-master-db-tab
+component-db-add-row
+component-db-export-json
+component-db-export-csv
+component-db-filter
+component-db-summary
+component-db-table
+component-db-cell-<key>
+
+Fields displayed:
+id
+componentType
+standard
+nps
+branchNps
+dn
+branchDn
+schedule
+rating
+c2e_in
+runC2E_in
+branchC2E_in
+brlen_in
+faceToFace_in
+thickness_in
+weight_kg
+sourceStatus
+
+NOTE:
+Tab is created as component file. It still needs routing/navigation integration in a future phase if not already wired.
+
+----------------------------------------------------------------------
+V14 Sketcher command integration
+----------------------------------------------------------------------
+
+Update:
+src/sketcher/commands/professionalDraftingCommands.js
+
+Imports:
+resolveElbowC2E
+resolveOletBRLEN
+resolveTeeC2E
+
+Add local DN -> NPS mapping:
+15 -> 0.5
+20 -> 0.75
+25 -> 1
+40 -> 1.5
+50 -> 2
+80 -> 3
+100 -> 4
+150 -> 6
+200 -> 8
+250 -> 10
+300 -> 12
+350 -> 14
+400 -> 16
+450 -> 18
+500 -> 20
+600 -> 24
+
+Helpers:
+maxConnectedBoreMm(connected)
+minConnectedBoreMm(connected)
+
+convertSelectedNodeType adds componentDataResolver parameter.
+
+Before updating node:
+const componentData = componentDataResolver
+  ? componentDataResolver({ connected, selectedNodeId, node })
+  : null;
+
+Append component diagnostics:
+const componentDiagnostics = componentData?.diagnostics || [];
+
+node.meta gets:
+componentData
+
+Result diagnostics:
+validation issues + componentDiagnostics
+
+Result meta:
+componentDataStatus: componentData?.status || null
+
+Convert Bend resolver:
+dn = maxConnectedBoreMm(connected)
+resolveElbowC2E({
+  dn,
+  nps: dnToNpsLocal(dn),
+  schedule: connected[0]?.properties?.schedule || '40'
+})
+
+Convert Tee resolver:
+dn = maxConnectedBoreMm(connected)
+branchDn = minConnectedBoreMm(connected)
+resolveTeeC2E({
+  dn,
+  branchDn,
+  nps: dnToNpsLocal(dn),
+  branchNps: dnToNpsLocal(branchDn),
+  schedule: connected[0]?.properties?.schedule || '40'
+})
+
+Convert Olet resolver:
+dn = maxConnectedBoreMm(connected)
+branchDn = minConnectedBoreMm(connected)
+resolveOletBRLEN({
+  dn,
+  branchDn,
+  nps: dnToNpsLocal(dn),
+  branchNps: dnToNpsLocal(branchDn),
+  rating: 300,
+  schedule: connected[0]?.properties?.schedule || '40'
+})
+
+Important:
+V14 attaches componentData; it does not yet perform actual tangent trim/header splitting.
+
+----------------------------------------------------------------------
+V14 Branch-screening integration
+----------------------------------------------------------------------
+
+Update:
+src/core/solvers/branch/solveBranchScreening.js
+
+Import:
+resolveOletBRLEN
+
+Add resolveBranchComponentData(branchDetail, payload):
+- If payload.fittingData has branchSegmentId or branchNodeId, use direct data.
+- Else find branch segment and header segment.
+- headerDn from headerSegment.properties.bore or dn or nps
+- branchDn from branch segment
+- If finite, call resolveOletBRLEN({ dn: headerDn, branchDn, rating: 300, schedule })
+- Else null
+
+During branchChecks:
+resolvedComponentData = resolveBranchComponentData(branchDetail, payload)
+effectiveFittingData = resolvedComponentData?.value
+  ? { [branchDetail.branchSegmentId]: resolvedComponentData.value }
+  : fittingData
+
+Add to each check:
+componentDataStatus: resolvedComponentData?.status || null
+componentDataSource: resolvedComponentData?.source || null
+
+----------------------------------------------------------------------
+V14 report issue blocking
+----------------------------------------------------------------------
+
+Update:
+src/reporting/reportIssueWorkflow.js
+
+Add:
+NON_ISSUE_COMPONENT_STATUSES:
+MISSING_COMPONENT_DATA
+NOT_QUALIFIED
+UNSUPPORTED_GEOMETRY
+
+Add getComponentDataStatus(activeReportContext, reportPayload)
+
+Sources:
+reportPayload.componentDataStatus?.status
+reportPayload.componentDataStatus
+reportPayload.result?.componentDataStatus?.status
+reportPayload.result?.componentDataStatus
+activeReportContext.componentDataStatus?.status
+activeReportContext.componentDataStatus
+activeReportContext.result?.componentDataStatus?.status
+activeReportContext.result?.componentDataStatus
+activeReportContext.engineeringDataSource?.component?.status
+
+If targetStatus === ISSUED and componentDataStatus is blocked:
+blocker COMPONENT_DATA_NOT_QUALIFIED
+
+Eligibility output includes componentDataStatus.
+
+Update publishActiveReportContext:
+componentDataStatus = result?.componentDataStatus || result?.results?.componentDataStatus || result?.engineeringDataSource?.component || null
+
+Update buildReportPayload:
+componentDataStatus:
+activeReportContext?.componentDataStatus || result.componentDataStatus || result.engineeringDataSource?.component || null
+
+----------------------------------------------------------------------
+V14 behavior test
+----------------------------------------------------------------------
+
+Check resolvers:
+resolveElbowC2E({ nps: 8, dn: 200, schedule: '40' })
+-> SCREENING_SAMPLE
+-> c2e_in 12
+-> diagnostic COMPONENT_DATA_SCREENING_SAMPLE
+
+resolveElbowC2E({ nps: 99, dn: 999, schedule: '40' })
+-> MISSING_COMPONENT_DATA
+-> isQualified false
+
+resolveTeeC2E({ nps: 8, branchNps: 4, dn: 200, branchDn: 100, schedule: '40' })
+-> SCREENING_SAMPLE
+-> branchC2E_in 6
+
+resolveOletBRLEN({ nps: 8, branchNps: 4, dn: 200, branchDn: 100, schedule: '40', rating: 300 })
+-> SCREENING_SAMPLE
+-> BRLEN_in 6
+
+resolveValveFaceToFace({ nps: 8, dn: 200, rating: 300 })
+-> SCREENING_SAMPLE
+-> faceToFace_in 15
+
+resolveFlangeThickness({ nps: 8, dn: 200, rating: 300 })
+-> SCREENING_SAMPLE
+-> thickness_in 1.75
+
+Check convert commands:
+Convert Bend:
+- node becomes elbow
+- meta.componentData exists
+- meta.componentDataStatus SCREENING_SAMPLE
+
+Convert Tee:
+- node becomes tee
+- meta.componentData exists
+
+Convert Olet:
+- node becomes olet
+- meta.componentData exists
+
+Branch screening:
+- status BRANCH_SCREENING_ONLY
+- branchChecks[0].componentDataStatus exists
+
+Issue blocking:
+componentDataStatus MISSING_COMPONENT_DATA
+targetStatus ISSUED
+-> blocker COMPONENT_DATA_NOT_QUALIFIED
+
+----------------------------------------------------------------------
+V14 scripts
+----------------------------------------------------------------------
+
+package.json:
+"check:v14": "node scripts/v14-component-master-db-check.mjs"
+"check:v14:behavior": "node scripts/v14-component-master-db-behavior-test.mjs"
+"ci:v14": "npm run ci:v13 && npm run check:v14 && npm run check:v14:behavior && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v14
+npm run check:v14:behavior
+npm run check:benchmarks
+npm run ci:v14
+
+PR title:
+Phase V14 component master DB and fitting dimensions
+
+PR data governance note:
+Initial component DB rows are SCREENING_SAMPLE only. Replace with project-approved ASME/vendor/component master data before final issue.
+
+Deferred:
+- Excel import
+- Exact bend tangent trimming by C2E
+- Tee header/branch split by C2E
+- Olet BRLEN formula fallback
+- Valve/flange symbol scaling
+- PCF/PCFX fitting roundtrip tests
+
+======================================================================
+END OF CHUNK 5
+======================================================================
+Next chunk should continue with:
+V15 — PCF / PCFX fitting roundtrip QA
+V16 — Production PCF / PCFX import-export UI and golden fixtures

@@ -1,0 +1,671 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Generated from chat content
+Repository: reallaksh19/Simplified_Analysis
+
+NOTE:
+This is Chunk 3. It continues from Chunk 2.
+Some earlier chat sections were marked “Skipped messages” in the UI and cannot be reconstructed exactly.
+
+======================================================================
+CHUNK 3 — U7, U8, AND V9 PATCH INSTRUCTIONS
+======================================================================
+
+======================================================================
+U7 — BROWSER QA AND DETERMINISTIC CI
+======================================================================
+
+Branch:
+git checkout phase-u6-active-calculation-reporting
+git pull
+git checkout -b phase-u7-browser-qa-deterministic-ci
+
+Important pre-step:
+Apply U6 hotfix before U7:
+- Move buildReportPayload() out of ReportsTab.jsx into src/reporting/buildReportPayload.js
+- Update scripts/u6-active-reporting-behavior-test.mjs to import from buildReportPayload.js
+
+Reason:
+Node behavior scripts cannot import JSX safely without Vite/Babel transform.
+
+----------------------------------------------------------------------
+U7 objective
+----------------------------------------------------------------------
+
+Upgrade QA from shallow app-load smoke tests to workflow-oriented browser checks and deterministic runtime guards.
+
+Existing gap:
+- qa-check.mjs only scanned Math.random
+- Playwright smoke test only verified:
+  - app opens
+  - title matches
+  - root content exists
+
+U7 adds:
+1. Browser workflow smoke suite
+2. Deterministic timestamp guard
+3. Required E2E file guard
+4. CI aggregate script
+
+----------------------------------------------------------------------
+U7 files
+----------------------------------------------------------------------
+
+PHASE_U7_BROWSER_QA_DETERMINISTIC_CI.md
+e2e/u7-workflow-smoke.spec.js
+scripts/u7-browser-qa-check.mjs
+
+Updated:
+scripts/qa-check.mjs
+package.json
+playwright config where applicable
+
+----------------------------------------------------------------------
+U7 Playwright workflow smoke
+----------------------------------------------------------------------
+
+File:
+e2e/u7-workflow-smoke.spec.js
+
+Key scenarios:
+1. App loads and Settings tab opens
+2. Settings edit marks results stale and changes settings hash
+3. GC3D exposes hydrated settings hash
+4. Pipe Rack exposes hydrated settings hash
+5. Reports tab shows no active report before calculation
+6. Benchmark tab is reachable when present
+
+Important test IDs:
+nav-tab-settings
+settings-contract-hash
+settings-field-shortDropLimit_ft
+settings-results-stale-banner
+nav-tab-3d-analysis
+gc3d-settings-hash
+nav-tab-simpAnalysis
+piperack-settings-hash
+nav-tab-reports
+no-active-report
+nav-tab-benchmarks
+
+Example core test:
+
+import { test, expect } from '@playwright/test';
+
+async function clickIfPresent(page, testId) {
+  const target = page.getByTestId(testId);
+  if (await target.count()) {
+    await target.first().click();
+    return true;
+  }
+  return false;
+}
+
+test.describe('U7 browser workflow smoke', () => {
+  test('app loads and Settings tab is reachable', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveTitle(/Simplified Analysis/i);
+    await expect(page.locator('#root')).toBeVisible();
+
+    await page.getByTestId('nav-tab-settings').click();
+    await expect(page.getByText('Settings / Defaults')).toBeVisible();
+    await expect(page.getByTestId('settings-contract-hash')).toContainText('engineering-settings-v1');
+  });
+
+  test('settings edit marks results stale and changes contract hash', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('nav-tab-settings').click();
+
+    const hashBefore = await page.getByTestId('settings-contract-hash').innerText();
+    await page.getByTestId('settings-field-shortDropLimit_ft').fill('2');
+
+    await expect(page.getByTestId('settings-results-stale-banner')).toBeVisible();
+    await expect(page.getByTestId('settings-contract-hash')).not.toHaveText(hashBefore);
+  });
+
+  test('Reports tab does not show demo report before a calculation', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('nav-tab-reports').click();
+    await expect(page.getByTestId('no-active-report')).toBeVisible();
+    await expect(page.getByText('No active calculation report is available')).toBeVisible();
+  });
+});
+
+----------------------------------------------------------------------
+U7 qa-check changes
+----------------------------------------------------------------------
+
+Add deterministic timestamp guard:
+
+const ALLOWED_TIMESTAMP_FILES = new Set([
+  path.normalize('src/sketcher/SketcherStore.js'),
+  path.normalize('src/reporting/index.js'),
+]);
+
+Scan source for:
+- Date.now()
+- new Date(
+- performance.now(
+
+Fail if any source file contains these calls and is not explicitly whitelisted.
+
+Add required E2E file presence guard:
+
+const requiredE2E = [
+  'e2e/smoke.spec.js',
+  'e2e/u2-settings-hydration.spec.js',
+  'e2e/u7-workflow-smoke.spec.js',
+];
+
+Run Playwright specs when Playwright is installed:
+
+npx playwright test e2e/smoke.spec.js e2e/u2-settings-hydration.spec.js e2e/u7-workflow-smoke.spec.js
+
+----------------------------------------------------------------------
+U7 package scripts
+----------------------------------------------------------------------
+
+Add:
+"check:u7": "node scripts/u7-browser-qa-check.mjs"
+"ci:u7": "npm run ci:u6 && npm run check:u7 && npm run check:qa && npm run check:e2e && npm run build"
+
+Certification:
+npm run check:u7
+npm run check:qa
+npm run check:e2e
+npm run ci:u7
+
+PR title:
+Phase U7 browser QA and deterministic CI
+
+PR body summary:
+- Adds browser workflow smoke suite
+- Strengthens qa-check with Date.now / new Date / performance.now guard
+- Requires E2E specs
+- Runs smoke + U2 + U7 Playwright specs
+- Adds U7 static guard
+
+Deferred:
+- Canvas-level Sketcher draw automation
+- Real Calc Extended browser solver run
+- Real report publication from browser click
+- Screenshot capture on browser failure
+- GitHub Actions Node matrix
+
+======================================================================
+U8 — RELEASE CANDIDATE CERTIFICATION
+======================================================================
+
+Branch:
+git checkout phase-u7-browser-qa-deterministic-ci
+git pull
+git checkout -b phase-u8-release-candidate-certification
+
+U8 is not a feature phase.
+It is the final control layer to certify U0–U7 merge stack.
+
+----------------------------------------------------------------------
+U8 files
+----------------------------------------------------------------------
+
+RELEASE_CANDIDATE_REGISTER.md
+FINAL_PENDING_REGISTER.md
+scripts/release-candidate-check.mjs
+.github/workflows/release-candidate.yml
+
+Updated:
+package.json
+
+----------------------------------------------------------------------
+Release candidate register
+----------------------------------------------------------------------
+
+Required merge stack:
+1. PR #59 — U0 baseline certification
+2. PR #60 — U1 workflow hardening
+3. PR #61 — U2 settings contract
+4. PR U3 — engineering data unification
+5. PR U4 — sketcher topology and fittings
+6. PR U5 — solver certification contract
+7. PR U6 — active calculation reporting
+8. PR U7 — browser QA and deterministic CI
+9. PR U8 — release candidate certification
+
+Do not merge stacked PRs out of order unless rebased onto main.
+
+Known older open PRs outside stack:
+- PR #56 — old GitHub Pages deployment fix
+- PR #50 — old Wave 3 3D analysis update
+
+These should be reviewed separately.
+
+----------------------------------------------------------------------
+Release candidate gate
+----------------------------------------------------------------------
+
+Commands that must pass:
+
+npm ci
+npm run check:full
+npm run check:qa
+npm run check:u0
+npm run check:u1
+npm run check:u2
+npm run check:u2:behavior
+npm run check:u3
+npm run check:u3:behavior
+npm run check:u4
+npm run check:u4:behavior
+npm run check:u5
+npm run check:u5:behavior
+npm run check:u6
+npm run check:u6:behavior
+npm run check:u7
+npm run check:release
+npm run check:benchmarks
+npm run check:e2e
+npm run build
+npm run ci:release
+
+Must-pass benchmark expectation:
+Total: 37
+Passed: 37
+Failed: 0
+Max Rounded Numeric Error: 0
+
+Release blockers:
+1. npm run build fails
+2. npm run check:benchmarks fails
+3. npm run check:qa fails
+4. Browser smoke tests cannot open Settings, GC3D, Pipe Rack, Reports
+5. Reports tab displays demo report without active calculation context
+6. Missing pipe/material data returns clean PASSED
+7. Settings changes do not mark current results stale
+8. Solver result lacks method ID or formula IDs
+9. Runtime source contains unapproved Math.random, Date.now(), new Date(, performance.now(
+10. Stacked PRs are merged out of order
+
+----------------------------------------------------------------------
+Final pending register
+----------------------------------------------------------------------
+
+Category A — release blockers:
+RB-01 U0/U1/U2 PR stack still open
+RB-02 U2 PR body says items are deferred although current diff implements them
+RB-03 U3–U8 patches not yet opened as PRs
+RB-04 Old PR #56 conflicts with deployment stack
+RB-05 Old PR #50 may overlap with GC3D topology work
+
+Category B — high priority after release:
+HP-01 Canvas-level Sketcher automation
+HP-02 Real Calc Extended browser run
+HP-03 GC3D active report publication
+HP-04 Pipe Rack active report publication
+HP-05 Simplified 2D active report publication
+HP-06 Full engineering data migration
+HP-07 Sketcher pipe schedule fallback migration
+HP-08 Convert Bend/Tee/Olet toolbar UI
+HP-09 Branch-aware solver
+HP-10 PDF report export
+
+Category C — engineering method limitations:
+EM-01 Simplified 2D remains screening-level
+EM-02 Calc Extended guided-cantilever method is not full stress model
+EM-03 Missing vendor nozzle loads block qualification
+EM-04 Branch/tee/olet unsupported in GC3D
+EM-05 Screening master DB rows need final source verification
+
+----------------------------------------------------------------------
+release-candidate-check.mjs requirements
+----------------------------------------------------------------------
+
+Required phase docs:
+AUDIT_CURRENT_BASELINE.md
+PHASE_U1_WORKFLOW_HARDENING.md
+PHASE_U2_SETTINGS_CONTRACT.md
+PHASE_U3_ENGINEERING_DATA_UNIFICATION.md
+PHASE_U4_SKETCHER_TOPOLOGY_FITTINGS.md
+PHASE_U5_SOLVER_CERTIFICATION_CONTRACT.md
+PHASE_U6_ACTIVE_CALCULATION_REPORTING.md
+PHASE_U7_BROWSER_QA_DETERMINISTIC_CI.md
+RELEASE_CANDIDATE_REGISTER.md
+FINAL_PENDING_REGISTER.md
+
+Required scripts:
+scripts/u0-certification-check.mjs
+scripts/u1-workflow-check.mjs
+scripts/u2-settings-contract-check.mjs
+scripts/u2-settings-behavior-test.mjs
+scripts/u3-engineering-data-check.mjs
+scripts/u3-engineering-data-behavior-test.mjs
+scripts/u4-sketcher-topology-check.mjs
+scripts/u4-sketcher-topology-behavior-test.mjs
+scripts/u5-solver-certification-check.mjs
+scripts/u5-solver-certification-behavior-test.mjs
+scripts/u6-active-reporting-check.mjs
+scripts/u6-active-reporting-behavior-test.mjs
+scripts/u7-browser-qa-check.mjs
+scripts/release-candidate-check.mjs
+
+Required source files:
+src/core/settings/resolveEngineeringSettings.js
+src/core/engineering-data/resolveEngineeringData.js
+src/sketcher/topology/validateSketchTopology.js
+src/sketcher/topology/classifyTeeMainBranch.js
+src/core/solvers/certification/solverResultContract.js
+src/reporting/publishActiveReportContext.js
+src/reporting/buildReportPayload.js
+
+package scripts:
+check:release
+ci:release
+
+Certification:
+npm run check:release
+npm run check:benchmarks
+npm run ci:release
+
+PR title:
+Phase U8 release candidate certification
+
+After U8:
+1. Update PR #61 body to remove outdated deferred U2 items
+2. Merge #59 -> #60 -> #61
+3. Create U3 -> U8 stacked PRs
+4. Run ci:release on final U8 branch
+5. Close/supersede old PR #56 if deployment fixes covered
+6. Review PR #50 manually before merge
+
+======================================================================
+V9 — BROWSER WORKFLOW DEEP AUTOMATION
+======================================================================
+
+Branch:
+git checkout phase-u8-release-candidate-certification
+git pull
+git checkout -b phase-v9-browser-workflow-deep-automation
+
+V9 is not more architecture.
+It is deep browser workflow automation.
+
+Objective:
+Prove real UI flows beyond app-load smoke tests.
+
+Required workflows:
+1. Settings -> stale flag -> hydrated settings hash
+2. Sketcher draw/create L-route -> Analyze 2D -> solver visible
+3. Sketcher draw/create L-route -> Sync/Push to 3D -> GC3D/viewer route visible
+4. Sketcher draw/create tee route -> Push to GC3D -> unsupported geometry diagnostic visible
+5. Calc Extended run -> active report context published -> Reports tab shows actual method/formula IDs
+6. Pipe Rack tab hydration -> run if stable -> report context planned/diagnosed
+7. Benchmark card -> target tab opens -> mock visible
+8. Failure artifacts: screenshots/traces on failure
+
+----------------------------------------------------------------------
+V9 files
+----------------------------------------------------------------------
+
+PHASE_V9_BROWSER_WORKFLOW_DEEP_AUTOMATION.md
+
+Helpers:
+e2e/helpers/appNavigation.js
+e2e/helpers/elementGuards.js
+e2e/helpers/reportAssertions.js
+e2e/helpers/sketcherActions.js
+
+Specs:
+e2e/v9-settings-workflow.spec.js
+e2e/v9-sketcher-to-2d.spec.js
+e2e/v9-sketcher-to-gc3d.spec.js
+e2e/v9-calc-extended-report.spec.js
+e2e/v9-benchmark-cards.spec.js
+
+Static:
+scripts/v9-browser-workflow-check.mjs
+
+Updated:
+playwright.config.js
+src/sketcher/SketcherStore.js
+scripts/qa-check.mjs
+package.json
+
+----------------------------------------------------------------------
+Playwright config artifacts
+----------------------------------------------------------------------
+
+Update playwright.config.js:
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 60_000,
+  expect: {
+    timeout: 10_000,
+  },
+  use: {
+    baseURL: 'http://localhost:4173',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npm run preview -- --host 127.0.0.1',
+    url: 'http://127.0.0.1:4173',
+    reuseExistingServer: !process.env.CI,
+  },
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+  ],
+  projects: [
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
+    },
+  ],
+});
+
+----------------------------------------------------------------------
+V9 helper: appNavigation.js
+----------------------------------------------------------------------
+
+Core functions:
+openApp(page)
+clickTab(page, testId, fallbackText)
+openSettings(page)
+openSketcher(page)
+openSimplifiedAnalysis(page)
+open3DAnalysis(page)
+openReports(page)
+openBenchmarks(page)
+assertNoBlankRoute(page)
+
+Example:
+
+import { expect } from '@playwright/test';
+
+export async function openApp(page) {
+  await page.goto('/');
+  await expect(page).toHaveTitle(/Simplified Analysis/i);
+  await expect(page.locator('#root')).toBeVisible();
+}
+
+export async function clickTab(page, testId, fallbackText = null) {
+  const byTestId = page.getByTestId(testId);
+  if (await byTestId.count()) {
+    await byTestId.first().click();
+    return;
+  }
+
+  if (fallbackText) {
+    await page.getByText(fallbackText, { exact: false }).first().click();
+    return;
+  }
+
+  throw new Error(`Tab not found: ${testId}`);
+}
+
+export async function openReports(page) {
+  await clickTab(page, 'nav-tab-reports', 'Reports');
+  await expect(page.getByTestId('reports-tab')).toBeVisible();
+}
+
+----------------------------------------------------------------------
+V9 helper: elementGuards.js
+----------------------------------------------------------------------
+
+Core functions:
+clickFirstAvailable(page, candidates)
+fillFirstAvailable(page, candidates, value)
+expectAnyText(page, patterns)
+
+Purpose:
+Allow robust UI tests across evolving labels/test IDs.
+
+----------------------------------------------------------------------
+V9 helper: reportAssertions.js
+----------------------------------------------------------------------
+
+Core functions:
+expectNoDemoReport(page)
+expectNoActiveReportMessage(page)
+expectActiveReportFields(page)
+
+expectNoDemoReport:
+- Reports tab visible
+- root must NOT contain “Demo Calculation Report”
+- root must NOT contain “Benchmark Report —”
+
+expectActiveReportFields:
+- active-report-summary visible
+- report-preview contains Method ID
+- report-preview contains Formula ID
+- report-json-snapshot contains stableHash/report
+
+----------------------------------------------------------------------
+V9 helper: sketcherActions.js
+----------------------------------------------------------------------
+
+Core functions:
+enableE2EMode(page)
+createSketcherLRoute(page)
+createSketcherTeeRoute(page)
+analyzeSketcher2D(page)
+pushSketcherToGC3D(page)
+
+Important deterministic E2E hook:
+window.__SIMPLIFIED_ANALYSIS_E2E__ = true
+
+SketcherStore exposure:
+if (typeof window !== 'undefined' && window.__SIMPLIFIED_ANALYSIS_E2E__) {
+  window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__ = useSketchStore;
+}
+
+createSketcherLRoute uses hook when available:
+- create node A anchor at [0,0,0]
+- create node B elbow at [1000,0,0]
+- create node C anchor at [1000,1000,0]
+- create segments A-B and B-C
+
+createSketcherTeeRoute uses hook when available:
+- W [-1000,0,0]
+- T [0,0,0] tee
+- E [1000,0,0]
+- N [0,1000,0]
+- WEST, EAST, BRANCH segments
+
+Fallback:
+If store hook not available, use canvas mouse actions.
+
+----------------------------------------------------------------------
+V9 specs
+----------------------------------------------------------------------
+
+v9-settings-workflow.spec.js:
+- open app
+- open settings
+- record settings hash
+- fill settings-field-shortDropLimit_ft = 2
+- expect stale banner
+- expect hash changed
+
+v9-sketcher-to-2d.spec.js:
+- enable E2E mode
+- open app
+- open Sketcher
+- create L route
+- analyze 2D
+- assert no blank route
+- expect text matching 2D / Simplified / solver / L_SHAPE
+
+v9-sketcher-to-gc3d.spec.js:
+- L route push/sync does not land blank
+- Tee route push/sync shows unsupported/tee/branch/olet diagnostic
+
+v9-calc-extended-report.spec.js:
+- open app
+- open Simplified Analysis
+- click Calc Extended / Dashboard
+- click Run Calculation / Calculate / Run
+- open Reports
+- expect no demo report
+- expect active report fields
+- expect FLUOR / GUIDED / CANTILEVER / 2D_BUNDLE / Method ID
+
+v9-benchmark-cards.spec.js:
+- open Benchmarks if tab exists
+- card test ID convention: benchmark-card-
+- after click, expect method/formula/fixture/mock/expected/status
+
+----------------------------------------------------------------------
+V9 static check
+----------------------------------------------------------------------
+
+scripts/v9-browser-workflow-check.mjs verifies:
+- required files exist
+- Playwright artifact policy exists
+- sketcherActions contains:
+  - createSketcherLRoute
+  - createSketcherTeeRoute
+  - analyzeSketcher2D
+  - pushSketcherToGC3D
+  - __SIMPLIFIED_ANALYSIS_E2E__
+- tests include real workflow calls
+- package.json has check:v9 and ci:v9
+
+----------------------------------------------------------------------
+V9 package scripts
+----------------------------------------------------------------------
+
+"check:v9": "node scripts/v9-browser-workflow-check.mjs"
+"ci:v9": "npm run ci:release && npm run check:v9 && npm run check:qa && npm run check:e2e && npm run build"
+
+Certification:
+npm run check:v9
+npm run check:qa
+npm run check:e2e
+npm run ci:v9
+
+PR title:
+Phase V9 browser workflow deep automation
+
+PR notes:
+Canvas-level drawing can be unstable.
+Deterministic E2E hooks are guarded behind:
+window.__SIMPLIFIED_ANALYSIS_E2E__
+
+These hooks must not be used by production UI logic.
+
+Deferred:
+V10 — Full engineering data migration:
+1. Calc Extended local JSON DB fallback
+2. Sketcher pipeSchedules approximation fallback
+3. Pipe Rack independent defaults/data paths
+4. Reports missing engineering-data status for non-Calc-Extended results
+5. Missing-data benchmark cards for pipe/material/flange/gasket
+
+======================================================================
+END OF CHUNK 3
+======================================================================
+Next chunk should continue with:
+V10 — Full engineering data migration
+V11 — Professional Sketcher drafting commands
+V12 — Branch-aware solver architecture

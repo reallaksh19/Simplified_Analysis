@@ -1,0 +1,696 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Generated from chat content
+Repository: reallaksh19/Simplified_Analysis
+
+NOTE:
+This is Chunk 2. It continues from Chunk 1.
+Some earlier chat sections were marked “Skipped messages” in the UI and cannot be reconstructed exactly.
+
+======================================================================
+CHUNK 2 — U3 TO U6 PATCH INSTRUCTIONS
+======================================================================
+
+======================================================================
+U3 — ENGINEERING DATA UNIFICATION
+======================================================================
+
+Branch:
+git checkout phase-u2-settings-contract
+git pull
+git checkout -b phase-u3-engineering-data-unification
+
+Objective:
+Create a unified engineering-data resolver around existing pipe and material data sources so solvers stop using scattered, silent fallback values.
+
+Core files introduced:
+- PHASE_U3_ENGINEERING_DATA_UNIFICATION.md
+- src/core/engineering-data/resolveEngineeringData.js
+- scripts/u3-engineering-data-check.mjs
+- scripts/u3-engineering-data-behavior-test.mjs
+
+Key functions:
+- resolvePipeSection()
+- resolveMaterialAtTemperature()
+- resolveEngineeringDataForCalculation()
+
+Expected contract fields:
+- schemaVersion
+- moduleId
+- methodId
+- formulaIds
+- status
+- isQualified
+- source
+- value
+- diagnostics
+
+Important status values:
+- PASSED
+- MISSING_DATA
+- NOT_QUALIFIED
+- SCREENING_APPROXIMATION
+- USER_DEFINED
+
+Behavior requirement:
+Unknown pipe or material must not silently pass. It must return MISSING_DATA or NOT_QUALIFIED and block calculation where appropriate.
+
+Core behavior test logic:
+
+import {
+  DATA_STATUS,
+  resolveEngineeringDataForCalculation,
+  resolveMaterialAtTemperature,
+  resolvePipeSection,
+} from '../src/core/engineering-data/resolveEngineeringData.js';
+
+const knownPipe = resolvePipeSection({ nps: 8, schedule: '40' });
+assertEqual(knownPipe.status, DATA_STATUS.PASSED, 'Known pipe must pass');
+
+const missingPipe = resolvePipeSection({ nps: 999, schedule: 'XXS' });
+assertEqual(missingPipe.status, DATA_STATUS.MISSING_DATA, 'Missing pipe must be MISSING_DATA');
+
+const knownMaterial = resolveMaterialAtTemperature({
+  materialId: 'Carbon Steel',
+  temperature_F: 300,
+});
+assertEqual(knownMaterial.status, DATA_STATUS.PASSED, 'Known material must pass');
+
+const missingMaterial = resolveMaterialAtTemperature({
+  materialId: 'Unobtanium',
+  temperature_F: 300,
+});
+assertEqual(missingMaterial.status, DATA_STATUS.MISSING_DATA, 'Missing material must be MISSING_DATA');
+
+package.json additions:
+"check:u3": "node scripts/u3-engineering-data-check.mjs"
+"check:u3:behavior": "node scripts/u3-engineering-data-behavior-test.mjs"
+"ci:u3": "npm run ci:u2 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks"
+
+Certification:
+npm run check:u3
+npm run check:u3:behavior
+npm run check:benchmarks
+npm run ci:u3
+
+PR title:
+Phase U3 engineering data unification
+
+PR body:
+Implements unified engineering data resolution for pipe/material inputs, adds strict data status propagation, and blocks missing data rather than allowing hidden fallback values.
+
+======================================================================
+U4 — SKETCHER TOPOLOGY AND FITTING UPGRADE
+======================================================================
+
+Branch:
+git checkout phase-u3-engineering-data-unification
+git pull
+git checkout -b phase-u4-sketcher-topology-fitting-upgrade
+
+Problem:
+GraphTranslator.js had tee classification based on first two connected segments as main run and third as branch. This is order-dependent and unsafe.
+
+U4 files:
+- PHASE_U4_SKETCHER_TOPOLOGY_FITTINGS.md
+- src/sketcher/topology/validateSketchTopology.js
+- src/sketcher/topology/classifyTeeMainBranch.js
+- scripts/u4-sketcher-topology-check.mjs
+- scripts/u4-sketcher-topology-behavior-test.mjs
+
+Key code: validateSketchTopology.js
+
+export const SKETCH_TOPOLOGY_SCHEMA_VERSION = 'sketch-topology-validation-v1';
+
+function issue(severity, code, message, data = {}) {
+  return { severity, code, message, data };
+}
+
+export function buildConnectionIndex(segments = []) {
+  return segments.reduce((acc, segment) => {
+    if (segment.startNode) {
+      acc[segment.startNode] = acc[segment.startNode] || [];
+      acc[segment.startNode].push(segment);
+    }
+    if (segment.endNode) {
+      acc[segment.endNode] = acc[segment.endNode] || [];
+      acc[segment.endNode].push(segment);
+    }
+    return acc;
+  }, {});
+}
+
+export function validateSketchTopology(nodes = {}, segments = [], options = {}) {
+  const issues = [];
+  const tolerance = Number(options.zeroLengthTolerance_mm ?? 1e-6);
+  const connectionIndex = buildConnectionIndex(segments);
+
+  for (const segment of segments) {
+    if (!segment.id) {
+      issues.push(issue('error', 'SEGMENT_ID_MISSING', 'A segment is missing id.', { segment }));
+    }
+
+    if (!segment.startNode || !nodes[segment.startNode]) {
+      issues.push(issue('error', 'MISSING_START_NODE', `Segment ${segment.id || '?'} has missing start node.`, {
+        segmentId: segment.id,
+        startNode: segment.startNode,
+      }));
+    }
+
+    if (!segment.endNode || !nodes[segment.endNode]) {
+      issues.push(issue('error', 'MISSING_END_NODE', `Segment ${segment.id || '?'} has missing end node.`, {
+        segmentId: segment.id,
+        endNode: segment.endNode,
+      }));
+    }
+
+    if (segment.startNode && segment.startNode === segment.endNode) {
+      issues.push(issue('error', 'SELF_LOOP_SEGMENT', `Segment ${segment.id || '?'} connects a node to itself.`, {
+        segmentId: segment.id,
+      }));
+    }
+
+    const a = nodes?.[segment.startNode]?.pos;
+    const b = nodes?.[segment.endNode]?.pos;
+    if (a && b) {
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+      if (length <= tolerance) {
+        issues.push(issue('error', 'ZERO_LENGTH_SEGMENT', `Segment ${segment.id || '?'} length is below tolerance.`, {
+          segmentId: segment.id,
+          length_mm: length,
+          tolerance,
+        }));
+      }
+    }
+  }
+
+  for (const [nodeId, node] of Object.entries(nodes)) {
+    const connected = connectionIndex[nodeId] || [];
+    const count = connected.length;
+
+    if (count === 0) {
+      issues.push(issue('warn', 'DISCONNECTED_NODE', `Node ${nodeId} is disconnected.`, { nodeId }));
+    }
+
+    if (node.type === 'elbow' && count !== 2) {
+      issues.push(issue('error', 'INVALID_ELBOW_CONNECTION_COUNT', `Elbow ${nodeId} requires exactly 2 connected segments.`, {
+        nodeId,
+        count,
+      }));
+    }
+
+    if (node.type === 'tee' && count !== 3) {
+      issues.push(issue('error', 'INVALID_TEE_CONNECTION_COUNT', `Tee ${nodeId} requires exactly 3 connected segments.`, {
+        nodeId,
+        count,
+      }));
+    }
+
+    if (node.type === 'olet' && count < 2) {
+      issues.push(issue('error', 'INVALID_OLET_CONNECTION_COUNT', `Olet ${nodeId} requires at least 2 connected segments.`, {
+        nodeId,
+        count,
+      }));
+    }
+  }
+
+  const unsupportedForGC3D = Object.values(nodes).some((node) =>
+    ['tee', 'olet', 'branch'].includes(String(node.type || '').toLowerCase())
+  );
+
+  return {
+    schemaVersion: SKETCH_TOPOLOGY_SCHEMA_VERSION,
+    ok: !issues.some((item) => item.severity === 'error'),
+    unsupportedForGC3D,
+    issues,
+    summary: {
+      nodeCount: Object.keys(nodes).length,
+      segmentCount: segments.length,
+      errorCount: issues.filter((item) => item.severity === 'error').length,
+      warningCount: issues.filter((item) => item.severity === 'warn').length,
+    },
+  };
+}
+
+Key code: classifyTeeMainBranch.js
+
+function normalize(vector) {
+  const length = Math.hypot(vector[0], vector[1], vector[2]);
+  if (length <= 1e-12) return [0, 0, 0];
+  return [vector[0] / length, vector[1] / length, vector[2] / length];
+}
+
+function dot(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function otherNodeId(segment, nodeId) {
+  return segment.startNode === nodeId ? segment.endNode : segment.startNode;
+}
+
+function vectorFromNode(nodes, nodeId, segment) {
+  const origin = nodes[nodeId]?.pos;
+  const otherId = otherNodeId(segment, nodeId);
+  const other = nodes[otherId]?.pos;
+  if (!origin || !other) return [0, 0, 0];
+  return normalize([
+    other[0] - origin[0],
+    other[1] - origin[1],
+    other[2] - origin[2],
+  ]);
+}
+
+export function classifyTeeMainBranch(nodes = {}, nodeId, connectedSegments = []) {
+  if (!nodes[nodeId]) {
+    return { ok: false, main: [], branch: null, diagnostic: `Tee node ${nodeId} is missing.` };
+  }
+
+  if (!Array.isArray(connectedSegments) || connectedSegments.length !== 3) {
+    return {
+      ok: false,
+      main: [],
+      branch: null,
+      diagnostic: `Tee node ${nodeId} requires exactly 3 connected segments for main/branch classification.`,
+    };
+  }
+
+  const vectors = connectedSegments.map((segment, index) => ({
+    index,
+    segment,
+    vector: vectorFromNode(nodes, nodeId, segment),
+  }));
+
+  const rankedPairs = [
+    [0, 1],
+    [0, 2],
+    [1, 2],
+  ].map(([a, b]) => ({
+    a,
+    b,
+    score: Math.abs(dot(vectors[a].vector, vectors[b].vector)),
+  })).sort((left, right) => right.score - left.score);
+
+  const best = rankedPairs[0];
+  const branchIndex = [0, 1, 2].find((index) => index !== best.a && index !== best.b);
+
+  return {
+    ok: true,
+    main: [vectors[best.a].segment, vectors[best.b].segment],
+    branch: vectors[branchIndex].segment,
+    colinearityScore: best.score,
+    diagnostic: null,
+  };
+}
+
+GraphTranslator change:
+- Import classifyTeeMainBranch and validateSketchTopology.
+- Replace tee “first two are main” with vector colinearity.
+- Store these attributes on exported tee:
+  - MAIN_SEGMENT_A
+  - MAIN_SEGMENT_B
+  - BRANCH_SEGMENT
+  - TEE_CLASSIFICATION = VECTOR_COLINEARITY
+
+Add export wrapper:
+buildComponentsFromGraphWithDiagnostics(nodes, segments)
+
+Certification:
+npm run check:u4
+npm run check:u4:behavior
+npm run check:benchmarks
+npm run ci:u4
+
+PR title:
+Phase U4 sketcher topology and fitting upgrade
+
+Deferred:
+- Dedicated Convert Bend / Convert Tee / Convert Olet toolbar UI
+- Browser-level sketch draw/convert/topology validation
+- Full PCF fitting export with exact C2E lengths
+- GC3D branch-aware solver
+
+======================================================================
+U5 — SOLVER CERTIFICATION CONTRACT
+======================================================================
+
+Branch:
+git checkout phase-u4-sketcher-topology-fitting-upgrade
+git pull
+git checkout -b phase-u5-solver-certification-contract
+
+Problem:
+Simplified 2D and other solvers returned inconsistent result shapes.
+
+U5 files:
+- PHASE_U5_SOLVER_CERTIFICATION_CONTRACT.md
+- src/core/solvers/certification/solverResultContract.js
+- scripts/u5-solver-certification-check.mjs
+- scripts/u5-solver-certification-behavior-test.mjs
+
+Key code: solverResultContract.js
+
+export const SOLVER_RESULT_SCHEMA_VERSION = 'solver-result-contract-v1';
+
+export const ENGINEERING_LEVEL = Object.freeze({
+  MOCK: 'MOCK',
+  SCREENING: 'SCREENING',
+  BENCHMARKED_SCREENING: 'BENCHMARKED_SCREENING',
+  CERTIFIED: 'CERTIFIED',
+});
+
+const DEFAULT_UNIT_SYSTEM = Object.freeze({
+  length: 'project-default',
+  force: 'project-default',
+  stress: 'project-default',
+  moment: 'project-default',
+});
+
+function normalizeFormulaIds(formulaIds) {
+  if (Array.isArray(formulaIds)) {
+    return formulaIds.map(String).filter(Boolean);
+  }
+  if (formulaIds) return [String(formulaIds)];
+  return [];
+}
+
+function normalizeDiagnostics(diagnostics = []) {
+  return diagnostics.map((item) => ({
+    severity: item.severity || 'info',
+    code: item.code || 'SOLVER_DIAGNOSTIC',
+    message: item.message || String(item.code || 'Solver diagnostic.'),
+    data: item.data || {},
+  }));
+}
+
+export function createSolverResultContract({
+  moduleId,
+  methodId,
+  formulaIds,
+  unitSystem = DEFAULT_UNIT_SYSTEM,
+  settingsHash = null,
+  dataStatus = null,
+  engineeringLevel = ENGINEERING_LEVEL.SCREENING,
+  status = 'UNKNOWN',
+  input = {},
+  results = {},
+  diagnostics = [],
+  warnings = [],
+  formulaTrace = [],
+  meta = {},
+  summary = {},
+} = {}) {
+  const normalizedFormulaIds = normalizeFormulaIds(formulaIds);
+  const normalizedDiagnostics = normalizeDiagnostics(diagnostics);
+  const normalizedWarnings = warnings
+    .map((item) => typeof item === 'string' ? item : item?.message)
+    .filter(Boolean);
+
+  return Object.freeze({
+    schemaVersion: SOLVER_RESULT_SCHEMA_VERSION,
+    moduleId: moduleId || 'unknown-module',
+    methodId: methodId || 'UNKNOWN_METHOD',
+    formulaIds: normalizedFormulaIds.length ? normalizedFormulaIds : ['UNSPECIFIED_FORMULA'],
+    unitSystem,
+    settingsHash,
+    dataStatus,
+    engineeringLevel,
+    status,
+    input,
+    results,
+    diagnostics: normalizedDiagnostics,
+    warnings: normalizedWarnings,
+    formulaTrace: Array.isArray(formulaTrace) ? formulaTrace : [],
+    meta,
+    summary: {
+      status,
+      engineeringLevel,
+      methodId: methodId || 'UNKNOWN_METHOD',
+      formulaCount: normalizedFormulaIds.length || 1,
+      warningCount: normalizedWarnings.length,
+      diagnosticCount: normalizedDiagnostics.length,
+      ...(summary || {}),
+    },
+  });
+}
+
+export function validateSolverResultContract(result) {
+  const errors = [];
+
+  if (!result || typeof result !== 'object') {
+    return { ok: false, errors: ['Result is not an object.'] };
+  }
+
+  if (result.schemaVersion !== SOLVER_RESULT_SCHEMA_VERSION) {
+    errors.push(`schemaVersion must be ${SOLVER_RESULT_SCHEMA_VERSION}.`);
+  }
+
+  if (!result.moduleId) errors.push('moduleId missing.');
+  if (!result.methodId) errors.push('methodId missing.');
+  if (!Array.isArray(result.formulaIds) || result.formulaIds.length === 0) {
+    errors.push('formulaIds must be a non-empty array.');
+  }
+  if (!result.unitSystem) errors.push('unitSystem missing.');
+  if (!result.engineeringLevel || !Object.values(ENGINEERING_LEVEL).includes(result.engineeringLevel)) {
+    errors.push('engineeringLevel invalid or missing.');
+  }
+  if (!result.status) errors.push('status missing.');
+  if (!('results' in result)) errors.push('results missing.');
+  if (!Array.isArray(result.diagnostics)) errors.push('diagnostics must be an array.');
+  if (!Array.isArray(result.warnings)) errors.push('warnings must be an array.');
+  if (!Array.isArray(result.formulaTrace)) errors.push('formulaTrace must be an array.');
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
+}
+
+export function unwrapSolverResults(result) {
+  if (result?.schemaVersion === SOLVER_RESULT_SCHEMA_VERSION) return result.results;
+  return result;
+}
+
+Simplified 2D wrapper changes:
+- solveSimplified2D() returns createSolverResultContract()
+- moduleId: simplified-2d
+- engineeringLevel: BENCHMARKED_SCREENING
+- legacy result preserved under result.results
+
+Method IDs:
+- SIMPLIFIED_2D_EMPTY
+- SIMPLIFIED_2D_SINGLE_LEG
+- SIMPLIFIED_2D_STRAIGHT_RUN
+- SIMPLIFIED_2D_L_SHAPE
+- SIMPLIFIED_2D_Z_SHAPE
+- SIMPLIFIED_2D_LOOP_OR_MULTI_LEG
+- SIMPLIFIED_2D_OFFSET
+- SIMPLIFIED_2D_MULTI_LEG
+
+Certification:
+npm run check:u5
+npm run check:u5:behavior
+npm run check:benchmarks
+npm run ci:u5
+
+PR title:
+Phase U5 solver certification contract
+
+Deferred:
+- Convert GC3D, Pipe Rack, Calc Extended, and reporting exports to full contract
+- Add benchmark-runner schema validation
+- Add formula-specific 2D L/Z/U/offset equations
+- Add certification badges
+- Add active report integration in U6
+
+======================================================================
+U6 — ACTIVE CALCULATION REPORTING
+======================================================================
+
+Branch:
+git checkout phase-u5-solver-certification-contract
+git pull
+git checkout -b phase-u6-active-calculation-reporting
+
+Problem:
+ReportsTab displayed demo report from currentBenchmarkMock instead of active solver result.
+
+U6 files:
+- PHASE_U6_ACTIVE_CALCULATION_REPORTING.md
+- src/reporting/publishActiveReportContext.js
+- src/reporting/buildReportPayload.js
+- scripts/u6-active-reporting-check.mjs
+- scripts/u6-active-reporting-behavior-test.mjs
+
+appStore additions:
+- activeReportContext
+- reportContextSequence
+- setActiveReportContext()
+- clearActiveReportContext()
+
+Key store shape:
+
+activeReportContext: {
+  schemaVersion: 'active-report-context-v1',
+  moduleId,
+  methodId,
+  title,
+  input,
+  result,
+  settings,
+  settingsHash,
+  diagnostics,
+  warnings,
+  benchmarkStatus,
+  createdSequence
+}
+
+Key code: publishActiveReportContext.js
+
+import { useAppStore } from '../store/appStore';
+
+function normalizeFormulaIds(result = {}) {
+  if (Array.isArray(result.formulaIds)) return result.formulaIds;
+  if (Array.isArray(result.results?.formulaIds)) return result.results.formulaIds;
+  return [];
+}
+
+function normalizeMethodId(result = {}, fallback = 'UNKNOWN_METHOD') {
+  return result.methodId || result.results?.methodId || fallback;
+}
+
+function normalizeDiagnostics(result = {}) {
+  return [
+    ...(Array.isArray(result.diagnostics) ? result.diagnostics : []),
+    ...(Array.isArray(result.dataStatus?.diagnostics) ? result.dataStatus.diagnostics : []),
+  ];
+}
+
+export function buildActiveReportContext({
+  moduleId,
+  title,
+  input,
+  result,
+  settings,
+  settingsHash,
+  benchmarkStatus = 'NOT_RUN',
+  fallbackMethodId = 'UNKNOWN_METHOD',
+} = {}) {
+  const resolved = useAppStore.getState().getResolvedEngineeringSettings?.()
+    || useAppStore.getState().resolvedEngineeringSettings;
+
+  const effectiveSettings = settings || resolved?.settings || {};
+  const effectiveSettingsHash = settingsHash || resolved?.settingsHash || null;
+  const formulaIds = normalizeFormulaIds(result);
+
+  return {
+    schemaVersion: 'active-report-context-v1',
+    moduleId: moduleId || result?.moduleId || 'unknown-module',
+    methodId: normalizeMethodId(result, fallbackMethodId),
+    title: title || `${moduleId || 'Calculation'} — ${normalizeMethodId(result, fallbackMethodId)}`,
+    input: input || {},
+    result: {
+      ...result,
+      formulaIds,
+      methodId: normalizeMethodId(result, fallbackMethodId),
+    },
+    settings: effectiveSettings,
+    settingsHash: effectiveSettingsHash,
+    diagnostics: normalizeDiagnostics(result),
+    warnings: result?.warnings || [],
+    benchmarkStatus,
+  };
+}
+
+export function publishActiveReportContext(payload = {}) {
+  const context = buildActiveReportContext(payload);
+  useAppStore.getState().setActiveReportContext(context);
+  return context;
+}
+
+Calc Extended DashboardView change:
+After runExtendedSolver(payload), call:
+
+publishActiveReportContext({
+  moduleId: 'calc-extended',
+  title: 'Calc Extended Engineering Calculation Sheet',
+  input: payload,
+  result: res,
+  settings,
+  settingsHash: settingsContract?.settingsHash || null,
+  benchmarkStatus: res?.meta?.benchmarkStatus || 'NOT_RUN',
+  fallbackMethodId: methodology === '2D_BUNDLE'
+    ? '2D_BUNDLE_GUIDED_CANTILEVER'
+    : 'FLUOR_GUIDED_CANTILEVER_MIST',
+});
+
+ReportsTab behavior:
+- If no activeReportContext:
+  show “No active calculation report is available. Run a calculation first.”
+- If activeReportContext:
+  createEngineeringCalculationReport(reportPayload)
+  renderMarkdownCalculationSheet(report)
+  createReportJsonSnapshot(reportPayload)
+- If resultsStale:
+  show “STALE — Recalculate before issue.”
+
+U6 hotfix:
+Moved buildReportPayload() from ReportsTab.jsx into pure JS file:
+src/reporting/buildReportPayload.js
+Reason:
+Node behavior tests cannot directly import JSX without Vite/Babel.
+
+Key code: buildReportPayload.js
+
+export function buildReportPayload(activeReportContext, resultsStale) {
+  const result = activeReportContext?.result || {};
+  const status = resultsStale
+    ? 'SCREENING_ONLY'
+    : (result.status || result.calculationStatus || 'SCREENING_ONLY');
+
+  return {
+    title: activeReportContext?.title || 'Engineering Calculation Sheet',
+    module: activeReportContext?.moduleId || 'unknown-module',
+    status,
+    methodId: activeReportContext?.methodId || result.methodId || 'UNKNOWN_METHOD',
+    formulaIds: result.formulaIds || [],
+    unitSystem: result.unitSystem || activeReportContext?.settings?.projectUnitSystem || 'imperial',
+    benchmarkStatus: activeReportContext?.benchmarkStatus || 'NOT_RUN',
+    input: activeReportContext?.input || {},
+    result,
+    settings: activeReportContext?.settings || {},
+    settingsHash: activeReportContext?.settingsHash || null,
+    engineeringDataSource: result.dataStatus || result.engineeringDataSource || {},
+    warnings: [
+      ...(activeReportContext?.warnings || []),
+      ...(resultsStale ? [{ code: 'STALE_RESULTS', message: 'STALE — Recalculate before issue.' }] : []),
+    ],
+    diagnostics: activeReportContext?.diagnostics || [],
+    substitutions: {
+      settingsHash: activeReportContext?.settingsHash || null,
+      createdSequence: activeReportContext?.createdSequence || null,
+    },
+  };
+}
+
+Certification:
+npm run check:u6
+npm run check:u6:behavior
+npm run check:benchmarks
+npm run ci:u6
+
+PR title:
+Phase U6 active calculation reporting
+
+Deferred:
+- Publish active report context from GC3D
+- Publish active report context from Pipe Rack
+- Publish active report context from Simplified 2D UI
+- PDF export
+- Report revision history / checker sign-off
+
+======================================================================
+END OF CHUNK 2
+======================================================================
+Next chunk should continue with:
+U7 — Browser QA and deterministic CI
+U8 — Release candidate certification
+V9 — Browser workflow deep automation

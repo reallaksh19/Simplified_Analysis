@@ -1,0 +1,865 @@
+SIMPLIFIED_ANALYSIS_UPGRADE_CHAT_CODE_AND_INSTRUCTIONS.txt
+Repository: reallaksh19/Simplified_Analysis
+Generated from visible chat content.
+
+This file contains Chunks 6 to 10 in one text file.
+It continues after Chunk 5.
+
+======================================================================
+CHUNK 6 — V15 PCF / PCFX FITTING ROUNDTRIP QA
+======================================================================
+
+Branch:
+git checkout phase-v14-component-master-db-fitting-dimensions
+git pull
+git checkout -b phase-v15-pcf-pcfx-fitting-roundtrip-qa
+
+Objective:
+Add PCFX fitting roundtrip QA.
+
+Target workflow:
+Sketcher graph -> PCFX export -> PCFX import -> Sketcher graph -> validation
+
+This phase is for preserving fitting topology and metadata. It is not a full production PCF writer.
+
+V15 validates that the V11, V12, and V14 data survives roundtrip:
+- Elbow
+- Tee
+- Olet
+- BRLEN
+- componentData
+- sourceStatus
+- rawAttributes
+- normalized metadata
+- derived metadata
+- main/branch tee classification
+
+Files:
+PHASE_V15_PCF_PCFX_FITTING_ROUNDTRIP_QA.md
+src/core/pcfx/pcfxRoundtripAdapter.js
+scripts/v15-pcfx-roundtrip-check.mjs
+scripts/v15-pcfx-roundtrip-behavior-test.mjs
+
+Updated:
+package.json
+
+PCFX constants:
+PCFX_ROUNDTRIP_SCHEMA_VERSION = 'pcfx-roundtrip-adapter-v1'
+PCFX_VERSION = 'PCFX1-SCREENING-JSON'
+
+PCFX exported object model:
+schemaVersion
+pcfxVersion
+project
+units
+nodes
+segments
+components
+graphTranslatorComponents
+diagnostics
+lossContract
+rawAttributes
+normalized
+derived
+
+Adapter exports:
+exportSketchGraphToPCFX()
+importPCFXToSketchGraph()
+validatePCFXRoundtrip()
+
+pcfxRoundtripAdapter imports:
+buildComponentsFromGraphWithDiagnostics from '../../sketcher/GraphTranslator.js'
+validateSketchTopology from '../../sketcher/topology/validateSketchTopology.js'
+
+Important helpers:
+clone(value)
+diagnostic(severity, code, message, data)
+canonicalNode(nodeId, node)
+canonicalSegment(segment)
+componentFromNode(nodeId, node, connectedSegments)
+connectionIndex(segments)
+detectDuplicateIds(items, key)
+
+canonicalNode preserves:
+id
+type
+pos
+rawAttributes
+normalized.nodeType
+derived.componentData
+derived.convertedBy
+derived.connectionCount
+meta
+
+componentData is taken from:
+node.meta?.componentData
+or
+node.derived?.componentData
+
+canonicalSegment preserves:
+id
+startNode
+endNode
+compType
+properties
+rawAttributes
+normalized.componentType
+derived
+
+Segment start/end supports both:
+startNode / startNodeId
+endNode / endNodeId
+
+componentFromNode creates component records for:
+elbow -> ELBOW
+tee -> TEE
+olet -> OLET
+branch -> BRANCH
+valve -> VALVE
+flange -> FLANGE
+
+Component record includes:
+id = CMP-<nodeId>
+nodeId
+componentType
+connectedSegmentIds
+rawAttributes
+normalized
+derived.componentData
+derived.convertedBy
+derived.connectionCount
+meta
+
+exportSketchGraphToPCFX steps:
+1. Normalize segments.
+2. Build connection index.
+3. Run validateSketchTopology().
+4. Run buildComponentsFromGraphWithDiagnostics().
+5. Convert nodes to PCFX canonical node records.
+6. Convert fitting nodes to component records.
+7. Convert GraphTranslator components to graphTranslatorComponents.
+8. Add lossContract entries for non-qualified component data.
+
+Loss contract condition:
+If component.derived.componentData.status is MISSING_COMPONENT_DATA or NOT_QUALIFIED, add:
+code COMPONENT_DATA_NOT_QUALIFIED
+severity warn
+componentId
+status
+
+graphTranslatorComponents preserve:
+TEE_CLASSIFICATION
+MAIN_SEGMENT_A
+MAIN_SEGMENT_B
+BRANCH_SEGMENT
+
+importPCFXToSketchGraph steps:
+1. Warn if schema version mismatch.
+2. Rebuild nodes with pos/type/rawAttributes/normalized/derived/meta.
+3. Merge component metadata back into node meta and derived.pcfxComponent.
+4. Rebuild segments.
+5. Run validateSketchTopology().
+6. Return nodes, segments, diagnostics, lossContract, validation, rawAttributes, normalized, derived.
+
+validatePCFXRoundtrip checks:
+- duplicate segment IDs
+- fitting node missing after roundtrip
+- fitting node type changed after roundtrip
+- self-loop segments
+
+Roundtrip error codes:
+DUPLICATE_SEGMENT_IDS
+FITTING_NODE_MISSING_AFTER_ROUNDTRIP
+FITTING_TYPE_CHANGED_AFTER_ROUNDTRIP
+SELF_LOOP_SEGMENTS_AFTER_ROUNDTRIP
+
+V15 behavior test:
+Bend:
+- A free, B free with rawAttributes CA97 BEND-REF, C free.
+- S1 A-B, S2 B-C.
+- Convert B to bend.
+- Export PCFX, import PCFX, validate.
+Expected:
+- imported B type elbow
+- B meta.componentData preserved
+- B rawAttributes.CA97 preserved
+- PCFX components include ELBOW
+
+Tee:
+- W, T, E, N.
+- WEST, BRANCH, EAST segments.
+- Convert T to tee.
+Expected:
+- imported T type tee
+- componentData preserved
+- graphTranslatorComponents has TEE
+- teeClassification VECTOR_COLINEARITY
+- branchSegment BRANCH
+- main segments EAST and WEST
+
+Olet:
+- W, O, E, N.
+- WEST, EAST, BRANCH.
+- Convert O to olet.
+Expected:
+- imported O type olet
+- BRLEN/componentData preserved
+- rawAttributes CA97 OLET-REF preserved
+
+Missing component:
+- elbow node A has meta.componentData.status MISSING_COMPONENT_DATA.
+Expected:
+- export PCFX lossContract contains COMPONENT_DATA_NOT_QUALIFIED
+
+Static check verifies:
+PCFX_ROUNDTRIP_SCHEMA_VERSION
+PCFX_VERSION
+exportSketchGraphToPCFX
+importPCFXToSketchGraph
+validatePCFXRoundtrip
+rawAttributes
+normalized
+derived
+lossContract
+graphTranslatorComponents
+componentData
+TEE_CLASSIFICATION
+MAIN_SEGMENT_A
+MAIN_SEGMENT_B
+BRANCH_SEGMENT
+
+package.json:
+"check:v15": "node scripts/v15-pcfx-roundtrip-check.mjs"
+"check:v15:behavior": "node scripts/v15-pcfx-roundtrip-behavior-test.mjs"
+"ci:v15": "npm run ci:v14 && npm run check:v15 && npm run check:v15:behavior && npm run check:benchmarks && npm run build"
+
+Certification:
+npm run check:v15
+npm run check:v15:behavior
+npm run check:benchmarks
+npm run ci:v15
+
+V15 PR title:
+Phase V15 PCF / PCFX fitting roundtrip QA
+
+V15 PR body summary:
+- Adds PCFX roundtrip adapter.
+- Preserves nodes, segments, fittings, rawAttributes, normalized metadata, derived metadata, componentData, sourceStatus, tee main/branch metadata, and lossContract.
+- Adds bend, tee, olet, and missing component roundtrip behavior checks.
+- Adds check:v15, check:v15:behavior, ci:v15.
+
+Deferred after V15:
+- Full production PCF writer.
+- Full production PCF parser.
+- XML PCFX1 profile.
+- PCF/PCFX import/export UI.
+- Golden real-project PCF fixtures.
+- Cross-app PCFX compatibility with CRF and PCF Studio.
+
+======================================================================
+CHUNK 7 — V16 PRODUCTION PCF / PCFX IMPORT-EXPORT UI AND GOLDEN FIXTURES
+======================================================================
+
+Branch:
+git checkout phase-v15-pcf-pcfx-fitting-roundtrip-qa
+git pull
+git checkout -b phase-v16-production-pcfx-import-export-ui-fixtures
+
+Objective:
+Expose the V15 PCFX adapter to users through import/export UI and add golden PCFX fixtures.
+
+V16 tests three levels:
+1. Pure adapter behavior.
+2. Golden fixture behavior.
+3. Browser UI import/export smoke behavior.
+
+Files:
+PHASE_V16_PRODUCTION_PCFX_IMPORT_EXPORT_UI_FIXTURES.md
+src/core/pcfx/pcfxFileUtils.js
+src/reporting/reportPcfxDebugSnapshot.js
+
+Golden fixtures:
+benchmarks/fixtures/pcfx-roundtrip/bend.pcfx.json
+benchmarks/fixtures/pcfx-roundtrip/tee.pcfx.json
+benchmarks/fixtures/pcfx-roundtrip/olet.pcfx.json
+benchmarks/fixtures/pcfx-roundtrip/missing-component.pcfx.json
+
+Scripts:
+scripts/v16-pcfx-ui-fixtures-check.mjs
+scripts/v16-pcfx-ui-fixtures-behavior-test.mjs
+
+Browser:
+e2e/v16-pcfx-import-export.spec.js
+
+Updated:
+src/sketcher/SketcherStore.js
+src/sketcher/SketcherTab.jsx
+src/reporting/ReportsTab.jsx
+scripts/qa-check.mjs
+package.json
+
+Sketcher PCFX buttons:
+Export PCFX
+Import PCFX
+Roundtrip Check
+
+Stable test IDs:
+sketcher-export-pcfx
+sketcher-import-pcfx
+sketcher-import-pcfx-input
+sketcher-roundtrip-pcfx
+
+Reports debug export:
+Export Report PCFX Debug
+test ID:
+report-export-pcfx-debug
+
+Report PCFX debug snapshot exports:
+active report context
+settings hash
+method IDs
+formula IDs
+data status
+component data status
+report issue state
+revision ID
+report stable hash
+
+pcfxFileUtils.js exports:
+PCFX_FILE_UTILS_SCHEMA_VERSION = 'pcfx-file-utils-v1'
+serializePCFX(pcfx)
+parsePCFXText(text)
+downloadTextFile(filename, content, mimeType)
+readFileAsText(file)
+makePCFXFilename(prefix)
+
+serializePCFX:
+JSON.stringify({
+  schemaVersion: PCFX_ROUNDTRIP_SCHEMA_VERSION,
+  pcfxVersion: PCFX_VERSION,
+  ...pcfx
+}, null, 2)
+
+parsePCFXText:
+- JSON.parse text.
+- returns ok true with pcfx object on success.
+- returns ok false with diagnostic PCFX_PARSE_FAILED on JSON parse failure.
+- returns PCFX_PARSE_EMPTY if parsed object is empty/invalid.
+
+downloadTextFile:
+- uses browser Blob download.
+- if document is undefined, returns skipped true.
+
+readFileAsText:
+- FileReader promise.
+
+makePCFXFilename:
+- sanitizes prefix.
+- returns <prefix>.pcfx.json.
+
+reportPcfxDebugSnapshot.js exports:
+REPORT_PCFX_DEBUG_SCHEMA_VERSION = 'report-pcfx-debug-snapshot-v1'
+createReportPCFXDebugSnapshot()
+
+Debug snapshot shape:
+schemaVersion: PCFX_ROUNDTRIP_SCHEMA_VERSION
+pcfxVersion: PCFX_VERSION
+debugProfile: REPORT_PCFX_DEBUG_SCHEMA_VERSION
+project: SIMPLIFIED_ANALYSIS_REPORT_DEBUG
+units.reportUnitSystem
+nodes: {}
+segments: []
+components: []
+diagnostics
+lossContract: []
+rawAttributes
+normalized
+derived
+reportPayload
+jsonSnapshot
+revision
+
+normalized includes:
+moduleId
+methodId
+formulaIds
+settingsHash
+status
+dataStatus
+componentDataStatus
+
+derived includes:
+reportStableHash
+revisionId
+issueStatus
+issueType
+reviewerChecker
+
+SketcherStore V16 actions:
+lastPCFXRoundtrip
+exportToPCFXObject()
+exportToPCFXFile()
+importFromPCFXText(text)
+runPCFXRoundtripCheck()
+
+exportToPCFXObject:
+exportSketchGraphToPCFX({
+  nodes,
+  segments,
+  project: {
+    id: 'SIMPLIFIED_ANALYSIS_SKETCH',
+    name: 'Simplified Analysis Sketch'
+  },
+  units: { length: 'mm' }
+})
+
+exportToPCFXFile:
+- builds PCFX object.
+- serializes PCFX.
+- downloads simplified-analysis-sketch.pcfx.json.
+- stores lastPCFXRoundtrip.
+- opens topology diagnostics.
+- records lastDraftingCommand EXPORT_PCFX.
+
+importFromPCFXText:
+- parsePCFXText(text).
+- on parse failure, set diagnostics and lastDraftingCommand IMPORT_PCFX failed.
+- on success, importPCFXToSketchGraph(parsed.pcfx), set nodes/segments, diagnostics, lastDraftingCommand IMPORT_PCFX completed.
+
+runPCFXRoundtripCheck:
+- export current graph to PCFX.
+- import that PCFX.
+- validatePCFXRoundtrip(original, imported).
+- store validation and show diagnostics.
+- lastDraftingCommand ROUNDTRIP_PCFX.
+
+SketcherTab V16 UI:
+Add icons:
+FileJson
+Repeat
+
+Add handler:
+handlePCFXImport(event):
+- get selected file.
+- read file text.
+- importFromPCFXText(text).
+- clear event.target.value.
+
+Add PCFX toolbar section:
+Button sketcher-export-pcfx:
+label Export PCFX
+onClick exportToPCFXFile()
+
+Button sketcher-import-pcfx:
+label Import PCFX
+onClick hidden input click
+
+Input sketcher-import-pcfx-input:
+type=file
+accept .json,.pcfx,.pcfx.json,application/json
+onChange handlePCFXImport
+
+Button sketcher-roundtrip-pcfx:
+label Roundtrip Check
+onClick runPCFXRoundtripCheck()
+
+ReportsTab V16:
+Imports:
+createReportPCFXDebugSnapshot
+makePCFXFilename
+serializePCFX
+
+Adds exportReportPCFXDebug():
+- createReportPCFXDebugSnapshot({
+    activeReportContext,
+    reportPayload,
+    jsonSnapshot,
+    revision,
+    reportReviewState
+  })
+- download simplified-analysis-report-debug.pcfx.json.
+
+Adds button:
+data-testid="report-export-pcfx-debug"
+label Export Report PCFX Debug
+
+Golden fixture folder:
+benchmarks/fixtures/pcfx-roundtrip/
+
+bend.pcfx.json:
+- B node type elbow.
+- rawAttributes CA97 BEND-FIXTURE.
+- component CMP-B type ELBOW.
+- componentData status SCREENING_SAMPLE.
+- component value ELBOW_90_LR c2e_in 12 c2e_mm 304.8.
+
+tee.pcfx.json:
+- T node type tee.
+- rawAttributes CA97 TEE-FIXTURE.
+- segments WEST, EAST, BRANCH.
+- component CMP-T type TEE.
+- graphTranslatorComponents includes TEE.
+- TEE_CLASSIFICATION VECTOR_COLINEARITY.
+- MAIN_SEGMENT_A WEST.
+- MAIN_SEGMENT_B EAST.
+- BRANCH_SEGMENT BRANCH.
+
+olet.pcfx.json:
+- O node type olet.
+- rawAttributes CA97 OLET-FIXTURE.
+- componentData status SCREENING_SAMPLE.
+- component value OLET_WELDOLET BRLEN_in 6 BRLEN_mm 152.4.
+
+missing-component.pcfx.json:
+- A node type elbow.
+- componentData status MISSING_COMPONENT_DATA.
+- diagnostics include MISSING_COMPONENT_DATA.
+- lossContract includes COMPONENT_DATA_NOT_QUALIFIED.
+
+V16 behavior test:
+For each fixture:
+- read JSON.
+- importPCFXToSketchGraph().
+- validatePCFXRoundtrip({ nodes: imported.nodes, segments: imported.segments }, imported).
+- expect validation.ok.
+- expect nodes and segments imported.
+
+Specific assertions:
+bend -> nodes.B.type elbow and componentData exists.
+tee -> nodes.T.type tee and branch segment BRANCH preserved.
+olet -> nodes.O.type olet and BRLEN componentData exists.
+missing-component -> lossContract contains COMPONENT_DATA_NOT_QUALIFIED.
+
+Serialize/parse:
+- export current bend graph.
+- serializePCFX.
+- parsePCFXText.
+- expect ok true and pcfxVersion PCFX1-SCREENING-JSON.
+- parse bad JSON and expect ok false.
+
+Report debug:
+createReportPCFXDebugSnapshot with calc-extended context.
+Expect:
+debugProfile report-pcfx-debug-snapshot-v1.
+normalized.methodId FLUOR_GUIDED_CANTILEVER_MIST.
+derived.revisionId rpt-v16.
+
+V16 browser test:
+e2e/v16-pcfx-import-export.spec.js
+
+Test 1:
+- enable E2E mode.
+- open app.
+- open Sketcher.
+- create Sketcher L route.
+- expect PCFX buttons visible/attached.
+- click Roundtrip Check.
+- expect topology-diagnostics-panel visible.
+- expect summary contains ROUNDTRIP_PCFX or PASSED or ISSUES.
+
+Test 2:
+- open app.
+- open Simplified Analysis.
+- run Calc Extended.
+- open Reports.
+- expect report-export-pcfx-debug visible.
+
+Static check:
+scripts/v16-pcfx-ui-fixtures-check.mjs verifies required files and tokens.
+
+package.json:
+"check:v16": "node scripts/v16-pcfx-ui-fixtures-check.mjs"
+"check:v16:behavior": "node scripts/v16-pcfx-ui-fixtures-behavior-test.mjs"
+"ci:v16": "npm run ci:v15 && npm run check:v16 && npm run check:v16:behavior && npm run check:qa && npm run check:e2e && npm run check:benchmarks && npm run build"
+
+Update qa-check required E2E:
+e2e/v16-pcfx-import-export.spec.js
+
+Certification:
+npm run check:v16
+npm run check:v16:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v16
+
+======================================================================
+CHUNK 8 — V15/V16 APPLY COMMANDS AND PR BODIES
+======================================================================
+
+V15 apply/certify:
+git checkout phase-v14-component-master-db-fitting-dimensions
+git pull
+git checkout -b phase-v15-pcf-pcfx-fitting-roundtrip-qa
+
+git apply v15-pcf-pcfx-fitting-roundtrip-qa.patch
+
+npm run check:v15
+npm run check:v15:behavior
+npm run check:benchmarks
+npm run ci:v15
+
+git add .
+git commit -m "Phase V15 PCF PCFX fitting roundtrip QA"
+git push -u origin phase-v15-pcf-pcfx-fitting-roundtrip-qa
+
+V15 PR title:
+Phase V15 PCF / PCFX fitting roundtrip QA
+
+V15 PR body:
+## Summary
+Implements Phase V15 PCF / PCFX fitting roundtrip QA after V14 component master DB and fitting dimensions.
+
+## Changes
+- Adds PCFX roundtrip adapter:
+  - exportSketchGraphToPCFX()
+  - importPCFXToSketchGraph()
+  - validatePCFXRoundtrip()
+- Preserves:
+  - nodes
+  - segments
+  - fittings
+  - rawAttributes
+  - normalized metadata
+  - derived metadata
+  - componentData
+  - component sourceStatus
+  - tee main/branch metadata
+  - lossContract
+- Adds roundtrip checks for:
+  - Convert Bend -> PCFX -> import -> elbow preserved
+  - Convert Tee -> PCFX -> import -> tee main/branch preserved
+  - Convert Olet -> PCFX -> import -> BRLEN/componentData preserved
+  - missing component data -> lossContract/diagnostics
+  - no duplicate fitting/pipe geometry
+- Adds V15 certification:
+  - scripts/v15-pcfx-roundtrip-check.mjs
+  - scripts/v15-pcfx-roundtrip-behavior-test.mjs
+  - check:v15
+  - check:v15:behavior
+  - ci:v15
+
+## Certification
+npm run check:v15
+npm run check:v15:behavior
+npm run check:benchmarks
+npm run ci:v15
+
+## Deferred after V15
+- Full production PCF writer.
+- Full production PCF parser.
+- XML PCFX1 profile.
+- PCF/PCFX import/export UI.
+- Golden real-project PCF fixtures.
+- Cross-app PCFX compatibility with CRF and PCF Studio.
+
+V16 apply/certify:
+git checkout phase-v15-pcf-pcfx-fitting-roundtrip-qa
+git pull
+git checkout -b phase-v16-production-pcfx-import-export-ui-fixtures
+
+git apply v16-production-pcfx-import-export-ui-fixtures.patch
+
+npm run check:v16
+npm run check:v16:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v16
+
+git add .
+git commit -m "Phase V16 production PCFX import export UI and golden fixtures"
+git push -u origin phase-v16-production-pcfx-import-export-ui-fixtures
+
+V16 PR title:
+Phase V16 production PCFX import-export UI and golden fixtures
+
+V16 PR body:
+## Summary
+Implements Phase V16 Production PCF / PCFX Import-Export UI and Golden Fixtures after V15 PCFX fitting roundtrip QA.
+
+## Changes
+- Adds PCFX file utilities:
+  - serializePCFX()
+  - parsePCFXText()
+  - downloadTextFile()
+  - readFileAsText()
+  - makePCFXFilename()
+- Adds Sketcher PCFX UI:
+  - Export PCFX
+  - Import PCFX
+  - Roundtrip Check
+- Adds Sketcher store actions:
+  - exportToPCFXObject()
+  - exportToPCFXFile()
+  - importFromPCFXText()
+  - runPCFXRoundtripCheck()
+- Adds Report PCFX debug export:
+  - createReportPCFXDebugSnapshot()
+  - report-export-pcfx-debug button
+- Adds golden PCFX fixtures:
+  - bend.pcfx.json
+  - tee.pcfx.json
+  - olet.pcfx.json
+  - missing-component.pcfx.json
+- Adds V16 checks:
+  - scripts/v16-pcfx-ui-fixtures-check.mjs
+  - scripts/v16-pcfx-ui-fixtures-behavior-test.mjs
+  - e2e/v16-pcfx-import-export.spec.js
+
+## Certification
+npm run check:v16
+npm run check:v16:behavior
+npm run check:e2e
+npm run check:benchmarks
+npm run ci:v16
+
+## Notes
+This PCFX profile is a screening/debug interchange profile. It is not yet a full production PCF writer/parser.
+
+## Deferred after V16
+- Full production PCF writer.
+- Full production PCF parser.
+- XML PCFX1 profile.
+- Cross-app CRF / PCF Studio transformer.
+- Real project PCF golden fixtures.
+- PCF attribute mapping table for CA1..CA10, CA97, CA98.
+
+======================================================================
+CHUNK 9 — FINAL MASTER IMPLEMENTATION / MERGE CHECKLIST
+======================================================================
+
+Master phase order:
+1. U0 baseline certification
+2. U1 workflow hardening
+3. U2 settings contract
+4. U3 engineering data unification
+5. U4 sketcher topology and fittings
+6. U5 solver certification contract
+7. U6 active calculation reporting
+8. U7 browser QA and deterministic CI
+9. U8 release candidate certification
+10. V9 browser workflow deep automation
+11. V10 full engineering data migration
+12. V11 professional Sketcher drafting commands
+13. V12 branch-aware solver architecture
+14. V13 report export and checker workflow
+15. V14 component master DB and fitting dimensions
+16. V15 PCF / PCFX fitting roundtrip QA
+17. V16 production PCFX import/export UI and golden fixtures
+
+Do not merge out of order unless rebased.
+
+Final certification after V16:
+npm ci
+npm run check:full
+npm run check:qa
+npm run check:u0
+npm run check:u1
+npm run check:u2
+npm run check:u2:behavior
+npm run check:u3
+npm run check:u3:behavior
+npm run check:u4
+npm run check:u4:behavior
+npm run check:u5
+npm run check:u5:behavior
+npm run check:u6
+npm run check:u6:behavior
+npm run check:u7
+npm run check:release
+npm run check:v9
+npm run check:v10
+npm run check:v10:behavior
+npm run check:v11
+npm run check:v11:behavior
+npm run check:v12
+npm run check:v12:behavior
+npm run check:v13
+npm run check:v13:behavior
+npm run check:v14
+npm run check:v14:behavior
+npm run check:v15
+npm run check:v15:behavior
+npm run check:v16
+npm run check:v16:behavior
+npm run check:benchmarks
+npm run check:e2e
+npm run build
+npm run ci:v16
+
+Final release blockers:
+1. Build fails.
+2. Benchmarks fail.
+3. QA deterministic guard fails.
+4. E2E required specs missing.
+5. Reports tab shows demo report without active calculation.
+6. Unknown pipe/material/fitting data returns clean PASSED.
+7. Missing component data can be issued as clean report.
+8. GC3D accepts branch topology silently.
+9. PCFX roundtrip loses elbow/tee/olet node type.
+10. PCFX roundtrip loses rawAttributes or componentData.
+11. V16 fixtures fail import/validate.
+12. Old PR #56/#50 merged without conflict review.
+
+Older PR hygiene:
+- PR #56 old GitHub Pages deployment fix.
+- PR #50 old Wave 3 3D analysis update.
+Review separately.
+
+======================================================================
+CHUNK 10 — NEXT PHASE V17 AND CAUTION NOTES
+======================================================================
+
+Next phase after V16:
+V17 — Production PCF parser/writer and CA attribute mapping
+
+V17 should add:
+1. Full production PCF writer.
+2. Full production PCF parser.
+3. PCF attribute mapping table for:
+   - CA1..CA10
+   - CA97
+   - CA98
+4. Real project PCF golden fixtures.
+5. XML PCFX1 profile.
+6. Cross-app CRF / PCF Studio transformer.
+7. PCF/PCFX import/export compatibility tests.
+8. Full PCF roundtrip:
+   - PCF import -> canonical graph -> PCFX -> PCF export
+9. Loss contract for unsupported PCF records.
+10. No-loss check for preserved raw attributes.
+
+V17 suggested files:
+PHASE_V17_PRODUCTION_PCF_PARSER_WRITER_CA_MAPPING.md
+src/core/pcf/pcfParser.js
+src/core/pcf/pcfWriter.js
+src/core/pcf/pcfAttributeMapping.js
+src/core/pcfx/xmlPcfx1Profile.js
+benchmarks/fixtures/pcf-roundtrip/
+scripts/v17-pcf-parser-writer-check.mjs
+scripts/v17-pcf-parser-writer-behavior-test.mjs
+e2e/v17-pcf-import-export.spec.js
+
+V17 key rules:
+- Preserve rawAttributes exactly.
+- Never drop CA attributes silently.
+- Unsupported PCF records go to lossContract.
+- Parser must not invent component data.
+- Writer must not claim full production support until golden real-project fixtures pass.
+- PCFX JSON remains debug/screening profile until XML PCFX1 is certified.
+- Any sourceStatus SCREENING_SAMPLE blocks FINAL_ISSUE.
+
+Caution notes:
+1. Many phases are patch instructions, not verified applied code in this chat.
+2. Actual certification requires running commands in the repo with dependencies installed.
+3. Playwright tests depend on stable test IDs; if UI differs, add IDs rather than weakening tests.
+4. E2E-only hooks must stay guarded behind window.__SIMPLIFIED_ANALYSIS_E2E__.
+5. Component DB sample values are not final engineering source data.
+6. Branch solver is screening-only; do not present it as final branch stress qualification.
+7. GC3D branch rejection must remain intact.
+8. Report final issue must be blocked for stale/missing/not-qualified/screening-final cases.
+9. PCFX fixtures are screening/debug fixtures, not production PCF proof.
+10. The release stack should be merged only after conflict review and full CI.
+
+======================================================================
+END OF CHUNKS 6 TO 10
+======================================================================
