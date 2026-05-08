@@ -3,6 +3,39 @@ import { getSIFData } from './GC3DSIFEngine';
 import { getMaterialProperties } from '../utils/materialUtils';
 import { solveGC3D } from '../solvers/3d/solveGC3D.js';
 
+const UNSUPPORTED_GC3D_SKETCHER_NODE_TYPES = new Set(['tee', 'branch', 'olet']);
+const UNSUPPORTED_GC3D_SKETCHER_SEGMENT_TYPES = new Set(['TEE', 'BRANCH', 'OLET']);
+
+function buildSketcherGC3DPreflight(nodes, segments) {
+  const unsupportedNodes = Object.entries(nodes || {})
+    .filter(([, node]) => UNSUPPORTED_GC3D_SKETCHER_NODE_TYPES.has(String(node?.type || '').toLowerCase()))
+    .map(([id, node]) => ({ id, type: node.type }));
+
+  const unsupportedSegments = (segments || [])
+    .filter((segment) => UNSUPPORTED_GC3D_SKETCHER_SEGMENT_TYPES.has(String(segment?.compType || '').toUpperCase()))
+    .map((segment) => ({ id: segment.id, compType: segment.compType }));
+
+  if (!unsupportedNodes.length && !unsupportedSegments.length) {
+    return { ok: true, status: 'READY_FOR_GC3D', diagnostics: [] };
+  }
+
+  const unsupportedSummary = [
+    ...unsupportedNodes.map((item) => `${item.id}:${item.type}`),
+    ...unsupportedSegments.map((item) => `${item.id}:${item.compType}`)
+  ].join(', ');
+
+  return {
+    ok: false,
+    status: 'UNSUPPORTED_GEOMETRY',
+    diagnostics: [{
+      step: 'GC3D_PREFLIGHT',
+      msg: `Sketcher geometry contains tee/branch/olet topology not supported by deterministic GC3D screening: ${unsupportedSummary}`,
+      sequence: 0,
+      timestamp: 'gc3d-preflight-000'
+    }]
+  };
+}
+
 export const useAnalysisStore = create((set, get) => ({
   nodes: {},
   segments: [],
@@ -116,8 +149,6 @@ export const useAnalysisStore = create((set, get) => ({
     const seg = segments.find(s => s.id === segId);
     if (!seg) return;
 
-    // Simple approach: Adjust the endNode position based on startNode + new deltas
-    // In a real FEA app, this would shift the entire downstream system.
     const startNode = nodes[seg.startNode];
     const endNodeId = seg.endNode;
 
@@ -176,7 +207,6 @@ export const useAnalysisStore = create((set, get) => ({
 
     set({ segments: newSegments, fittingData: newFittingData });
 
-    // If material changed, attempt to update global params (simplified assumption: system uses 1 material)
     if (updates.material) {
         const tempC = (get().params.designTemp_F - 32) * 5 / 9;
         const props = getMaterialProperties(
@@ -214,7 +244,6 @@ export const useAnalysisStore = create((set, get) => ({
 
     if (!startNode || !endNode) return;
 
-    // Create deterministic support node id for snapshot-safe split operations
     const safeSegId = String(segId).replace(/[^A-Za-z0-9_-]/g, '_');
     const existingIds = new Set(Object.keys(nodes));
     let splitCounter = get().splitCounter || 0;
@@ -232,7 +261,6 @@ export const useAnalysisStore = create((set, get) => ({
         }
     };
 
-    // Calculate lengths
     const dx1 = point.x - startNode.pos[0];
     const dy1 = point.y - startNode.pos[1];
     const dz1 = point.z - startNode.pos[2];
@@ -243,7 +271,6 @@ export const useAnalysisStore = create((set, get) => ({
     const dz2 = endNode.pos[2] - point.z;
     const len2_in = Math.sqrt(dx2*dx2 + dy2*dy2 + dz2*dz2) / 25.4;
 
-    // Create 2 new segments
     const seg1 = {
         ...origSeg,
         id: `${origSeg.id}-A`,
@@ -261,7 +288,6 @@ export const useAnalysisStore = create((set, get) => ({
     const newSegments = [...segments];
     newSegments.splice(segIdx, 1, seg1, seg2);
 
-    // Copy SIF data
     const newFittingData = { ...fittingData };
     if (newFittingData[origSeg.id]) {
         newFittingData[seg1.id] = { ...newFittingData[origSeg.id] };
@@ -280,8 +306,6 @@ export const useAnalysisStore = create((set, get) => ({
     get().clearLog();
     const { nodes, segments, params, includeSIF, fittingData } = get();
 
-    // Phase 1 safety rule: the active 3D tab is GC3D-only until non-GC3D
-    // methodologies are routed through the vetted calc-extended engine.
     const payload = JSON.parse(JSON.stringify({
         nodes,
         segments,
@@ -293,7 +317,7 @@ export const useAnalysisStore = create((set, get) => ({
 
     const result = solveGC3D(payload);
 
-    const res = result.results || result; // Ensure we look in result.results since GC3D returns contract object
+    const res = result.results || result;
     set({
         activeSolver: 'GC3D',
         legResults: res.legResults || [],
@@ -307,9 +331,8 @@ export const useAnalysisStore = create((set, get) => ({
   importFromViewer: (selectedComps, globalParams) => {
      const nodes = {}; const segments = []; const fittingData = {};
 
-     // Hash function to combine nodes that share the same coordinate (within 1mm tolerance)
      const getHash = (x, y, z) => `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
-     const nodeMap = new Map(); // hash -> nodeId
+     const nodeMap = new Map();
      let nodeCounter = 0;
 
      const addOrGetNode = (x, y, z) => {
@@ -323,21 +346,18 @@ export const useAnalysisStore = create((set, get) => ({
          return nodeId;
      };
 
-     // Step 1: Filter to relevant types
      const pipingComps = selectedComps.filter(c => ['PIPE', 'ELBOW', 'BEND', 'TEE'].includes(c.type));
 
-     // Step 2 & 4: Build nodes and segments
      pipingComps.forEach((c) => {
         if (!c.points || c.points.length < 2) return;
 
         let n1Id, n2Id;
 
         const od_in = (c.bore || 273.05) / 25.4;
-        const wt_in = 0.322; // approx 8" sch40
+        const wt_in = 0.322;
         const materialName = c.attributes?.MATERIAL || get().config.defaultMaterial;
 
         if (c.type === 'ELBOW' || c.type === 'BEND') {
-             // For elbows/bends we connect up to the center point to maintain corner topology properly
              if (c.centrePoint) {
                  n1Id = addOrGetNode(c.points[0].x, c.points[0].y, c.points[0].z);
                  const centerNodeId = addOrGetNode(c.centrePoint.x, c.centrePoint.y, c.centrePoint.z);
@@ -354,7 +374,6 @@ export const useAnalysisStore = create((set, get) => ({
                      return 'X';
                  };
 
-                 // Add two segments to corner
                  const s1_len = Math.sqrt(Math.pow(c.centrePoint.x - c.points[0].x, 2) + Math.pow(c.centrePoint.y - c.points[0].y, 2) + Math.pow(c.centrePoint.z - c.points[0].z, 2)) / 25.4;
                  const s2_len = Math.sqrt(Math.pow(c.points[1].x - c.centrePoint.x, 2) + Math.pow(c.points[1].y - c.centrePoint.y, 2) + Math.pow(c.points[1].z - c.centrePoint.z, 2)) / 25.4;
 
@@ -367,7 +386,6 @@ export const useAnalysisStore = create((set, get) => ({
                      axis: getAxis(c.centrePoint, c.points[1]), length_in: s2_len, od_in, wt_in, material: materialName
                  });
 
-                 // Continue, but skip standard segment push
                  fittingData[c.id] = getSIFData(c.type, od_in, wt_in, true, 'LR');
                  return;
              } else {
@@ -396,11 +414,9 @@ export const useAnalysisStore = create((set, get) => ({
            axis, length_in: len_in, od_in, wt_in, material: materialName
         });
 
-        // Step 6
         fittingData[c.id] = getSIFData(c.type, od_in, wt_in, true, 'LR');
      });
 
-     // Step 5: Look up material properties for the first encountered segment to set global params
      if (segments.length > 0) {
         const tempC = (get().params.designTemp_F - 32) * 5 / 9;
         const firstSeg = segments[0];
@@ -420,7 +436,6 @@ export const useAnalysisStore = create((set, get) => ({
         }
      }
 
-     // Step 3: Classify nodes
      Object.keys(nodes).forEach(nodeId => {
          const node = nodes[nodeId];
          if (node.connections === 1) {
@@ -432,7 +447,6 @@ export const useAnalysisStore = create((set, get) => ({
          } else {
              node.type = 'free';
          }
-         // Clean up temp mapping data
          delete node.connections;
          delete node.compTypes;
      });
@@ -450,27 +464,26 @@ export const useAnalysisStore = create((set, get) => ({
     const n1 = state.nodes[seg.startNode];
     const n2 = state.nodes[seg.endNode];
 
-    // Linear Interpolation
     const newPos = [
         n1.pos[0] + (n2.pos[0] - n1.pos[0]) * ratio,
         n1.pos[1] + (n2.pos[1] - n1.pos[1]) * ratio,
         n1.pos[2] + (n2.pos[2] - n1.pos[2]) * ratio,
     ];
 
-    const newNodeId = `N_split_${Date.now()}`;
-    const newSeg1Id = `S_${Date.now()}_1`;
-    const newSeg2Id = `S_${Date.now()}_2`;
+    const sequence = state.splitCounter || 0;
+    const newNodeId = `N_split_${String(sequence).padStart(3, '0')}`;
+    const newSeg1Id = `S_split_${String(sequence).padStart(3, '0')}_1`;
+    const newSeg2Id = `S_split_${String(sequence).padStart(3, '0')}_2`;
 
     const newNodes = { ...state.nodes, [newNodeId]: { pos: newPos, type: 'free' } };
 
     const newSegments = [...state.segments];
-    newSegments.splice(segIdx, 1); // Remove old segment
+    newSegments.splice(segIdx, 1);
 
-    // Push new segments (preserving OD, WT, Material, etc.)
     newSegments.push({ ...seg, id: newSeg1Id, endNode: newNodeId, length_in: seg.length_in * ratio });
     newSegments.push({ ...seg, id: newSeg2Id, startNode: newNodeId, length_in: seg.length_in * (1 - ratio) });
 
-    set({ nodes: newNodes, segments: newSegments });
+    set({ nodes: newNodes, segments: newSegments, splitCounter: sequence + 1 });
     get().runAnalysis();
   },
 
@@ -485,13 +498,11 @@ export const useAnalysisStore = create((set, get) => ({
     get().runAnalysis();
   },
 
-  // Import directly from the Sketcher graph (nodes: {id: {pos, type}}, segments: [{id, startNode, endNode, properties}], settings: { designTemperature })
   importFromSketcher: (sketchNodes, sketchSegments, sketchSettings = {}) => {
       const nodes = {};
       const segments = [];
       const fittingData = {};
 
-      // Convert sketcher nodes — preserve type (anchor, elbow, tee, free)
       Object.entries(sketchNodes).forEach(([id, node]) => {
           nodes[id] = {
               pos: node.pos,
@@ -500,7 +511,6 @@ export const useAnalysisStore = create((set, get) => ({
           };
       });
 
-      // Convert sketcher segments
       sketchSegments.forEach((seg, idx) => {
           const n1 = sketchNodes[seg.startNode];
           const n2 = sketchNodes[seg.endNode];
@@ -512,25 +522,24 @@ export const useAnalysisStore = create((set, get) => ({
           const length_mm = Math.sqrt(dx*dx + dy*dy + dz*dz);
           const length_in = length_mm / 25.4;
 
-          // Dominant axis
           let axis = 'X';
           if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > Math.abs(dz)) axis = 'Y';
           if (Math.abs(dz) > Math.abs(dx) && Math.abs(dz) > Math.abs(dy)) axis = 'Z';
 
           const bore_mm = seg.properties?.bore || 100;
           const od_in   = bore_mm / 25.4;
-          const wt_in   = (seg.properties?.wt) ? (seg.properties.wt / 25.4) : (od_in * 0.065); // Use exact WT from schedule if available
+          const wt_in   = (seg.properties?.wt) ? (seg.properties.wt / 25.4) : (od_in * 0.065);
           const material = seg.properties?.material || get().config.defaultMaterial;
           let compType = seg.properties?.type || 'PIPE';
 
-          // Inject fitting types if connected to an elbow or tee node
-          // This ensures the GC3D solver applies proper Stress Intensification Factors (SIFs)
           const node1Type = sketchNodes[seg.startNode]?.type;
           const node2Type = sketchNodes[seg.endNode]?.type;
           
           if (compType === 'PIPE' || compType === 'FITTING_LEG') {
               if (node1Type === 'elbow' || node2Type === 'elbow') compType = 'ELBOW';
               else if (node1Type === 'tee' || node2Type === 'tee') compType = 'TEE';
+              else if (node1Type === 'branch' || node2Type === 'branch') compType = 'BRANCH';
+              else if (node1Type === 'olet' || node2Type === 'olet') compType = 'OLET';
           }
 
           const gcSeg = {
@@ -549,7 +558,29 @@ export const useAnalysisStore = create((set, get) => ({
           fittingData[gcSeg.id] = getSIFData(compType, od_in, wt_in, true, 'LR');
       });
 
-      // Auto-classify terminal nodes (1 connection) as anchors if not already set
+      const currentParams = { ...get().params };
+      if (sketchSettings.designTemperature) {
+          currentParams.deltaT_F = sketchSettings.designTemperature - 70;
+      }
+
+      const preflight = buildSketcherGC3DPreflight(nodes, segments);
+      if (!preflight.ok) {
+          set({
+              nodes,
+              segments,
+              fittingData,
+              params: currentParams,
+              activeSolver: 'GC3D',
+              legResults: [],
+              nodeResults: [],
+              criticalNode: null,
+              overallResult: preflight.status,
+              debugLog: preflight.diagnostics,
+              logCounter: preflight.diagnostics.length,
+          });
+          return preflight;
+      }
+
       const connCount = {};
       segments.forEach(s => {
           connCount[s.startNode] = (connCount[s.startNode] || 0) + 1;
@@ -561,19 +592,14 @@ export const useAnalysisStore = create((set, get) => ({
           }
       });
 
-      // Apply global settings (Design Temperature)
-      const currentParams = { ...get().params };
-      if (sketchSettings.designTemperature) {
-          currentParams.deltaT_F = sketchSettings.designTemperature; // Approximation: assuming ambient is 0 for simplicity, or we just override the parameter. Usually deltaT is Design Temp - 70F.
-          // Let's set deltaT to Design Temp - 70
-          currentParams.deltaT_F = sketchSettings.designTemperature - 70;
-      }
-
       set({ nodes, segments, fittingData, params: currentParams });
       get().runAnalysis();
+      return { ok: true, status: 'READY_FOR_GC3D', diagnostics: [] };
   },
 
 }));
+
+export { buildSketcherGC3DPreflight };
 
 // PLACEHOLDERS
 export function joinSegments(segId1, segId2) { console.warn('[GC3D] PLACEHOLDER: joinSegments() called but not implemented'); return null; }
