@@ -26,9 +26,12 @@
     "check:u3:behavior": "node scripts/u3-engineering-data-behavior-test.mjs",
     "check:u4": "node scripts/u4-sketcher-topology-check.mjs",
     "check:u4:behavior": "node scripts/u4-sketcher-topology-behavior-test.mjs",
+    "check:u5": "node scripts/u5-solver-certification-check.mjs",
+    "check:u5:behavior": "node scripts/u5-solver-certification-behavior-test.mjs",
     "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
     "ci:u3": "npm run ci:u0 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks",
-    "ci:u4": "npm run ci:u3 && npm run check:u4 && npm run check:u4:behavior && npm run check:benchmarks"
+    "ci:u4": "npm run ci:u3 && npm run check:u4 && npm run check:u4:behavior && npm run check:benchmarks",
+    "ci:u5": "npm run ci:u4 && npm run check:u5 && npm run check:u5:behavior && npm run check:benchmarks"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
