@@ -33,6 +33,8 @@
     "check:u7": "node scripts/u7-browser-qa-check.mjs",
     "check:release": "node scripts/release-candidate-check.mjs",
     "check:v9": "node scripts/v9-browser-workflow-check.mjs",
+    "check:v10": "node scripts/v10-engineering-data-migration-check.mjs",
+    "check:v10:behavior": "node scripts/v10-engineering-data-migration-behavior-test.mjs",
     "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
     "ci:u3": "npm run ci:u0 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks",
     "ci:u4": "npm run ci:u3 && npm run check:u4 && npm run check:u4:behavior && npm run check:benchmarks",
@@ -40,7 +42,8 @@
     "ci:u6": "npm run ci:u5 && npm run check:u6 && npm run check:u6:behavior && npm run check:benchmarks",
     "ci:u7": "npm run ci:u6 && npm run check:u7 && npm run check:qa && npm run check:e2e && npm run build",
     "ci:release": "npm run check:u7 && npm run check:release && npm run check:benchmarks && npm run build",
-    "ci:v9": "npm run ci:release && npm run check:v9 && npm run check:qa && npm run check:e2e && npm run build"
+    "ci:v9": "npm run ci:release && npm run check:v9 && npm run check:qa && npm run check:e2e && npm run build",
+    "ci:v10": "npm run ci:v9 && npm run check:v10 && npm run check:v10:behavior && npm run check:benchmarks && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",

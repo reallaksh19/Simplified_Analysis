@@ -9,9 +9,40 @@ export const DATA_STATUS = Object.freeze({
   USER_DEFINED: 'USER_DEFINED',
 });
 
+export const INCH_TO_MM = 25.4;
+
+/**
+ * Normalize pipe value by computing derived dimensions from raw data.
+ * Converts inches to millimeters and calculates missing properties.
+ *
+ * @param {Object} value - { od_in, wall_in, id_in, I_in4, Z_in3, ... }
+ * @returns {Object} Normalized value with both inch and mm properties
+ */
+function normalizePipeValue(value = {}) {
+  const wall_in = Number(value.wall_in ?? value.wt_in ?? 0);
+  const od_in = Number(value.od_in ?? 0);
+  const id_in = Number(value.id_in ?? (od_in - 2 * wall_in));
+  const I_in4 = Number(value.I_in4 ?? (Math.PI / 64 * (od_in ** 4 - id_in ** 4)));
+  const Z_in3 = Number(value.Z_in3 ?? (I_in4 / (od_in / 2 || 1)));
+
+  return {
+    ...value,
+    od_in,
+    wall_in,
+    wt_in: wall_in,
+    id_in,
+    I_in4,
+    Z_in3,
+    od_mm: od_in * INCH_TO_MM,
+    wall_mm: wall_in * INCH_TO_MM,
+    wt_mm: wall_in * INCH_TO_MM,
+  };
+}
+
 /**
  * Resolve pipe section properties for a given NPS and schedule.
  * Wraps resolvePipeProperty() from pipeProperties.js.
+ * Normalizes returned value with metric conversions.
  *
  * @param {Object} params - { nps, schedule }
  * @returns {Object} { status, isQualified, source, value, diagnostics }
@@ -39,7 +70,7 @@ export function resolvePipeSection({ nps, schedule } = {}) {
     status: result.status === 'PASSED' ? DATA_STATUS.PASSED : DATA_STATUS.MISSING_DATA,
     isQualified: result.isQualified,
     source: result.source || 'Project screening master DB / ASME B36.10M reference required before final issue',
-    value: result.value,
+    value: result.value ? normalizePipeValue(result.value) : null,
     diagnostics: result.diagnostics || []
   };
 }
@@ -77,11 +108,18 @@ export function resolveMaterialAtTemperature({ materialId, temperature_F } = {})
     status = DATA_STATUS.NOT_QUALIFIED;
   }
 
+  // Enrich value with E_psi and alpha_in_in_F
+  const enrichedValue = result.value ? {
+    ...result.value,
+    E_psi: result.E_psi,
+    alpha_in_in_F: result.alpha_in_in_F,
+  } : null;
+
   return {
     status,
     isQualified: result.isQualified,
     source: result.source || 'Project master DB',
-    value: result.value,
+    value: enrichedValue,
     diagnostics: result.diagnostics || []
   };
 }

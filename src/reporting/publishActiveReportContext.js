@@ -50,6 +50,8 @@ export function buildActiveReportContext({
     diagnostics: normalizeDiagnostics(result),
     warnings: result?.warnings || [],
     benchmarkStatus,
+    dataStatus: result?.dataStatus || null,
+    engineeringDataSource: result?.engineeringDataSource || null,
   };
 }
 
