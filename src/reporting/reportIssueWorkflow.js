@@ -14,6 +14,7 @@ export const REPORT_ISSUE_TYPE = Object.freeze({
 
 const BLOCKING_STATUSES = new Set(['NOT_QUALIFIED', 'MISSING_DATA', 'UNSUPPORTED_GEOMETRY', 'BENCHMARK_NOT_CERTIFIED', 'FAILED']);
 const NON_ISSUE_DATA_STATUSES = new Set(['MISSING_DATA', 'NOT_QUALIFIED', 'UNSUPPORTED_GEOMETRY']);
+const NON_ISSUE_COMPONENT_STATUSES = new Set(['MISSING_COMPONENT_DATA', 'NOT_QUALIFIED', 'UNSUPPORTED_GEOMETRY']);
 
 function fnvHash(str) {
   let hash = 2166136261;
@@ -53,6 +54,7 @@ export function evaluateReportIssueEligibility({
   const result = activeReportContext?.result || reportPayload?.result || {};
   const resultStatus = result.status || reportPayload?.status || null;
   const dataStatus = result.dataStatus?.status || result.dataStatus || reportPayload?.engineeringDataSource?.status || null;
+  const componentDataStatus = reportPayload?.componentDataStatus?.status || reportPayload?.componentDataStatus || activeReportContext?.componentDataStatus?.status || activeReportContext?.componentDataStatus || null;
   const engineeringLevel = result.engineeringLevel || reportPayload?.engineeringLevel || null;
   const benchmarkStatus = activeReportContext?.benchmarkStatus || reportPayload?.benchmarkStatus || 'NOT_RUN';
   const methodId = activeReportContext?.methodId || reportPayload?.methodId || null;
@@ -77,13 +79,16 @@ export function evaluateReportIssueEligibility({
     if (engineeringLevel === 'SCREENING' && issueType === REPORT_ISSUE_TYPE.FINAL_ISSUE) {
       blockers.push({ code: 'SCREENING_LEVEL_NOT_FINAL', message: 'SCREENING level methods cannot be issued as FINAL_ISSUE.' });
     }
+    if (componentDataStatus && NON_ISSUE_COMPONENT_STATUSES.has(componentDataStatus)) {
+      blockers.push({ code: 'COMPONENT_DATA_NOT_QUALIFIED', message: `Component data status ${componentDataStatus} blocks issue.` });
+    }
   }
 
   const canSaveDraft = !!activeReportContext;
   const canCheck = canSaveDraft && !blockers.some(b => ['NO_ACTIVE_REPORT', 'STALE_RESULTS', 'SOLVER_NOT_QUALIFIED', 'DATA_NOT_QUALIFIED'].includes(b.code));
   const canIssue = blockers.length === 0;
 
-  return { schemaVersion: REPORT_ISSUE_SCHEMA_VERSION, targetStatus, issueType, canSaveDraft, canCheck, canIssue, blockers, warnings, resultStatus, dataStatus, engineeringLevel, benchmarkStatus };
+  return { schemaVersion: REPORT_ISSUE_SCHEMA_VERSION, targetStatus, issueType, canSaveDraft, canCheck, canIssue, blockers, warnings, resultStatus, dataStatus, componentDataStatus, engineeringLevel, benchmarkStatus };
 }
 
 export function createReportRevision({

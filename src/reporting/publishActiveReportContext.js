@@ -51,6 +51,7 @@ export function buildActiveReportContext({
     warnings: result?.warnings || [],
     benchmarkStatus,
     dataStatus: result?.dataStatus || null,
+    componentDataStatus: result?.componentDataStatus || result?.results?.componentDataStatus || null,
     engineeringDataSource: result?.engineeringDataSource || null,
   };
 }

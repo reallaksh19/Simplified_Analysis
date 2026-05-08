@@ -1,7 +1,16 @@
 import { buildConnectionIndex, validateSketchTopology } from '../topology/validateSketchTopology.js';
 import { classifyTeeMainBranch } from '../topology/classifyTeeMainBranch.js';
+import { resolveElbowC2E, resolveTeeC2E, resolveOletBRLEN } from '../../core/component-data/resolveComponentDimensions.js';
 
 export const SKETCH_DRAFTING_COMMAND_SCHEMA_VERSION = 'sketch-drafting-command-v1';
+
+const LOCAL_DN_TO_NPS = { 15: 0.5, 20: 0.75, 25: 1, 40: 1.5, 50: 2, 80: 3, 100: 4, 150: 6, 200: 8, 250: 10, 300: 12, 350: 14, 400: 16, 450: 18, 500: 20, 600: 24 };
+
+function dnToNpsLocal(dn) { return LOCAL_DN_TO_NPS[Math.round(dn)] ?? null; }
+
+function maxConnectedBoreMm(connected) { return Math.max(...connected.map(s => s.properties?.bore ?? s.properties?.dn ?? 200)); }
+
+function minConnectedBoreMm(connected) { return Math.min(...connected.map(s => s.properties?.bore ?? s.properties?.dn ?? 100)); }
 
 function diagnostic(severity, code, message, data = {}) {
   return { severity, code, message, data };

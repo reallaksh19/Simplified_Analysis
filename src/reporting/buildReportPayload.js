@@ -16,6 +16,7 @@ export function buildReportPayload(activeReportContext, resultsStale) {
     result,
     settings: activeReportContext?.settings || {},
     settingsHash: activeReportContext?.settingsHash || null,
+    componentDataStatus: activeReportContext?.componentDataStatus || result.componentDataStatus || null,
     engineeringDataSource: result.dataStatus || result.engineeringDataSource || {},
     warnings: [
       ...(activeReportContext?.warnings || []),

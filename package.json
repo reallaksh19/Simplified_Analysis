@@ -41,6 +41,12 @@
     "check:v12:behavior": "node scripts/v12-branch-aware-solver-behavior-test.mjs",
     "check:v13": "node scripts/v13-report-export-checker-check.mjs",
     "check:v13:behavior": "node scripts/v13-report-export-checker-behavior-test.mjs",
+    "check:v14": "node scripts/v14-component-master-db-check.mjs",
+    "check:v14:behavior": "node scripts/v14-component-master-db-behavior-test.mjs",
+    "check:v15": "node scripts/v15-pcfx-roundtrip-check.mjs",
+    "check:v15:behavior": "node scripts/v15-pcfx-roundtrip-behavior-test.mjs",
+    "check:v16": "node scripts/v16-pcfx-ui-fixtures-check.mjs",
+    "check:v16:behavior": "node scripts/v16-pcfx-ui-fixtures-behavior-test.mjs",
     "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
     "ci:u3": "npm run ci:u0 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks",
     "ci:u4": "npm run ci:u3 && npm run check:u4 && npm run check:u4:behavior && npm run check:benchmarks",
@@ -52,7 +58,10 @@
     "ci:v10": "npm run ci:v9 && npm run check:v10 && npm run check:v10:behavior && npm run check:benchmarks && npm run build",
     "ci:v11": "npm run ci:v10 && npm run check:v11 && npm run check:v11:behavior && npm run check:qa && npm run check:benchmarks && npm run build",
     "ci:v12": "npm run ci:v11 && npm run check:v12 && npm run check:v12:behavior && npm run check:benchmarks && npm run build",
-    "ci:v13": "npm run ci:v12 && npm run check:v13 && npm run check:v13:behavior && npm run check:qa && npm run check:benchmarks && npm run build"
+    "ci:v13": "npm run ci:v12 && npm run check:v13 && npm run check:v13:behavior && npm run check:qa && npm run check:benchmarks && npm run build",
+    "ci:v14": "npm run ci:v13 && npm run check:v14 && npm run check:v14:behavior && npm run check:benchmarks && npm run build",
+    "ci:v15": "npm run ci:v14 && npm run check:v15 && npm run check:v15:behavior && npm run check:benchmarks && npm run build",
+    "ci:v16": "npm run ci:v15 && npm run check:v16 && npm run check:v16:behavior && npm run check:qa && npm run check:benchmarks && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
