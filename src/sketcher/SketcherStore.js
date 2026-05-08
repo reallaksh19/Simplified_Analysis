@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { buildGraphFromComponents, buildComponentsFromGraph } from './GraphTranslator';
 import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../core/geometry/adapters/sketcherToCanonicalGeometry';
+import { convertSelectedNodeToBend, convertSelectedNodeToTee, convertSelectedNodeToOlet, autoConnectPipes as autoConnectPipesCmd, validateSketchCommand } from './commands/professionalDraftingCommands.js';
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
@@ -55,6 +56,11 @@ export const useSketchStore = create((set, get) => ({
 
   designTemperature: 450, // Global default temperature (F)
   setDesignTemperature: (temp) => set({ designTemperature: temp }),
+
+  topologyDiagnostics: null,
+  showTopologyDiagnostics: false,
+  lastDraftingCommand: null,
+  topologyValidationSummary: null,
 
   setWorkingPlane: (plane) => set({ workingPlane: plane, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
   setActiveTool: (tool) => set({ activeTool: tool, draftingState: { isDrawing: false, startNodeId: null, currentPos: null } }),
@@ -233,6 +239,47 @@ export const useSketchStore = create((set, get) => ({
       } catch (e) {
           alert(`Failed to import sketch: ${e.message}`);
       }
+  },
+
+  setShowTopologyDiagnostics: (show) => set({ showTopologyDiagnostics: show }),
+
+  applyDraftingCommandResult: (result) => set({
+    nodes: result.nodes || get().nodes,
+    segments: result.segments || get().segments,
+    topologyDiagnostics: result.diagnostics || [],
+    lastDraftingCommand: result.command || null,
+    topologyValidationSummary: result.meta?.validationSummary || null,
+    showTopologyDiagnostics: true,
+  }),
+
+  convertSelectedToBend: () => {
+    const { nodes, segments, selectedNodeId } = get();
+    const result = convertSelectedNodeToBend({ nodes, segments, selectedNodeId });
+    get().applyDraftingCommandResult(result);
+  },
+
+  convertSelectedToTee: () => {
+    const { nodes, segments, selectedNodeId } = get();
+    const result = convertSelectedNodeToTee({ nodes, segments, selectedNodeId });
+    get().applyDraftingCommandResult(result);
+  },
+
+  convertSelectedToOlet: () => {
+    const { nodes, segments, selectedNodeId } = get();
+    const result = convertSelectedNodeToOlet({ nodes, segments, selectedNodeId });
+    get().applyDraftingCommandResult(result);
+  },
+
+  autoConnectPipes: (toleranceMm = 1.0) => {
+    const { nodes, segments } = get();
+    const result = autoConnectPipesCmd({ nodes, segments, toleranceMm });
+    get().applyDraftingCommandResult(result);
+  },
+
+  validateTopology: () => {
+    const { nodes, segments } = get();
+    const result = validateSketchCommand({ nodes, segments });
+    get().applyDraftingCommandResult(result);
   },
 
   // Centralized interaction handler for the canvas

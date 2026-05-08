@@ -16,6 +16,7 @@ import { DraggableNode } from './DraggableNode';
 import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSimplified2D';
 import { useAnalysisStore } from '../3d-analysis/AnalysisStore';
 import { Activity } from 'lucide-react';
+import TopologyDiagnosticsPanel from './TopologyDiagnosticsPanel';
 
 const SketcherToolbar = () => {
     const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
@@ -204,6 +205,27 @@ const SketcherToolbar = () => {
                 <UploadCloud size={18} color="#3b82f6" />
                 <span style={{ fontSize: '12px' }}>Sync 3D</span>
             </button>
+
+            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>Drafting Commands</span>
+                <button data-testid="sketcher-convert-bend" title="Convert to Bend" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToBend()}>
+                    Convert Bend
+                </button>
+                <button data-testid="sketcher-convert-tee" title="Convert to Tee" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToTee()}>
+                    Convert Tee
+                </button>
+                <button data-testid="sketcher-convert-olet" title="Convert to Olet" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToOlet()}>
+                    Convert Olet
+                </button>
+                <button data-testid="sketcher-auto-connect" title="Auto Connect" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().autoConnectPipes()}>
+                    Auto Connect
+                </button>
+                <button data-testid="sketcher-validate-topology" title="Validate Topology" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().validateTopology()}>
+                    Validate
+                </button>
+            </div>
         </div>
     );
 };
@@ -676,6 +698,11 @@ export const SketcherTab = () => {
     const redo = useSketchStore(s => s.redo);
     const deleteNode = useSketchStore(s => s.deleteNode);
     const selectedNodeId = useSketchStore(s => s.selectedNodeId);
+    const topologyDiagnostics = useSketchStore(s => s.topologyDiagnostics);
+    const showTopologyDiagnostics = useSketchStore(s => s.showTopologyDiagnostics);
+    const lastDraftingCommand = useSketchStore(s => s.lastDraftingCommand);
+    const topologyValidationSummary = useSketchStore(s => s.topologyValidationSummary);
+    const setShowTopologyDiagnostics = useSketchStore(s => s.setShowTopologyDiagnostics);
 
     const [isAltHeld, setIsAltHeld] = React.useState(false);
 
@@ -743,6 +770,14 @@ export const SketcherTab = () => {
 
                 <NodeEditorPanel />
                 <SegmentEditorPanel />
+                {showTopologyDiagnostics && (
+                    <TopologyDiagnosticsPanel
+                        diagnostics={topologyDiagnostics}
+                        lastCommand={lastDraftingCommand}
+                        summary={topologyValidationSummary}
+                        onClose={() => setShowTopologyDiagnostics(false)}
+                    />
+                )}
 
                 <ErrorBoundary>
                     <Canvas style={{ cursor: activeTool !== 'select' ? 'crosshair' : 'default' }}>
