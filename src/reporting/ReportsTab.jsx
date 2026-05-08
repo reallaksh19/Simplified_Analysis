@@ -12,6 +12,8 @@ import {
   createReportExportBundle,
   makeDownloadableTextFile,
 } from './reportExportUtils.js';
+import { createReportPCFXDebugSnapshot } from './reportPcfxDebugSnapshot.js';
+import { makePCFXFilename, serializePCFX, downloadTextFile } from '../core/pcfx/pcfxFileUtils.js';
 
 export const ReportsTab = () => {
   const activeReportContext = useAppStore((state) => state.activeReportContext);
@@ -90,6 +92,11 @@ export const ReportsTab = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const exportReportPCFXDebug = () => {
+    const snapshot = createReportPCFXDebugSnapshot({ activeReportContext, reportPayload, jsonSnapshot, revision: { revisionId: `rpt-${reportRevisionSequence + 1}` }, reportReviewState });
+    downloadTextFile(makePCFXFilename('simplified-analysis-report-debug'), serializePCFX(snapshot), 'application/json');
   };
 
   return (
@@ -281,6 +288,13 @@ export const ReportsTab = () => {
             style={{ padding: '8px 16px', borderRadius: 4, border: 'none', background: '#10b981', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}
           >
             Export HTML
+          </button>
+          <button
+            data-testid="report-export-pcfx-debug"
+            onClick={exportReportPCFXDebug}
+            style={{ padding: '8px 16px', borderRadius: 4, border: 'none', background: '#8b5cf6', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 'bold' }}
+          >
+            Export Report PCFX Debug
           </button>
         </div>
       </div>

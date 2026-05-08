@@ -6,7 +6,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OrthographicCamera, PerspectiveCamera, OrbitControls, Grid } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { MousePointer2, PenTool, Triangle, Axis3D, DownloadCloud, UploadCloud, Trash2, Focus, EyeOff, Eye, Type, ZoomIn, ZoomOut, ArrowRight, Save, FolderOpen } from 'lucide-react';
+import { MousePointer2, PenTool, Triangle, Axis3D, DownloadCloud, UploadCloud, Trash2, Focus, EyeOff, Eye, Type, ZoomIn, ZoomOut, ArrowRight, Save, FolderOpen, FileJson, Repeat } from 'lucide-react';
 import NodeEditorPanel from './NodeEditorPanel';
 import SegmentEditorPanel from './SegmentEditorPanel';
 import SketcherAnnotations from './SketcherAnnotations';
@@ -224,6 +224,25 @@ const SketcherToolbar = () => {
                 </button>
                 <button data-testid="sketcher-validate-topology" title="Validate Topology" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().validateTopology()}>
                     Validate
+                </button>
+            </div>
+
+            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>PCFX Import/Export</span>
+                <button data-testid="sketcher-export-pcfx" title="Export PCFX" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().exportToPCFXFile()}>
+                    <FileJson size={14} />
+                    Export PCFX
+                </button>
+                <button data-testid="sketcher-import-pcfx" title="Import PCFX" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => document.getElementById('pcfx-file-input')?.click()}>
+                    <FileJson size={14} />
+                    Import PCFX
+                </button>
+                <input id="pcfx-file-input" data-testid="sketcher-import-pcfx-input" type="file" accept=".json,.pcfx,.pcfx.json,application/json" style={{display:'none'}} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const text = await file.text(); useSketchStore.getState().importFromPCFXText(text); e.target.value = ''; } }} />
+                <button data-testid="sketcher-roundtrip-pcfx" title="Roundtrip Check" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().runPCFXRoundtripCheck()}>
+                    <Repeat size={14} />
+                    Roundtrip Check
                 </button>
             </div>
         </div>

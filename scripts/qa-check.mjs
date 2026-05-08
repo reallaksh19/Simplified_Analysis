@@ -96,6 +96,7 @@ console.log(`\n--- Running Required E2E Files Check ---`);
 const requiredE2EFiles = [
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
+    'e2e/v16-pcfx-import-export.spec.js',
 ];
 
 let e2eFilesOk = true;

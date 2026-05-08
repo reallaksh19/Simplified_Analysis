@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { buildGraphFromComponents, buildComponentsFromGraph } from './GraphTranslator';
 import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../core/geometry/adapters/sketcherToCanonicalGeometry';
 import { convertSelectedNodeToBend, convertSelectedNodeToTee, convertSelectedNodeToOlet, autoConnectPipes as autoConnectPipesCmd, validateSketchCommand } from './commands/professionalDraftingCommands.js';
+import { exportSketchGraphToPCFX, importPCFXToSketchGraph, validatePCFXRoundtrip } from '../core/pcfx/pcfxRoundtripAdapter.js';
+import { serializePCFX, parsePCFXText, downloadTextFile, makePCFXFilename } from '../core/pcfx/pcfxFileUtils.js';
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
@@ -280,6 +282,37 @@ export const useSketchStore = create((set, get) => ({
     const { nodes, segments } = get();
     const result = validateSketchCommand({ nodes, segments });
     get().applyDraftingCommandResult(result);
+  },
+
+  lastPCFXRoundtrip: null,
+
+  exportToPCFXObject: () => {
+    const { nodes, segments } = get();
+    return exportSketchGraphToPCFX({ nodes, segments, project: { id: 'SIMPLIFIED_ANALYSIS_SKETCH', name: 'Simplified Analysis Sketch' }, units: { length: 'mm' } });
+  },
+
+  exportToPCFXFile: () => {
+    const pcfx = get().exportToPCFXObject();
+    const text = serializePCFX(pcfx);
+    downloadTextFile(makePCFXFilename('simplified-analysis-sketch'), text, 'application/json');
+    set({ lastPCFXRoundtrip: pcfx, showTopologyDiagnostics: true, lastDraftingCommand: 'EXPORT_PCFX', topologyDiagnostics: pcfx.diagnostics || [] });
+  },
+
+  importFromPCFXText: (text) => {
+    const parsed = parsePCFXText(text);
+    if (!parsed.ok) {
+      set({ topologyDiagnostics: [{ severity: 'error', code: parsed.diagnostic?.code || 'PCFX_PARSE_FAILED', message: parsed.diagnostic?.message || 'Failed to parse PCFX.' }], showTopologyDiagnostics: true, lastDraftingCommand: 'IMPORT_PCFX_FAILED' });
+      return;
+    }
+    const result = importPCFXToSketchGraph(parsed.pcfx);
+    set({ nodes: result.nodes, segments: result.segments, topologyDiagnostics: result.diagnostics || [], showTopologyDiagnostics: true, lastDraftingCommand: 'IMPORT_PCFX' });
+  },
+
+  runPCFXRoundtripCheck: () => {
+    const pcfx = get().exportToPCFXObject();
+    const imported = importPCFXToSketchGraph(pcfx);
+    const validation = validatePCFXRoundtrip({ nodes: pcfx.nodes, segments: pcfx.segments }, imported);
+    set({ lastPCFXRoundtrip: { pcfx, imported, validation }, topologyDiagnostics: [...(pcfx.diagnostics || []), ...(validation.errors || [])], showTopologyDiagnostics: true, lastDraftingCommand: 'ROUNDTRIP_PCFX' });
   },
 
   // Centralized interaction handler for the canvas

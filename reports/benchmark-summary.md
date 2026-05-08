@@ -8,7 +8,7 @@ Failed: 0
 
 Pending: 0
 
-Skipped legacy/reference fixtures: 11
+Skipped legacy/reference fixtures: 15
 
 Max Rounded Numeric Error: 0
 
