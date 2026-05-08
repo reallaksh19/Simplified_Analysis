@@ -22,7 +22,10 @@
     "check:full": "node scripts/full-check.mjs",
     "check:qa": "node scripts/qa-check.mjs",
     "check:e2e": "playwright test",
-    "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build"
+    "check:u3": "node scripts/u3-engineering-data-check.mjs",
+    "check:u3:behavior": "node scripts/u3-engineering-data-behavior-test.mjs",
+    "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
+    "ci:u3": "npm run ci:u0 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
