@@ -30,11 +30,13 @@
     "check:u5:behavior": "node scripts/u5-solver-certification-behavior-test.mjs",
     "check:u6": "node scripts/u6-active-reporting-check.mjs",
     "check:u6:behavior": "node scripts/u6-active-reporting-behavior-test.mjs",
+    "check:u7": "node scripts/u7-browser-qa-check.mjs",
     "ci:u0": "npm run check:full && npm run check:qa && npm run check:u0 && npm run build",
     "ci:u3": "npm run ci:u0 && npm run check:u3 && npm run check:u3:behavior && npm run check:benchmarks",
     "ci:u4": "npm run ci:u3 && npm run check:u4 && npm run check:u4:behavior && npm run check:benchmarks",
     "ci:u5": "npm run ci:u4 && npm run check:u5 && npm run check:u5:behavior && npm run check:benchmarks",
-    "ci:u6": "npm run ci:u5 && npm run check:u6 && npm run check:u6:behavior && npm run check:benchmarks"
+    "ci:u6": "npm run ci:u5 && npm run check:u6 && npm run check:u6:behavior && npm run check:benchmarks",
+    "ci:u7": "npm run ci:u6 && npm run check:u7 && npm run check:qa && npm run check:e2e && npm run build"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",
