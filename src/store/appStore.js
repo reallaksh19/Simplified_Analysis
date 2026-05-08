@@ -225,4 +225,13 @@ export const useAppStore = create((set, get) => ({
   // Store batch of geometries for analysis
   batchAnalysisData: [],
   setBatchAnalysisData: (batch) => set({ batchAnalysisData: batch }),
+
+  // Active report context from calculations
+  activeReportContext: null,
+  reportContextSequence: 0,
+  setActiveReportContext: (context) => set((state) => ({
+    activeReportContext: context,
+    reportContextSequence: state.reportContextSequence + 1,
+  })),
+  clearActiveReportContext: () => set({ activeReportContext: null }),
 }));
