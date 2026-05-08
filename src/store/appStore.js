@@ -234,4 +234,24 @@ export const useAppStore = create((set, get) => ({
     reportContextSequence: state.reportContextSequence + 1,
   })),
   clearActiveReportContext: () => set({ activeReportContext: null }),
+
+  // Report review and issue workflow
+  reportReviewState: {
+    preparedBy: '',
+    checkedBy: '',
+    approvedBy: '',
+    checkerNotes: '',
+    issueStatus: 'DRAFT',
+    issueType: 'SCREENING_ISSUE',
+  },
+  reportHistory: [],
+  reportRevisionSequence: 0,
+  updateReportReviewState: (updates) => set((state) => ({
+    reportReviewState: { ...state.reportReviewState, ...updates },
+  })),
+  saveReportRevision: (revision) => set((state) => ({
+    reportHistory: [revision, ...state.reportHistory].slice(0, 50),
+    reportRevisionSequence: state.reportRevisionSequence + 1,
+  })),
+  clearReportHistory: () => set({ reportHistory: [] }),
 }));
