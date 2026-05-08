@@ -5,11 +5,37 @@ import { canonicalToExtended } from '../../core/geometry/adapters/canonicalToExt
 import { pcfToCanonicalGeometry } from '../../core/geometry/adapters/pcfToCanonicalGeometry';
 import { sketcherToCanonicalGeometry } from '../../core/geometry/adapters/sketcherToCanonicalGeometry';
 
-const initialState = {
+function getResolvedSettings() {
+  const resolver = useAppStore.getState().getResolvedEngineeringSettings;
+  return resolver ? resolver().settings : useAppStore.getState().resolvedEngineeringSettings?.settings;
+}
+
+function applyResolvedSettingsToExtendedState(state, resolvedSettings = getResolvedSettings()) {
+  if (!resolvedSettings) return state;
+  return {
+    ...state,
+    unitSystem: resolvedSettings.calcExtendedUnitSystem || state.unitSystem,
+    inputs: {
+      ...state.inputs,
+      material: resolvedSettings.defaultMaterial ?? state.inputs.material,
+      pipeSize: resolvedSettings.defaultPipeSize_in ?? state.inputs.pipeSize,
+      schedule: resolvedSettings.defaultSchedule ?? state.inputs.schedule,
+      tInstall: resolvedSettings.defaultInstallTemperature_F ?? state.inputs.tInstall,
+      tOperate: resolvedSettings.defaultDesignTemperature_F ?? state.inputs.tOperate,
+      frictionFactor: resolvedSettings.rackFrictionFactor ?? state.inputs.frictionFactor,
+      corrosionAllowance: resolvedSettings.extendedCorrosionAllowance_in ?? state.inputs.corrosionAllowance,
+      millTolerance: resolvedSettings.extendedMillTolerance_pct ?? state.inputs.millTolerance,
+    },
+    engineeringSettingsHash: useAppStore.getState().resolvedEngineeringSettings?.settingsHash || state.engineeringSettingsHash,
+  };
+}
+
+const baseInitialState = {
   // Global Settings
   methodology: 'FLUOR', // 'FLUOR' | '2D_BUNDLE'
   activeSubTab: '3d', // '2d' | '3d' | 'piperack' | 'config'
   unitSystem: 'Imperial', // 'Imperial' | 'Metric'
+  engineeringSettingsHash: null,
 
   // UI State
   activeView: 'dashboard', // 'dashboard' | '3d-solver'
@@ -26,11 +52,11 @@ const initialState = {
     material: 'Carbon Steel',
     pipeSize: 8.0,
     schedule: '40',
-    tInstall: 70, // Locked environmental param
-    tOperate: 300,
-    frictionFactor: 0.3, // Mechanical, 2D Bundle only
-    corrosionAllowance: 0.125, // Mfg constraint (in)
-    millTolerance: 12.5, // Mfg constraint (%)
+    tInstall: 70,
+    tOperate: 450,
+    frictionFactor: 0.3,
+    corrosionAllowance: 0.125,
+    millTolerance: 12.5,
   },
 
   // Vessel & Nozzle (MIST)
@@ -61,8 +87,12 @@ const initialState = {
   importSummary: null,
 };
 
+const initialState = applyResolvedSettingsToExtendedState(baseInitialState);
+
 export const useExtendedStore = create((set) => ({
   ...initialState,
+
+  hydrateEngineeringSettings: () => set((state) => applyResolvedSettingsToExtendedState(state)),
 
   setMethodology: (method) => set({ methodology: method }),
   setActiveSubTab: (tab) => set({ activeSubTab: tab }),
@@ -87,12 +117,14 @@ export const useExtendedStore = create((set) => ({
   })),
 
   // One-way hydration from canonical geometry.
-  importFromCanonicalGeometry: (canonicalGeometry, source = 'canonical') => set(() => {
+  importFromCanonicalGeometry: (canonicalGeometry, source = 'canonical') => set((state) => {
+    const resolvedState = applyResolvedSettingsToExtendedState(state);
     const extendedPayload = canonicalToExtended(canonicalGeometry, { source });
     const nodesClone = JSON.parse(JSON.stringify(extendedPayload.nodes || []));
     const segmentsClone = JSON.parse(JSON.stringify(extendedPayload.segments || []));
 
     return {
+      ...resolvedState,
       nodes: nodesClone,
       segments: segmentsClone,
       anchors: { anchor1: null, anchor2: null },
@@ -104,11 +136,13 @@ export const useExtendedStore = create((set) => ({
   }),
 
   // Backwards-compatible import, retained for older UI calls but no longer used by CalcExtendedTab.
-  importFromGlobal: (globalNodes, globalSegments) => set(() => {
+  importFromGlobal: (globalNodes, globalSegments) => set((state) => {
+    const resolvedState = applyResolvedSettingsToExtendedState(state);
     const nodesClone = JSON.parse(JSON.stringify(globalNodes || []));
     const segmentsClone = JSON.parse(JSON.stringify(globalSegments || []));
 
     return {
+      ...resolvedState,
       nodes: nodesClone,
       segments: segmentsClone,
       anchors: { anchor1: null, anchor2: null },
@@ -133,7 +167,8 @@ export const useExtendedStore = create((set) => ({
     const canonical = pcfToCanonicalGeometry(filtered, { source: 'viewer-selection', unit: 'mm' });
     const extendedPayload = canonicalToExtended(canonical, { source: 'viewer-selection' });
 
-    set({
+    set((state) => ({
+      ...applyResolvedSettingsToExtendedState(state),
       nodes: JSON.parse(JSON.stringify(extendedPayload.nodes || [])),
       segments: JSON.parse(JSON.stringify(extendedPayload.segments || [])),
       anchors: { anchor1: null, anchor2: null },
@@ -141,7 +176,7 @@ export const useExtendedStore = create((set) => ({
       results: null,
       importDiagnostics: extendedPayload.diagnostics || [],
       importSummary: extendedPayload.summary || null,
-    });
+    }));
     alert(`Imported ${extendedPayload.nodes.length} nodes and ${extendedPayload.segments.length} segments from canonical Viewer geometry.`);
   },
 
@@ -155,7 +190,8 @@ export const useExtendedStore = create((set) => ({
       return;
     }
 
-    set({
+    set((state) => ({
+      ...applyResolvedSettingsToExtendedState(state),
       nodes: JSON.parse(JSON.stringify(extendedPayload.nodes || [])),
       segments: JSON.parse(JSON.stringify(extendedPayload.segments || [])),
       anchors: { anchor1: null, anchor2: null },
@@ -163,7 +199,7 @@ export const useExtendedStore = create((set) => ({
       results: null,
       importDiagnostics: extendedPayload.diagnostics || [],
       importSummary: extendedPayload.summary || null,
-    });
+    }));
     alert(`Imported ${extendedPayload.nodes.length} nodes and ${extendedPayload.segments.length} segments from canonical Sketcher geometry.`);
   },
 
@@ -181,8 +217,9 @@ export const useExtendedStore = create((set) => ({
   }),
 
   // Inject Golden Master mock data
-  loadMockData: (mockObj) => set({
-    inputs: mockObj.inputs,
+  loadMockData: (mockObj) => set((state) => ({
+    ...applyResolvedSettingsToExtendedState(state),
+    inputs: { ...applyResolvedSettingsToExtendedState(state).inputs, ...(mockObj.inputs || {}) },
     vessel: mockObj.vessel,
     boundaryMovement: mockObj.boundaryMovement,
     constraints: mockObj.constraints,
@@ -191,8 +228,8 @@ export const useExtendedStore = create((set) => ({
     anchors: mockObj.anchors,
     calculationStatus: 'READY',
     results: null
-  }),
+  })),
 
   // Reset module
-  reset: () => set(initialState)
+  reset: () => set(applyResolvedSettingsToExtendedState(baseInitialState))
 }));

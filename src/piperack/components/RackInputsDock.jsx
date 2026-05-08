@@ -16,17 +16,29 @@ export default function RackInputsDock() {
   const { globalSettings, lines, updateGlobalSetting, updateLine, addLine, removeLine, setResults, toggleSectionCreator } = usePipeRackStore();
   const methodology = useExtendedStore(state => state.methodology);
   const globalInputs = useExtendedStore(state => state.inputs);
-  const unitSystem = useAppStore(state => state.unitSystem);
+  const resolvedEngineeringSettings = useAppStore(state => state.resolvedEngineeringSettings);
+  const unitSystem = resolvedEngineeringSettings?.settings?.calcExtendedUnitSystem || 'Imperial';
 
   const handleRun = () => {
-    const res = solvePipeRack(lines, globalSettings, methodology, globalInputs);
+    const res = solvePipeRack(lines, globalSettings, methodology, {
+      ...globalInputs,
+      settings: resolvedEngineeringSettings?.settings,
+      settingsHash: resolvedEngineeringSettings?.settingsHash,
+      defaultSpacingSource: globalSettings.defaultSpacingSource || 'engineering-settings-contract'
+    });
     res.methodologyUsed = methodology === '2D_BUNDLE' ? 'SIMPLIFIED_RACK_METHOD' : 'KELLOGG_MIST';
+    res.meta = { ...(res.meta || {}), settingsHash: resolvedEngineeringSettings?.settingsHash || null };
     setResults(res);
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>Global Rack Parameters</div>
+      {globalSettings.settingsHash && (
+        <div data-testid="piperack-settings-hash" style={{ background: '#0f172a', border: '1px solid #2563eb', color: '#93c5fd', borderRadius: '6px', padding: '8px', fontSize: '11px', wordBreak: 'break-all' }}>
+          settings: {globalSettings.settingsHash}
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
         <span>Anchor Dist ({getUnitLabel(unitSystem, 'length')}):</span>

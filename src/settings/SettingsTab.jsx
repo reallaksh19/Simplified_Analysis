@@ -7,26 +7,35 @@ const fieldGroups = {
   'Unit system': ['defaultLengthUnit', 'defaultForceUnit', 'defaultStressUnit'],
   'Pipe database source': ['pipeDataSource'],
   'Material database source': ['materialDataSource'],
-  'Rack defaults': ['rackFrictionFactor', 'rackSpacingMargin'],
+  'Rack defaults': ['rackFrictionFactor', 'rackSpacingMargin', 'rackDefaultSpacingFt', 'rackAnchorDistanceFt', 'rackAllowableStressPsi'],
   'Guided cantilever defaults': ['shortDropLimit_ft'],
+  'Sketcher defaults': ['defaultDesignTemperature_F', 'defaultPipeBore_mm'],
+  'Calc Extended defaults': ['defaultInstallTemperature_F', 'defaultPipeSize_in', 'defaultSchedule', 'defaultMaterial', 'extendedCorrosionAllowance_in', 'extendedMillTolerance_pct'],
+  'GC3D defaults': ['gc3dGridSnap_mm', 'gc3dDeltaT_F', 'gc3dE_psi', 'gc3dAlpha_in_in_F', 'gc3dSc_psi', 'gc3dSh_psi', 'gc3dCycleFactor', 'gc3dSa_psi'],
   'MIST/nozzle data source': ['allowPlaceholderLoads'],
   'Report options': ['reportTimestampPolicy'],
   'Benchmark certification status': ['benchmarkCertificationRequired']
 };
 
 function Field({ name, value, onChange }) {
-  const isBoolean = typeof value === 'boolean';
-  const isNumber = typeof value === 'number';
+  const defaultValue = DEFAULT_ENGINEERING_SETTINGS[name];
+  const isBoolean = typeof defaultValue === 'boolean';
+  const isNumber = typeof defaultValue === 'number';
+  const commonProps = {
+    'data-testid': `settings-field-${name}`,
+    'aria-label': name,
+    style: inputStyle
+  };
   return (
     <label style={{ display: 'grid', gap: 6, color: '#cbd5e1', fontSize: 13 }}>
       <span>{name}</span>
       {isBoolean ? (
-        <select value={String(value)} onChange={(e) => onChange(name, e.target.value === 'true')} style={inputStyle}>
+        <select {...commonProps} value={String(value)} onChange={(e) => onChange(name, e.target.value === 'true')}>
           <option value="true">true</option>
           <option value="false">false</option>
         </select>
       ) : (
-        <input value={value} type={isNumber ? 'number' : 'text'} step="any" onChange={(e) => onChange(name, isNumber ? Number(e.target.value) : e.target.value)} style={inputStyle} />
+        <input {...commonProps} value={value ?? ''} type={isNumber ? 'number' : 'text'} step="any" onChange={(e) => onChange(name, isNumber ? Number(e.target.value) : e.target.value)} />
       )}
     </label>
   );
@@ -36,6 +45,7 @@ const inputStyle = { background: '#0f172a', color: '#f8fafc', border: '1px solid
 
 export const SettingsTab = () => {
   const engineeringDefaults = useAppStore((state) => state.engineeringDefaults) || DEFAULT_ENGINEERING_SETTINGS;
+  const resolvedEngineeringSettings = useAppStore((state) => state.resolvedEngineeringSettings);
   const setEngineeringDefault = useAppStore((state) => state.setEngineeringDefault);
   const resultsStale = useAppStore((state) => state.resultsStale);
 
@@ -43,7 +53,12 @@ export const SettingsTab = () => {
     <div style={{ padding: 24, color: '#fff', overflow: 'auto', height: '100%' }}>
       <h2 style={{ marginTop: 0 }}>Settings / Defaults</h2>
       <p style={{ color: '#cbd5e1' }}>Changing settings marks current results stale/recalculation required.</p>
-      {resultsStale && <div style={{ background: '#422006', border: '1px solid #f59e0b', color: '#fde68a', borderRadius: 10, padding: 12, marginBottom: 16 }}>Current results are stale. Recalculate before issuing a report.</div>}
+      {resolvedEngineeringSettings?.settingsHash && (
+        <div data-testid="settings-contract-hash" style={{ background: '#0f172a', border: '1px solid #334155', color: '#93c5fd', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13 }}>
+          Resolved settings contract: <strong>{resolvedEngineeringSettings.settings.schemaVersion}</strong> · Hash: <code>{resolvedEngineeringSettings.settingsHash}</code>
+        </div>
+      )}
+      {resultsStale && <div data-testid="settings-results-stale-banner" style={{ background: '#422006', border: '1px solid #f59e0b', color: '#fde68a', borderRadius: 10, padding: 12, marginBottom: 16 }}>Current results are stale. Recalculate before issuing a report.</div>}
       <div style={{ display: 'grid', gap: 18 }}>
         {SETTINGS_GROUPS.map((group) => (
           <section key={group} style={{ background: '#111827', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
