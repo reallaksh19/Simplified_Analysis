@@ -320,3 +320,8 @@ export const useSketchStore = create((set, get) => ({
       }
   }
 }));
+
+// E2E hook — only exposed when window.__SIMPLIFIED_ANALYSIS_E2E__ is true
+if (typeof window !== 'undefined' && window.__SIMPLIFIED_ANALYSIS_E2E__) {
+  window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__ = useSketchStore;
+}
