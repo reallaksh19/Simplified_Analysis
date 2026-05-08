@@ -6,7 +6,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OrthographicCamera, PerspectiveCamera, OrbitControls, Grid } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { MousePointer2, PenTool, Triangle, Axis3D, DownloadCloud, UploadCloud, Trash2, Focus, EyeOff, Eye, Type, ZoomIn, ZoomOut, ArrowRight, Save, FolderOpen } from 'lucide-react';
+import { MousePointer2, PenTool, Triangle, Axis3D, DownloadCloud, UploadCloud, Trash2, Focus, EyeOff, Eye, Type, ZoomIn, ZoomOut, ArrowRight, Save, FolderOpen, FileJson, Repeat } from 'lucide-react';
 import NodeEditorPanel from './NodeEditorPanel';
 import SegmentEditorPanel from './SegmentEditorPanel';
 import SketcherAnnotations from './SketcherAnnotations';
@@ -16,6 +16,7 @@ import { DraggableNode } from './DraggableNode';
 import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSimplified2D';
 import { useAnalysisStore } from '../3d-analysis/AnalysisStore';
 import { Activity } from 'lucide-react';
+import TopologyDiagnosticsPanel from './TopologyDiagnosticsPanel';
 
 const SketcherToolbar = () => {
     const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
@@ -204,6 +205,46 @@ const SketcherToolbar = () => {
                 <UploadCloud size={18} color="#3b82f6" />
                 <span style={{ fontSize: '12px' }}>Sync 3D</span>
             </button>
+
+            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>Drafting Commands</span>
+                <button data-testid="sketcher-convert-bend" title="Convert to Bend" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToBend()}>
+                    Convert Bend
+                </button>
+                <button data-testid="sketcher-convert-tee" title="Convert to Tee" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToTee()}>
+                    Convert Tee
+                </button>
+                <button data-testid="sketcher-convert-olet" title="Convert to Olet" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().convertSelectedToOlet()}>
+                    Convert Olet
+                </button>
+                <button data-testid="sketcher-auto-connect" title="Auto Connect" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().autoConnectPipes()}>
+                    Auto Connect
+                </button>
+                <button data-testid="sketcher-validate-topology" title="Validate Topology" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().validateTopology()}>
+                    Validate
+                </button>
+            </div>
+
+            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>PCFX Import/Export</span>
+                <button data-testid="sketcher-export-pcfx" title="Export PCFX" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().exportToPCFXFile()}>
+                    <FileJson size={14} />
+                    Export PCFX
+                </button>
+                <button data-testid="sketcher-import-pcfx" title="Import PCFX" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => document.getElementById('pcfx-file-input')?.click()}>
+                    <FileJson size={14} />
+                    Import PCFX
+                </button>
+                <input id="pcfx-file-input" data-testid="sketcher-import-pcfx-input" type="file" accept=".json,.pcfx,.pcfx.json,application/json" style={{display:'none'}} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const text = await file.text(); useSketchStore.getState().importFromPCFXText(text); e.target.value = ''; } }} />
+                <button data-testid="sketcher-roundtrip-pcfx" title="Roundtrip Check" style={{ ...btnStyle(false), fontSize: '11px' }} onClick={() => useSketchStore.getState().runPCFXRoundtripCheck()}>
+                    <Repeat size={14} />
+                    Roundtrip Check
+                </button>
+            </div>
         </div>
     );
 };
@@ -676,6 +717,11 @@ export const SketcherTab = () => {
     const redo = useSketchStore(s => s.redo);
     const deleteNode = useSketchStore(s => s.deleteNode);
     const selectedNodeId = useSketchStore(s => s.selectedNodeId);
+    const topologyDiagnostics = useSketchStore(s => s.topologyDiagnostics);
+    const showTopologyDiagnostics = useSketchStore(s => s.showTopologyDiagnostics);
+    const lastDraftingCommand = useSketchStore(s => s.lastDraftingCommand);
+    const topologyValidationSummary = useSketchStore(s => s.topologyValidationSummary);
+    const setShowTopologyDiagnostics = useSketchStore(s => s.setShowTopologyDiagnostics);
 
     const [isAltHeld, setIsAltHeld] = React.useState(false);
 
@@ -743,6 +789,14 @@ export const SketcherTab = () => {
 
                 <NodeEditorPanel />
                 <SegmentEditorPanel />
+                {showTopologyDiagnostics && (
+                    <TopologyDiagnosticsPanel
+                        diagnostics={topologyDiagnostics}
+                        lastCommand={lastDraftingCommand}
+                        summary={topologyValidationSummary}
+                        onClose={() => setShowTopologyDiagnostics(false)}
+                    />
+                )}
 
                 <ErrorBoundary>
                     <Canvas style={{ cursor: activeTool !== 'select' ? 'crosshair' : 'default' }}>

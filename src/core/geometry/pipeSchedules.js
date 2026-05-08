@@ -4,6 +4,8 @@
  * All units are in millimeters (mm).
  */
 
+import { resolvePipeSection, DATA_STATUS } from '../engineering-data/resolveEngineeringData.js';
+
 export const ASME_B36_10 = {
     // 1"
     "25": {
@@ -149,30 +151,97 @@ export const ASME_B36_10 = {
 };
 
 /**
- * Given a nominal bore (mm), return its exact OD and a list of available schedules.
- * If the bore is not exactly in the DB, it extrapolates a schedule 40 equivalent.
+ * DN to NPS mapping for international standard bore sizes.
  */
-export function getPipeDimensions(boreMm, schedule = 'STD') {
-    const boreStr = String(boreMm);
-    const dbEntry = ASME_B36_10[boreStr];
-    
-    if (dbEntry) {
-        const od = dbEntry.od;
-        const wt = dbEntry.schedules[schedule] || dbEntry.schedules['STD'] || dbEntry.schedules['40'];
-        return { od, wt, exact: true };
-    }
-    
-    // Fallback for non-standard bores (assume Schedule 40 proportions roughly)
-    const od = boreMm; 
-    const wt = boreMm * 0.065;
-    return { od, wt, exact: false };
+const DN_TO_NPS = {
+  15: 0.5,
+  20: 0.75,
+  25: 1,
+  40: 1.5,
+  50: 2,
+  80: 3,
+  100: 4,
+  150: 6,
+  200: 8,
+  250: 10,
+  300: 12,
+  350: 14,
+  400: 16,
+  450: 18,
+  500: 20,
+  600: 24,
+  750: 30,
+  900: 36
+};
+
+/**
+ * Convert DN (metric bore) to NPS (inches).
+ * Returns null if no mapping exists.
+ */
+function dnToNps(boreMm) {
+  return DN_TO_NPS[Math.round(boreMm)] ?? null;
 }
 
+/**
+ * Resolve pipe dimensions for a given bore (mm) and schedule.
+ * Uses unified engineering-data resolver via resolvePipeSection.
+ * Returns MISSING_DATA status if bore cannot be mapped to NPS.
+ *
+ * @param {number} boreMm - Nominal bore in millimeters
+ * @param {string} schedule - Schedule code (default 'STD')
+ * @returns {Object} { status, isQualified, od, wt, exact, nps, diagnostics, source, value }
+ */
+export function resolvePipeDimensions(boreMm, schedule = 'STD') {
+  const nps = dnToNps(boreMm);
+  if (!nps) {
+    return {
+      status: DATA_STATUS.MISSING_DATA,
+      isQualified: false,
+      od: null,
+      wt: null,
+      exact: false,
+      diagnostics: [
+        {
+          code: 'DN_TO_NPS_MISSING',
+          severity: 'error',
+          message: `No DN to NPS mapping for DN ${boreMm}. Pipe dimensions not qualified.`,
+          data: { boreMm, schedule },
+        },
+      ],
+    };
+  }
+
+  const resolved = resolvePipeSection({ nps, schedule });
+  return {
+    status: resolved.status,
+    isQualified: resolved.isQualified,
+    od: resolved.value?.od_mm ?? null,
+    wt: resolved.value?.wt_mm ?? null,
+    exact: resolved.status === DATA_STATUS.PASSED || resolved.status === DATA_STATUS.USER_DEFINED,
+    nps,
+    diagnostics: resolved.diagnostics || [],
+    source: resolved.source,
+    value: resolved.value,
+  };
+}
+
+/**
+ * Given a nominal bore (mm), return pipe dimensions.
+ * Calls resolvePipeDimensions for unified resolution.
+ */
+export function getPipeDimensions(boreMm, schedule = 'STD') {
+  return resolvePipeDimensions(boreMm, schedule);
+}
+
+/**
+ * Get list of available schedules for a bore.
+ * Returns empty array for unmapped bore sizes (strict behavior).
+ */
 export function getAvailableSchedules(boreMm) {
-    const boreStr = String(boreMm);
-    const dbEntry = ASME_B36_10[boreStr];
-    if (dbEntry) {
-        return Object.keys(dbEntry.schedules);
-    }
-    return ['STD', 'XS', '40', '80'];
+  const boreStr = String(boreMm);
+  const dbEntry = ASME_B36_10[boreStr];
+  if (dbEntry) {
+    return Object.keys(dbEntry.schedules);
+  }
+  return [];
 }

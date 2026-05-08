@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useExtendedStore } from '../store/useExtendedStore';
 import { runExtendedSolver } from '../solver/ExtendedSolver';
+import { publishActiveReportContext } from '../../reporting/publishActiveReportContext.js';
 
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
@@ -114,6 +115,20 @@ export default function DashboardView() {
     const res = runExtendedSolver(payload);
     res.meta.methodologyUsed = methodology === '2D_BUNDLE' ? 'SIMPLIFIED_3D_METHOD' : 'FLUOR_MIST';
     setResults(res);
+
+    // Publish active report context
+    publishActiveReportContext({
+      moduleId: 'calc-extended',
+      title: 'Calc Extended Engineering Calculation Sheet',
+      input: payload,
+      result: res,
+      settings: {},
+      settingsHash: null,
+      benchmarkStatus: res?.meta?.benchmarkStatus || 'NOT_RUN',
+      fallbackMethodId: methodology === '2D_BUNDLE'
+        ? '2D_BUNDLE_GUIDED_CANTILEVER'
+        : 'FLUOR_GUIDED_CANTILEVER_MIST',
+    });
   };
 
   return (

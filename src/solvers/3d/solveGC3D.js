@@ -51,7 +51,7 @@ export function solveGC3D(payload) {
       inputs: payload,
       results: { status: 'UNSUPPORTED_GEOMETRY', criticalNode: null, overallResult: 'UNSUPPORTED_GEOMETRY', maxRatio: null, legResults: [], nodeResults: [] },
       status: 'UNSUPPORTED_GEOMETRY',
-      diagnostics: [{ severity: 'ERROR', code: 'UNSUPPORTED_GEOMETRY', message: 'Branch/tee/olet geometry is outside GC3D screening scope.' }],
+      diagnostics: [{ severity: 'ERROR', code: 'UNSUPPORTED_GEOMETRY', message: 'Branch/tee/olet geometry is outside GC3D screening scope. Use solveByTopologyRouter() for branch-aware screening.', routingHint: { recommendedRouter: 'solveByTopologyRouter', branchSolver: 'BRANCH_TOPOLOGY_SCREENING_V1' } }],
       warnings: ['unsupported branch complexity']
     });
   }

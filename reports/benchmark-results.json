@@ -4,7 +4,7 @@
     "passed": 37,
     "failed": 0,
     "pending": 0,
-    "skippedLegacy": 11,
+    "skippedLegacy": 15,
     "invalidFixtures": 0,
     "unreadableFixtures": 0,
     "maxRoundedNumericError": 0
@@ -374,6 +374,22 @@
       },
       {
         "file": "benchmarks/fixtures/3d/edge_zero_perpendicular_leg.json",
+        "reason": "not engineering-benchmark-v2"
+      },
+      {
+        "file": "benchmarks/fixtures/pcfx-roundtrip/bend.pcfx.json",
+        "reason": "not engineering-benchmark-v2"
+      },
+      {
+        "file": "benchmarks/fixtures/pcfx-roundtrip/missing-component.pcfx.json",
+        "reason": "not engineering-benchmark-v2"
+      },
+      {
+        "file": "benchmarks/fixtures/pcfx-roundtrip/olet.pcfx.json",
+        "reason": "not engineering-benchmark-v2"
+      },
+      {
+        "file": "benchmarks/fixtures/pcfx-roundtrip/tee.pcfx.json",
         "reason": "not engineering-benchmark-v2"
       },
       {

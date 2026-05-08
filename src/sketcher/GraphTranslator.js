@@ -3,8 +3,17 @@
  * Converts between the flat 3D Viewer PCF array and the topological Sketcher Graph.
  */
 
+import { classifyTeeMainBranch } from './topology/classifyTeeMainBranch.js';
+import { validateSketchTopology, buildConnectionIndex, SKETCH_TOPOLOGY_SCHEMA_VERSION } from './topology/validateSketchTopology.js';
+
 // Tolerance for merging nodes (mm)
 const TOLERANCE = 1.0;
+
+// Tee classification constants
+export const MAIN_SEGMENT_A = 'MAIN_SEGMENT_A';
+export const MAIN_SEGMENT_B = 'MAIN_SEGMENT_B';
+export const BRANCH_SEGMENT = 'BRANCH_SEGMENT';
+export const VECTOR_COLINEARITY = 'VECTOR_COLINEARITY';
 
 const distance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2) + Math.pow(p1.z - p2.z, 2));
 
@@ -284,26 +293,72 @@ export const buildComponentsFromGraph = (nodes, segments) => {
         }
 
         if (node.type === 'tee' && connected.length === 3) {
-            // Find the main run (the two segments that are most colinear)
-            // For simplicity in this auto-pass, we just take the first two as main, third as branch
-            const n1 = nodes[connected[0].startNode === nodeId ? connected[0].endNode : connected[0].startNode];
-            const n2 = nodes[connected[1].startNode === nodeId ? connected[1].endNode : connected[1].startNode];
-            const n3 = nodes[connected[2].startNode === nodeId ? connected[2].endNode : connected[2].startNode];
+            // Classify main run vs branch using vector colinearity
+            const classification = classifyTeeMainBranch(nodes, nodeId, connected);
 
-            const p1 = { x: node.pos[0] + (n1.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n1.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n1.pos[2] - node.pos[2]) * 0.3 };
-            const p2 = { x: node.pos[0] + (n2.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n2.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n2.pos[2] - node.pos[2]) * 0.3 };
-            const p3 = { x: node.pos[0] + (n3.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n3.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n3.pos[2] - node.pos[2]) * 0.3 };
+            if (classification.ok) {
+                const mainA = classification.main[0];
+                const mainB = classification.main[1];
+                const branch = classification.branch;
 
-            components.push({
-                id: `T-${idCounter++}`,
-                type: 'TEE',
-                points: [p1, p2, p3],
-                centrePoint: { x: node.pos[0], y: node.pos[1], z: node.pos[2] },
-                bore: connected[0].properties?.bore || 100,
-                attributes: { MATERIAL: connected[0].properties?.material || 'CARBON STEEL' }
-            });
+                const nMainA = nodes[mainA.startNode === nodeId ? mainA.endNode : mainA.startNode];
+                const nMainB = nodes[mainB.startNode === nodeId ? mainB.endNode : mainB.startNode];
+                const nBranch = nodes[branch.startNode === nodeId ? branch.endNode : branch.startNode];
+
+                const pMainA = { x: node.pos[0] + (nMainA.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (nMainA.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (nMainA.pos[2] - node.pos[2]) * 0.3 };
+                const pMainB = { x: node.pos[0] + (nMainB.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (nMainB.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (nMainB.pos[2] - node.pos[2]) * 0.3 };
+                const pBranch = { x: node.pos[0] + (nBranch.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (nBranch.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (nBranch.pos[2] - node.pos[2]) * 0.3 };
+
+                components.push({
+                    id: `T-${idCounter++}`,
+                    type: 'TEE',
+                    points: [pMainA, pMainB, pBranch],
+                    centrePoint: { x: node.pos[0], y: node.pos[1], z: node.pos[2] },
+                    bore: connected[0].properties?.bore || 100,
+                    attributes: { MATERIAL: connected[0].properties?.material || 'CARBON STEEL' },
+                    [MAIN_SEGMENT_A]: mainA,
+                    [MAIN_SEGMENT_B]: mainB,
+                    [BRANCH_SEGMENT]: branch,
+                    TEE_CLASSIFICATION: VECTOR_COLINEARITY
+                });
+            } else {
+                // Fallback if classification fails
+                const n1 = nodes[connected[0].startNode === nodeId ? connected[0].endNode : connected[0].startNode];
+                const n2 = nodes[connected[1].startNode === nodeId ? connected[1].endNode : connected[1].startNode];
+                const n3 = nodes[connected[2].startNode === nodeId ? connected[2].endNode : connected[2].startNode];
+
+                const p1 = { x: node.pos[0] + (n1.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n1.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n1.pos[2] - node.pos[2]) * 0.3 };
+                const p2 = { x: node.pos[0] + (n2.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n2.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n2.pos[2] - node.pos[2]) * 0.3 };
+                const p3 = { x: node.pos[0] + (n3.pos[0] - node.pos[0]) * 0.3, y: node.pos[1] + (n3.pos[1] - node.pos[1]) * 0.3, z: node.pos[2] + (n3.pos[2] - node.pos[2]) * 0.3 };
+
+                components.push({
+                    id: `T-${idCounter++}`,
+                    type: 'TEE',
+                    points: [p1, p2, p3],
+                    centrePoint: { x: node.pos[0], y: node.pos[1], z: node.pos[2] },
+                    bore: connected[0].properties?.bore || 100,
+                    attributes: { MATERIAL: connected[0].properties?.material || 'CARBON STEEL' }
+                });
+            }
         }
     });
 
     return components;
+};
+
+export function buildComponentsFromGraphWithDiagnostics(nodes, segments) {
+    const components = buildComponentsFromGraph(nodes, segments);
+    const topologyValidation = validateSketchTopology(nodes, segments);
+    const diagnostics = topologyValidation.issues.map(issue => ({
+        severity: issue.severity,
+        code: issue.code,
+        message: issue.message,
+        data: issue.data
+    }));
+
+    return {
+        components,
+        diagnostics,
+        topologyValidation
+    };
 };
