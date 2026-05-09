@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { getSIFData } from './GC3DSIFEngine';
 import { getMaterialProperties } from '../utils/materialUtils';
 import { solveGC3D } from '../solvers/3d/solveGC3D.js';
+import { validate3DCalculationModel } from '../sketcher/adapters/sketcherTo3DCalculationModel.js';
+import { solveSupportLoads3D } from '../core/solvers/supportLoads/solveSupportLoads3D.js';
+import { solve3DForceActions } from '../core/solvers/forceActions/solve3DForceActions.js';
+import { runGuidedCantileverFromCalculationModel, run3DSimplifiedCalculationSuite as runSuite } from './solverSuite/run3DSimplifiedCalculationSuite.js';
+import { build3DSimplifiedCalculationReport, export3DSimplifiedReportJson, export3DSimplifiedReportMarkdown, export3DSimplifiedReportHtml } from './reporting/build3DSimplifiedCalculationReport.js';
 
 export const useAnalysisStore = create((set, get) => ({
   nodes: {},
@@ -25,6 +30,20 @@ export const useAnalysisStore = create((set, get) => ({
   criticalNode: null,
   overallResult: null,
   debugLog: [],
+  calculationModel: null,
+  calculationModelDiagnostics: [],
+  calculationModelSource: null,
+  selectedCalculationElement: null,
+  calculationAssignmentDiagnostics: [],
+  supportLoadResult: null,
+  supportLoadDiagnostics: [],
+  forceActionResult: null,
+  forceActionDiagnostics: [],
+  guidedCantileverThermalResult: null,
+  simplified3DSuiteResult: null,
+  simplified3DSuiteDiagnostics: [],
+  simplified3DReport: null,
+  simplified3DReportExports: null,
   logCounter: 0,
   splitCounter: 0,
   selectedSegmentIds: new Set(),
@@ -104,6 +123,105 @@ export const useAnalysisStore = create((set, get) => ({
     };
   }),
   clearLog: () => set({ debugLog: [], logCounter: 0 }),
+
+  importCalculationModel: (model) => {
+    const validation = validate3DCalculationModel(model || {});
+    set({
+      calculationModel: model,
+      calculationModelDiagnostics: validation.diagnostics || [],
+      calculationModelSource: model?.source || 'unknown',
+      selectedCalculationElement: null,
+      calculationAssignmentDiagnostics: validation.diagnostics || [],
+    });
+    return validation;
+  },
+
+  setSelectedCalculationElement: (selection) => set({ selectedCalculationElement: selection }),
+  clearSelectedCalculationElement: () => set({ selectedCalculationElement: null }),
+
+  updateCalculationSegment: (segmentId, updates) => {
+    set((s) => ({
+      calculationModel: {
+        ...(s.calculationModel || {}),
+        segments: (s.calculationModel?.segments || []).map((seg) =>
+          seg.id === segmentId ? { ...seg, ...updates } : seg
+        ),
+      },
+    }));
+  },
+
+  updateCalculationSupport: (supportId, updates) => {
+    set((s) => ({
+      calculationModel: {
+        ...(s.calculationModel || {}),
+        supports: (s.calculationModel?.supports || []).map((support) =>
+          support.id === supportId || support.nodeId === supportId ? { ...support, ...updates } : support
+        ),
+      },
+    }));
+  },
+
+  validateCalculationAssignments: () => {
+    const model = get().calculationModel;
+    const validation = validate3DCalculationModel(model || {});
+    set({ calculationAssignmentDiagnostics: validation.diagnostics || [], calculationModelDiagnostics: validation.diagnostics || [] });
+    return validation;
+  },
+
+  runSupportLoadCalculation: () => {
+    const model = get().calculationModel;
+    const result = solveSupportLoads3D(model || {});
+    set({ supportLoadResult: result, supportLoadDiagnostics: result.diagnostics || [] });
+    return result;
+  },
+
+  runForceActionCalculation: () => {
+    const model = get().calculationModel;
+    const supportLoadResult = get().supportLoadResult || get().runSupportLoadCalculation();
+    const result = solve3DForceActions(model || {}, { supportLoadResult });
+    set({ forceActionResult: result, forceActionDiagnostics: result.diagnostics || [] });
+    return result;
+  },
+
+  runGuidedCantileverThermalCalculation: () => {
+    const model = get().calculationModel;
+    const result = runGuidedCantileverFromCalculationModel(model || {}, get().params);
+    set({ guidedCantileverThermalResult: result });
+    return result;
+  },
+
+  run3DSimplifiedCalculationSuite: () => {
+    const model = get().calculationModel;
+    const result = runSuite(model || {}, get().params);
+    set({
+      simplified3DSuiteResult: result,
+      supportLoadResult: result.results?.supportLoads || get().supportLoadResult,
+      forceActionResult: result.results?.forceActions || get().forceActionResult,
+      guidedCantileverThermalResult: result.results?.guidedCantileverThermal || get().guidedCantileverThermalResult,
+      simplified3DSuiteDiagnostics: result.diagnostics || [],
+    });
+    return result;
+  },
+
+  buildSimplified3DReport: (options = {}) => {
+    const report = build3DSimplifiedCalculationReport({
+      model: get().calculationModel,
+      supportLoadResult: get().supportLoadResult,
+      forceActionResult: get().forceActionResult,
+      guidedCantileverThermalResult: get().guidedCantileverThermalResult,
+      suiteResult: get().simplified3DSuiteResult,
+      issueType: options.issueType || 'SCREENING_ISSUE',
+    });
+    set({
+      simplified3DReport: report,
+      simplified3DReportExports: {
+        json: export3DSimplifiedReportJson(report),
+        markdown: export3DSimplifiedReportMarkdown(report),
+        html: export3DSimplifiedReportHtml(report),
+      },
+    });
+    return report;
+  },
 
   moveNode: (id, newPos) => {
     set(s => ({ nodes: { ...s.nodes, [id]: { ...s.nodes[id], pos: newPos } } }));

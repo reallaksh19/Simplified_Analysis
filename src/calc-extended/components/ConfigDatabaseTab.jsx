@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useExtendedStore } from '../store/useExtendedStore';
 
 // Import JSON DBs
-import expansionCoeffs from '../db/expansion_coefficients.json';
-import modulusElasticity from '../db/modulus_elasticity.json';
-import pipeProps from '../db/pipe_properties.json';
-import flangeRatings from '../db/flange_ratings.json';
-import designStress from '../db/design_stress.json';
+import expansionCoeffs from '../db/expansion_coefficients.json' with { type: 'json' };
+import modulusElasticity from '../db/modulus_elasticity.json' with { type: 'json' };
+import pipeProps from '../db/pipe_properties.json' with { type: 'json' };
+import flangeRatings from '../db/flange_ratings.json' with { type: 'json' };
+import designStress from '../db/design_stress.json' with { type: 'json' };
 
 const thStyle = { background: '#1e293b', padding: '8px', textAlign: 'left', fontSize: '11px', color: '#94a3b8', borderBottom: '1px solid #334155' };
 const tdStyle = { padding: '8px', borderBottom: '1px solid #1e293b', fontSize: '12px', color: '#cbd5e1' };
