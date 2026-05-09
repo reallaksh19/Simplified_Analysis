@@ -63,6 +63,8 @@ export const SketcherAnnotations = ({ is3D }) => {
     const annotationScale = useSketchStore(s => s.annotationScale);
     const showNodeLabels   = useSketchStore(s => s.showNodeLabels);
     const showLengthLabels = useSketchStore(s => s.showLengthLabels);
+    const showNodeCoordinates = useSketchStore(s => s.showNodeCoordinates ?? true);
+    const labelOpacity = useSketchStore(s => s.labelOpacity ?? 0.75);
 
     // World height of a label in mm — scales with annotationScale but is
     // independent of the blurry fontSize-based canvas logic we had before.
@@ -75,7 +77,9 @@ export const SketcherAnnotations = ({ is3D }) => {
         <group>
             {/* ── Node Labels ─────────────────────────────────── */}
             {showNodeLabels && Object.entries(nodes).map(([id, node]) => {
-                const labelStr = `${id} (${Math.round(node.pos[0])}, ${Math.round(node.pos[1])}, ${Math.round(node.pos[2])})`;
+                const labelStr = showNodeCoordinates
+                    ? `${id} (${Math.round(node.pos[0])}, ${Math.round(node.pos[1])}, ${Math.round(node.pos[2])})`
+                    : id;
                 return (
                     <SpriteLabel
                         key={`label-${id}`}
@@ -89,7 +93,7 @@ export const SketcherAnnotations = ({ is3D }) => {
                         text={labelStr}
                         worldHeight={labelH}
                         color="#7dd3fc"   // sky-blue — distinct from white length labels
-                        bgAlpha={0.75}
+                        bgAlpha={labelOpacity}
                     />
                 );
             })}
@@ -133,7 +137,7 @@ export const SketcherAnnotations = ({ is3D }) => {
                         text={`${(len / 1000).toFixed(3)} m`}
                         worldHeight={labelH}
                         color="#f8fafc"   // white
-                        bgAlpha={0.65}
+                        bgAlpha={Math.max(0.05, labelOpacity * 0.9)}
                     />
                 );
             })}

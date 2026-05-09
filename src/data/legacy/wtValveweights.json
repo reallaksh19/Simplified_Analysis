@@ -1,0 +1,74 @@
+[
+  {
+    "Type": "VALVE",
+    "DN": 100,
+    "NS": 4,
+    "Rating": 150,
+    "TypeDesc": "Flanged Swing check Valve",
+    "RF-F/F": 292,
+    "RTJ F/F": 292,
+    "BW-F/F": null,
+    "RF/RTJ KG": 35,
+    "BW KG": null
+  },
+  {
+    "Type": "VALVE",
+    "DN": 150,
+    "NS": 6,
+    "Rating": 150,
+    "TypeDesc": "Flanged Swing check Valve",
+    "RF-F/F": 356,
+    "RTJ F/F": 356,
+    "BW-F/F": null,
+    "RF/RTJ KG": 62,
+    "BW KG": null
+  },
+  {
+    "Type": "VALVE",
+    "DN": 200,
+    "NS": 8,
+    "Rating": 150,
+    "TypeDesc": "Flanged Swing check Valve",
+    "RF-F/F": 495,
+    "RTJ F/F": 495,
+    "BW-F/F": null,
+    "RF/RTJ KG": 105,
+    "BW KG": null
+  },
+  {
+    "Type": "VALVE",
+    "DN": 200,
+    "NS": 8,
+    "Rating": 300,
+    "TypeDesc": "Flanged Swing check Valve",
+    "RF-F/F": 495,
+    "RTJ F/F": 495,
+    "BW-F/F": null,
+    "RF/RTJ KG": 142,
+    "BW KG": null
+  },
+  {
+    "Type": "FLANGE",
+    "DN": 150,
+    "NS": 6,
+    "Rating": 300,
+    "TypeDesc": "WN RF Flange",
+    "RF-F/F": null,
+    "RTJ F/F": null,
+    "BW-F/F": null,
+    "RF/RTJ KG": 19,
+    "BW KG": null
+  },
+  {
+    "Type": "FLANGE",
+    "DN": 200,
+    "NS": 8,
+    "Rating": 300,
+    "TypeDesc": "WN RF Flange",
+    "RF-F/F": null,
+    "RTJ F/F": null,
+    "BW-F/F": null,
+    "RF/RTJ KG": 28,
+    "BW KG": null
+  }
+]
