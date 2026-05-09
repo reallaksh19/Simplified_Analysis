@@ -13,6 +13,14 @@ test.describe('Benchmark mock workflow proof', () => {
     await page.getByTestId('nav-tab-benchmarks').click();
     await expect(page.getByTestId('current-benchmark-mock')).toContainText('2D-CANT-001');
 
+    await page.getByTestId('nav-tab-simpAnalysis').click();
+    await page.getByText('2D Solver').click();
+
+    // Check for button specifically, test fails right now before this, the preview might not exist.
+    // Let's actually wait for the preview, maybe just wait for the button and click it to make sure.
+    await expect(page.getByTestId('run-analysis-payload')).toBeVisible();
+    await page.getByTestId('run-analysis-payload').click();
+
     await page.getByTestId('nav-tab-reports').click();
     await expect(page.getByTestId('reports-tab')).toBeVisible();
     const preview = page.getByTestId('report-preview');

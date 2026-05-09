@@ -1,0 +1,351 @@
+{
+  "schemaVersion": "v20-final-certification-summary-v1",
+  "status": "PASS",
+  "startedAt": "2026-05-09T15:58:32.739Z",
+  "finishedAt": "2026-05-09T15:59:21.680Z",
+  "results": [
+    {
+      "command": "npm run check:package-json",
+      "startedAt": "2026-05-09T15:58:32.740Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:33.069Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:package-json\n> node scripts/check-package-json-duplicates.mjs\n\nNo duplicate script keys found.\n"
+    },
+    {
+      "command": "npm run check:v18a",
+      "startedAt": "2026-05-09T15:58:33.069Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:33.365Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18a\n> node scripts/v18a-viewer-to-sketcher-adapter-check.mjs\n\nV18A viewer-to-sketcher adapter static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18a:behavior",
+      "startedAt": "2026-05-09T15:58:33.365Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:33.625Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18a:behavior\n> node scripts/v18a-viewer-to-sketcher-adapter-behavior-test.mjs\n\nV18A viewer-to-sketcher adapter behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18b",
+      "startedAt": "2026-05-09T15:58:33.625Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:33.854Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18b\n> node scripts/v18b-sketcher-display-check.mjs\n\nV18B sketcher display static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18b:behavior",
+      "startedAt": "2026-05-09T15:58:33.854Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:34.088Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18b:behavior\n> node scripts/v18b-sketcher-display-behavior-test.mjs\n\nV18B sketcher display behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18c",
+      "startedAt": "2026-05-09T15:58:34.088Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:34.309Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18c\n> node scripts/v18c-element-listing-panel-check.mjs\n\nV18C element listing panel static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18c:behavior",
+      "startedAt": "2026-05-09T15:58:34.309Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:34.535Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18c:behavior\n> node scripts/v18c-element-listing-panel-behavior-test.mjs\n\nV18C element listing panel behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18d",
+      "startedAt": "2026-05-09T15:58:34.535Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:34.755Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18d\n> node scripts/v18d-pipe-property-model-check.mjs\n\nV18D pipe property model static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18d:behavior",
+      "startedAt": "2026-05-09T15:58:34.755Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:34.976Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18d:behavior\n> node scripts/v18d-pipe-property-model-behavior-test.mjs\n\nV18D pipe property model behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18e",
+      "startedAt": "2026-05-09T15:58:34.976Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:35.196Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18e\n> node scripts/v18e-component-engineering-model-check.mjs\n\nV18E component engineering model static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18e:behavior",
+      "startedAt": "2026-05-09T15:58:35.196Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:35.410Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18e:behavior\n> node scripts/v18e-component-engineering-model-behavior-test.mjs\n\nV18E component engineering model behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18f",
+      "startedAt": "2026-05-09T15:58:35.410Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:35.631Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18f\n> node scripts/v18f-insert-component-commands-check.mjs\n\nV18F insert component commands static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18f:behavior",
+      "startedAt": "2026-05-09T15:58:35.631Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:35.852Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18f:behavior\n> node scripts/v18f-insert-component-commands-behavior-test.mjs\n\nV18F insert component commands behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18g",
+      "startedAt": "2026-05-09T15:58:35.852Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:36.072Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18g\n> node scripts/v18g-sketcher-to-3d-check.mjs\n\nV18G sketcher-to-3D static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18g:behavior",
+      "startedAt": "2026-05-09T15:58:36.072Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:36.289Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18g:behavior\n> node scripts/v18g-sketcher-to-3d-behavior-test.mjs\n\nV18G sketcher-to-3D behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18h",
+      "startedAt": "2026-05-09T15:58:36.289Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:36.503Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18h\n> node scripts/v18h-3d-assignment-check.mjs\n\nV18H 3D assignment static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18h:behavior",
+      "startedAt": "2026-05-09T15:58:36.503Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:36.720Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18h:behavior\n> node scripts/v18h-3d-assignment-behavior-test.mjs\n\nV18H 3D assignment behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18i",
+      "startedAt": "2026-05-09T15:58:36.720Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:36.940Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18i\n> node scripts/v18i-support-loads-check.mjs\n\nV18I support load static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18i:behavior",
+      "startedAt": "2026-05-09T15:58:36.940Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:37.153Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18i:behavior\n> node scripts/v18i-support-loads-behavior-test.mjs\n\nV18I support load behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18j",
+      "startedAt": "2026-05-09T15:58:37.153Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:37.371Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18j\n> node scripts/v18j-suite-check.mjs\n\nV18J suite static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18j:behavior",
+      "startedAt": "2026-05-09T15:58:37.371Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:37.587Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18j:behavior\n> node scripts/v18j-suite-behavior-test.mjs\n\nV18J suite behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18j2",
+      "startedAt": "2026-05-09T15:58:37.587Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:37.805Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18j2\n> node scripts/v18j2-force-actions-check.mjs\n\nV18J2 force actions static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18j2:behavior",
+      "startedAt": "2026-05-09T15:58:37.805Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:38.019Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18j2:behavior\n> node scripts/v18j2-force-actions-behavior-test.mjs\n\nV18J2 force actions behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18k",
+      "startedAt": "2026-05-09T15:58:38.019Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:38.239Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18k\n> node scripts/v18k-report-check.mjs\n\nV18K report static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18k:behavior",
+      "startedAt": "2026-05-09T15:58:38.239Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:38.455Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18k:behavior\n> node scripts/v18k-report-behavior-test.mjs\n\nV18K report behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v18l",
+      "startedAt": "2026-05-09T15:58:38.455Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:38.668Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18l\n> node scripts/v18l-browser-workflow-check.mjs\n\nV18L browser workflow static check passed.\n"
+    },
+    {
+      "command": "npm run check:v18l:behavior",
+      "startedAt": "2026-05-09T15:58:38.668Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:38.896Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v18l:behavior\n> node scripts/v18l-browser-workflow-behavior-test.mjs\n\nV18L browser workflow behavior/static hygiene check passed.\n"
+    },
+    {
+      "command": "npm run check:v19",
+      "startedAt": "2026-05-09T15:58:38.896Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:39.131Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19\n> node scripts/v19-component-weight-master-check.mjs\n\nV19 component weight master static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19:behavior",
+      "startedAt": "2026-05-09T15:58:39.131Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:39.373Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19:behavior\n> node scripts/v19-component-weight-master-behavior-test.mjs\n\nV19 component weight master behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19b",
+      "startedAt": "2026-05-09T15:58:39.373Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:39.607Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19b\n> node scripts/v19b-flange-dimensional-master-check.mjs\n\nV19B flange dimensional master static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19b:behavior",
+      "startedAt": "2026-05-09T15:58:39.607Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:39.819Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19b:behavior\n> node scripts/v19b-flange-dimensional-master-behavior-test.mjs\n\nV19B flange dimensional master behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19c",
+      "startedAt": "2026-05-09T15:58:39.819Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:40.031Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19c\n> node scripts/v19c-master-db-editor-check.mjs\n\nV19C master DB editor static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19c:behavior",
+      "startedAt": "2026-05-09T15:58:40.031Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:40.248Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19c:behavior\n> node scripts/v19c-master-db-editor-behavior-test.mjs\n\nV19C master DB editor behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19d",
+      "startedAt": "2026-05-09T15:58:40.248Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:40.471Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19d\n> node scripts/v19d-master-db-governance-check.mjs\n\nV19D master DB governance static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19d:behavior",
+      "startedAt": "2026-05-09T15:58:40.471Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:40.696Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19d:behavior\n> node scripts/v19d-master-db-governance-behavior-test.mjs\n\nV19D master DB governance behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19e",
+      "startedAt": "2026-05-09T15:58:40.696Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:40.921Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19e\n> node scripts/v19e-b169-fitting-master-check.mjs\n\nV19E B16.9 fitting master static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19e:behavior",
+      "startedAt": "2026-05-09T15:58:40.921Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:41.139Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19e:behavior\n> node scripts/v19e-b169-fitting-master-behavior-test.mjs\n\nV19E B16.9 fitting master behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19f",
+      "startedAt": "2026-05-09T15:58:41.139Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:41.367Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19f\n> node scripts/v19f-sketcher-masterdb-wiring-check.mjs\n\nV19F 2D Sketcher Master DB wiring static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19f:behavior",
+      "startedAt": "2026-05-09T15:58:41.367Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:41.593Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19f:behavior\n> node scripts/v19f-sketcher-masterdb-wiring-behavior-test.mjs\n\nV19F 2D Sketcher Master DB wiring behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v19g",
+      "startedAt": "2026-05-09T15:58:41.593Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:41.811Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19g\n> node scripts/v19g-masterdb-browser-check.mjs\n\nV19G Master DB browser static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19g:behavior",
+      "startedAt": "2026-05-09T15:58:41.811Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:42.026Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19g:behavior\n> node scripts/v19g-masterdb-browser-behavior-test.mjs\n\nV19G Master DB browser behavior/static hygiene check passed.\n"
+    },
+    {
+      "command": "npm run check:v19h",
+      "startedAt": "2026-05-09T15:58:42.026Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:42.257Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19h\n> node scripts/v19h-masterdb-bulk-validation-check.mjs\n\nV19H Master DB bulk validation static check passed.\n"
+    },
+    {
+      "command": "npm run check:v19h:behavior",
+      "startedAt": "2026-05-09T15:58:42.257Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:42.469Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v19h:behavior\n> node scripts/v19h-masterdb-bulk-validation-behavior-test.mjs\n\nV19H Master DB bulk validation behavior test passed.\n"
+    },
+    {
+      "command": "npm run check:v20",
+      "startedAt": "2026-05-09T15:58:42.469Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:42.683Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v20\n> node scripts/v20-final-combined-certification-check.mjs\n\nV20 final combined certification static check passed.\n"
+    },
+    {
+      "command": "npm run check:v20:behavior",
+      "startedAt": "2026-05-09T15:58:42.683Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:42.897Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:v20:behavior\n> node scripts/v20-final-combined-certification-behavior-test.mjs\n\nV20 final combined certification behavior check passed.\n"
+    },
+    {
+      "command": "npm run check:benchmarks",
+      "startedAt": "2026-05-09T15:58:42.897Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:43.212Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:benchmarks\n> node scripts/run-engineering-benchmarks.mjs\n\nRunning engineering benchmarks...\n\nBenchmark Summary:\nTotal: 37\nPassed: 37\nFailed: 0\nPending: 0\nSkipped legacy/reference fixtures: 15\nMax Rounded Numeric Error: 0\n"
+    },
+    {
+      "command": "npm run build",
+      "startedAt": "2026-05-09T15:58:43.212Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:58:54.181Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 build\n> vite build\n\nvite v7.3.1 building client environment for production...\ntransforming...\n✓ 2456 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                        0.91 kB │ gzip:   0.48 kB\ndist/assets/index-B0j2pcY0.css        22.25 kB │ gzip:   5.15 kB\ndist/assets/mock-data-Dex7P1AP.js      1.55 kB │ gzip:   0.49 kB\ndist/assets/index-DD7kh3VM.js      1,692.43 kB │ gzip: 474.06 kB\n✓ built in 10.10s\n"
+    },
+    {
+      "command": "npm run check:e2e:v18l",
+      "startedAt": "2026-05-09T15:58:54.181Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:59:12.297Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:e2e:v18l\n> playwright test e2e/v18l-sketcher-display.spec.js e2e/v18l-sketcher-element-panel.spec.js e2e/v18l-push-to-3d-simplified.spec.js e2e/v18l-3d-calculation-workflow.spec.js\n\n\nRunning 4 tests using 2 workers\n\n\u001b[1A\u001b[2K[1/4] [chromium] › e2e/v18l-3d-calculation-workflow.spec.js:11:3 › V18L 3D Simplified Calculation workflow panels › support loads, force actions, suite and report controls are visible and clickable\n\u001b[1A\u001b[2K[2/4] [chromium] › e2e/v18l-push-to-3d-simplified.spec.js:11:3 › V18L Sketcher push to 3D Simplified Calculation › push workflow button is visible and 3D panels are reachable\n\u001b[1A\u001b[2K[3/4] [chromium] › e2e/v18l-sketcher-display.spec.js:5:3 › V18L Sketcher display workflow › display controls are visible and can toggle coordinates/lengths\n\u001b[1A\u001b[2K[4/4] [chromium] › e2e/v18l-sketcher-element-panel.spec.js:5:3 › V18L Sketcher element listing panel › element listing tabs are visible\n\u001b[1A\u001b[2K  4 passed (16.7s)\n"
+    },
+    {
+      "command": "npm run check:e2e:v19g",
+      "startedAt": "2026-05-09T15:59:12.297Z",
+      "status": "PASS",
+      "finishedAt": "2026-05-09T15:59:21.680Z",
+      "outputTail": "\n> 3d2d-app@0.0.0 check:e2e:v19g\n> playwright test e2e/v19g-master-db-browser.spec.js\n\n\nRunning 3 tests using 2 workers\n\n\u001b[1A\u001b[2K[1/3] [chromium] › e2e/v19g-master-db-browser.spec.js:9:3 › V19G Master DB browser certification › Master DB tab exposes main tables and validation panels\n\u001b[1A\u001b[2K[2/3] [chromium] › e2e/v19g-master-db-browser.spec.js:20:3 › V19G Master DB browser certification › Master DB validation blocks final issue with screening seed data\n\u001b[1A\u001b[2K[3/3] [chromium] › e2e/v19g-master-db-browser.spec.js:27:3 › V19G Master DB browser certification › Bulk tools validate JSON input and expose coverage\n\u001b[1A\u001b[2K  3 passed (8.0s)\n"
+    }
+  ]
+}

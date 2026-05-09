@@ -71,6 +71,26 @@ if (fs.existsSync(u7SpecPath)) {
 }
 
 console.log();
+
+const settingsSource = fs.readFileSync('src/settings/SettingsTab.jsx', 'utf8');
+
+for (const token of [
+  'data-testid="settings-contract-hash"',
+  'data-testid="settings-results-stale-banner"',
+  '`settings-field-${name}`',
+]) {
+  if (!settingsSource.includes(token)) {
+    console.error(`❌ SettingsTab missing required test token: ${token}`);
+    success = false;
+  }
+}
+
+const hashMatches = settingsSource.match(/data-testid=["']settings-contract-hash["']/g) || [];
+if (hashMatches.length !== 1) {
+  console.error(`❌ Expected exactly one settings-contract-hash element, found ${hashMatches.length}`);
+  success = false;
+}
+
 if (!success) {
   process.exit(1);
 }

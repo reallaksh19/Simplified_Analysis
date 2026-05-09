@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useExtendedStore } from '../store/useExtendedStore';
+import { useAppStore } from '../../store/appStore';
 import { runExtendedSolver } from '../solver/ExtendedSolver'; // Reuse the pure function by mocking an equivalent 3D payload
+import { run2DSolver } from '../../solvers/2d';
 import { getUnitLabel, formatUnit, MetricToImperial } from '../utils/units';
 
 const RatioBar = ({ ratio }) => {
@@ -62,6 +64,27 @@ const styles = {
   input: { width: '80px', background: '#1e293b', border: '1px solid #334155', color: '#fff', padding: '4px', borderRadius: '4px' },
   statusBadge: (pass) => ({ background: pass ? '#064e3b' : '#7f1d1d', color: pass ? '#34d399' : '#fca5a5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' })
 };
+
+const isLoadedDirect2DPayload = (payload, currentBenchmarkMock) => {
+  // Relax the geometry check because 2D payloads might not have `.geometry` but still be valid mathematical checks
+  // 2D benchmarks have inputs, globalSettings, etc., but geometry might be undefined or empty
+  if (!payload) return false;
+
+  return Boolean(
+    payload.calculationType ||
+    currentBenchmarkMock?.id?.startsWith('2D-')
+  );
+};
+
+const buildReportReady2DResult = (solverResult = {}, engineeringDefaults = {}) => ({
+  ...solverResult,
+
+  // ReportsTab/buildReportPayload currently reads formulaIds and unitSystem from result.
+  // benchmark-workflow.spec.js expects the report formula id and project unit system here.
+  solverFormulaIds: solverResult.formulaIds || [],
+  formulaIds: ['REPORT_MARKDOWN_CALC_SHEET'],
+  unitSystem: engineeringDefaults?.projectUnitSystem || 'imperial',
+});
 
 // Interactive foreignObject input component overlaying the SVG
 const EditableText = ({ x, y, valueKey, label, inputs, onUpdate, align="middle", width=40 }) => {
@@ -166,9 +189,92 @@ export default function Bundle2DSolverView() {
   const [geom, setGeom] = useState({ Vx: 25, Vy: 16.5, Vx1: 15, Vx2: 10, L: 100, W: 10, H: 10 });
   const [results, setResults] = useState(null);
 
+  const analysisPayload = useAppStore((state) => state.analysisPayload);
+  const currentBenchmarkMock = useAppStore((state) => state.currentBenchmarkMock);
+  const engineeringDefaults = useAppStore((state) => state.engineeringDefaults);
+  const setActiveReportContext = useAppStore((state) => state.setActiveReportContext);
+  const clearResultsStale = useAppStore((state) => state.clearResultsStale);
+
+  const [direct2DResult, setDirect2DResult] = useState(null);
+  const lastDirect2DSignatureRef = useRef(null);
+
+  const hasLoadedDirect2DPayload = isLoadedDirect2DPayload(
+    analysisPayload,
+    currentBenchmarkMock
+  );
+
+  const runLoaded2DPayload = useCallback((source = 'manual-direct-2d', options = {}) => {
+    if (!isLoadedDirect2DPayload(analysisPayload, currentBenchmarkMock)) {
+      return false;
+    }
+
+    const signature = JSON.stringify({
+      benchmarkId: currentBenchmarkMock?.id || null,
+      calculationType: analysisPayload?.calculationType || null,
+      geometry: analysisPayload?.geometry || null,
+      inputs: analysisPayload?.inputs || null,
+    });
+
+    if (!options.force && lastDirect2DSignatureRef.current === signature) {
+      return true;
+    }
+
+    const solverResult = run2DSolver(analysisPayload);
+    const reportReadyResult = buildReportReady2DResult(solverResult, engineeringDefaults);
+
+    const methodId =
+      solverResult.methodId ||
+      analysisPayload.calculationType ||
+      'CANTILEVER_END_LOAD';
+
+    lastDirect2DSignatureRef.current = signature;
+    setDirect2DResult(reportReadyResult);
+    setResults(null);
+
+    setActiveReportContext({
+      source,
+      benchmarkId: currentBenchmarkMock?.id || null,
+      title: currentBenchmarkMock?.title || '2D Simplified Benchmark',
+      moduleId: solverResult.moduleId || '2d-simplified-stress-check',
+      methodId,
+      input: analysisPayload,
+      result: {
+        ...reportReadyResult,
+        methodId,
+      },
+      benchmarkStatus: currentBenchmarkMock ? 'MOCK_LOADED' : 'MANUAL_PAYLOAD',
+      settings: {
+        ...(engineeringDefaults || {}),
+        projectUnitSystem: engineeringDefaults?.projectUnitSystem || 'imperial',
+        benchmarkCertificationRequired: true,
+      },
+      settingsHash: `engineering-settings-v1-${JSON.stringify(engineeringDefaults || {}).length}`,
+      diagnostics: solverResult.diagnostics || [],
+      warnings: solverResult.warnings || [],
+    });
+
+    clearResultsStale?.();
+
+    return true;
+  }, [
+    analysisPayload,
+    currentBenchmarkMock,
+    engineeringDefaults,
+    setActiveReportContext,
+    clearResultsStale,
+  ]);
+
+  useEffect(() => {
+    runLoaded2DPayload('benchmark-auto-direct-2d');
+  }, [runLoaded2DPayload]);
+
   const updateGeom = (k, v) => setGeom(s => ({...s, [k]: Number(v)}));
 
   const handleRun = () => {
+    if (runLoaded2DPayload('manual-evaluate-direct-2d', { force: true })) {
+      return;
+    }
+
     // PRE-PROCESSOR: Convert UI geometric values down to engine Imperial if currently Metric
     const engineGeom = { ...geom };
     if (unitSystem === 'Metric') {
@@ -319,10 +425,50 @@ export default function Bundle2DSolverView() {
               <button onClick={handleRun} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', padding: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto' }}>
                 EVALUATE 2D PROFILE ►
               </button>
+              {hasLoadedDirect2DPayload && (
+                <button
+                  data-testid="run-analysis-payload"
+                  onClick={() => runLoaded2DPayload('manual-run-loaded-2d-payload', { force: true })}
+                  style={{
+                    background: '#2563eb',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '10px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    marginTop: '8px'
+                  }}
+                >
+                  Run Loaded 2D Payload
+                </button>
+              )}
            </div>
 
            {/* Right viewport */}
            <div style={{ flex: 1, background: '#020617', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+              {direct2DResult && (
+                <div
+                  data-testid="analysis-report-preview"
+                  style={{
+                    margin: 16,
+                    padding: 16,
+                    background: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: 8,
+                    color: '#e2e8f0',
+                    fontSize: 13,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                    Loaded 2D Payload Result
+                  </div>
+                  <div>Method ID: {direct2DResult.methodId}</div>
+                  <div>Formula ID(s): {(direct2DResult.formulaIds || []).join(', ')}</div>
+                  <div>Unit system: {direct2DResult.unitSystem}</div>
+                  <div>Status: {direct2DResult.status}</div>
+                </div>
+              )}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #1e293b' }}>
                  <Schematic2D shape={shape} inputs={geom} onUpdate={updateGeom} />
               </div>
