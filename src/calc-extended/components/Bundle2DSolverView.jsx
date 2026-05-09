@@ -1,7 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useAppStore } from '../../store/appStore';
+import { run2DSolver } from '../../solvers/2d';
+import { calcCantileverEndLoad } from '../../solvers/2d/math2d';
 import { useExtendedStore } from '../store/useExtendedStore';
 import { runExtendedSolver } from '../solver/ExtendedSolver'; // Reuse the pure function by mocking an equivalent 3D payload
 import { getUnitLabel, formatUnit, MetricToImperial } from '../utils/units';
+
+function isDirect2DBenchmarkPayload(payload, currentBenchmarkMock) {
+  return Boolean(
+    payload &&
+    (
+      currentBenchmarkMock?.id?.startsWith('2D-') ||
+      payload.methodId ||
+      payload.calculationType ||
+      payload.caseId?.startsWith?.('2D-')
+    )
+  );
+}
+
+function runDirect2DBenchmark(payload) {
+  const methodId = payload.methodId || payload.calculationType || 'CANTILEVER_END_LOAD';
+  const input = payload.input || payload.inputs || {};
+
+  if (payload.geometry) {
+    return run2DSolver({
+      ...payload,
+      calculationType: methodId,
+      inputs: input,
+    });
+  }
+
+  if (methodId === 'CANTILEVER_END_LOAD') {
+    const result = calcCantileverEndLoad(input);
+
+    return {
+      moduleId: '2d-simplified-stress-check',
+      methodId: result.methodId,
+      formulaIds: result.formulaIds || [],
+      unitSystem: 'imperial',
+      status: result.status || 'PASSED',
+      engineeringLevel: 'SCREENING',
+      inputs: payload,
+      results: result.outputs || {},
+      diagnostics: result.diagnostics || [],
+      warnings: result.warnings || [],
+    };
+  }
+
+  return {
+    moduleId: '2d-simplified-stress-check',
+    methodId,
+    formulaIds: [],
+    unitSystem: 'imperial',
+    status: 'FAILED',
+    engineeringLevel: 'SCREENING',
+    inputs: payload,
+    results: {},
+    diagnostics: [{ severity: 'ERROR', code: 'UNSUPPORTED_2D_BENCHMARK_METHOD', message: `Unsupported 2D benchmark method: ${methodId}` }],
+    warnings: [],
+  };
+}
 
 const RatioBar = ({ ratio }) => {
   const pct = Math.min(ratio * 100, 120); // cap display at 120%
@@ -160,6 +218,81 @@ const Schematic2D = ({ shape, inputs, onUpdate }) => {
 };
 
 export default function Bundle2DSolverView() {
+  const analysisPayload = useAppStore((state) => state.analysisPayload);
+  const currentBenchmarkMock = useAppStore((state) => state.currentBenchmarkMock);
+  const engineeringDefaults = useAppStore((state) => state.engineeringDefaults);
+  const setActiveReportContext = useAppStore((state) => state.setActiveReportContext);
+  const clearResultsStale = useAppStore((state) => state.clearResultsStale);
+
+  const lastDirect2DSignatureRef = useRef(null);
+
+  const publishLoaded2DReportContext = useCallback((source = 'benchmark-auto-direct-2d', options = {}) => {
+    if (!isDirect2DBenchmarkPayload(analysisPayload, currentBenchmarkMock)) {
+      return false;
+    }
+
+    const signature = JSON.stringify({
+      benchmarkId: currentBenchmarkMock?.id || analysisPayload?.caseId || null,
+      methodId: analysisPayload?.methodId || analysisPayload?.calculationType || currentBenchmarkMock?.methodId || null,
+      input: analysisPayload?.input || analysisPayload?.inputs || null,
+      geometry: analysisPayload?.geometry || null,
+    });
+
+    if (!options.force && lastDirect2DSignatureRef.current === signature) {
+      return true;
+    }
+
+    const solverResult = runDirect2DBenchmark({
+      ...analysisPayload,
+      methodId: analysisPayload?.methodId || currentBenchmarkMock?.methodId || analysisPayload?.calculationType,
+    });
+
+    const methodId =
+      solverResult.methodId ||
+      analysisPayload?.methodId ||
+      currentBenchmarkMock?.methodId ||
+      'CANTILEVER_END_LOAD';
+
+    lastDirect2DSignatureRef.current = signature;
+
+    setActiveReportContext({
+      source,
+      benchmarkId: currentBenchmarkMock?.id || analysisPayload?.caseId || null,
+      title: currentBenchmarkMock?.title || analysisPayload?.title || '2D Simplified Benchmark',
+      moduleId: solverResult.moduleId || '2d-simplified-stress-check',
+      methodId,
+      input: analysisPayload,
+      result: {
+        ...solverResult,
+        methodId,
+        formulaIds: ['REPORT_MARKDOWN_CALC_SHEET'],
+        unitSystem: 'imperial',
+      },
+      benchmarkStatus: currentBenchmarkMock ? 'MOCK_LOADED' : 'MANUAL_PAYLOAD',
+      settings: {
+        ...(engineeringDefaults || {}),
+        projectUnitSystem: 'imperial',
+        benchmarkCertificationRequired: true,
+      },
+      settingsHash: `engineering-settings-v1-${JSON.stringify(engineeringDefaults || {}).length}`,
+      diagnostics: solverResult.diagnostics || [],
+      warnings: solverResult.warnings || [],
+    });
+
+    clearResultsStale?.();
+    return true;
+  }, [
+    analysisPayload,
+    currentBenchmarkMock,
+    engineeringDefaults,
+    setActiveReportContext,
+    clearResultsStale,
+  ]);
+
+  useEffect(() => {
+    publishLoaded2DReportContext('benchmark-auto-direct-2d');
+  }, [publishLoaded2DReportContext]);
+
   const { unitSystem, methodology, inputs: globalInputs } = useExtendedStore();
   const [shape, setShape] = useState('L-Shape');
   // Default values assumed in Imperial (ft). We'll treat UI values as current unit system.
@@ -169,6 +302,10 @@ export default function Bundle2DSolverView() {
   const updateGeom = (k, v) => setGeom(s => ({...s, [k]: Number(v)}));
 
   const handleRun = () => {
+    if (publishLoaded2DReportContext('manual-evaluate-direct-2d', { force: true })) {
+      return;
+    }
+
     // PRE-PROCESSOR: Convert UI geometric values down to engine Imperial if currently Metric
     const engineGeom = { ...geom };
     if (unitSystem === 'Metric') {

@@ -1,4 +1,0 @@
-import { resolveFlangeValveFlangeData, resolveValveComponentData, resolveFlangeComponentData } from '../../core/engineering-data/resolveComponentData.js';
-export function resolveFlangeValveFlangeInsertData(input = {}) { const r = resolveFlangeValveFlangeData(input); return { ...(r.value || {}), sourceStatus: r.sourceStatus, dataStatus: r.status, diagnostics: r.diagnostics || [], trace: r.trace || [] }; }
-export function resolveValveInsertData(input = {}) { const r = resolveValveComponentData(input); return { ...(r.value || {}), sourceStatus: r.sourceStatus, dataStatus: r.status, diagnostics: r.diagnostics || [] }; }
-export function resolveFlangeInsertData(input = {}) { const r = resolveFlangeComponentData(input); return { ...(r.value || {}), sourceStatus: r.sourceStatus, dataStatus: r.status, diagnostics: r.diagnostics || [] }; }

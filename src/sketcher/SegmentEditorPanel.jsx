@@ -1,15 +1,8 @@
 import React from 'react';
 import { useSketchStore } from './SketcherStore';
-import SketcherMasterDbInsertPanel from './SketcherMasterDbInsertPanel.jsx';
 import { X, Trash2 } from 'lucide-react';
 import * as THREE from 'three';
-import { getAvailableSchedules, getPipeDimensions } from '../core/geometry/pipeSchedules.js';
-import {
-    DEFAULT_PIPE_CLASS,
-    getSegmentPipeClass,
-    updateSegmentPipeClass,
-    validateSegmentPipeProperties,
-} from './pipeProperties/pipePropertyModel.js';
+import { getAvailableSchedules, getPipeDimensions } from '../core/geometry/pipeSchedules';
 
 const inp = {
     width: '100%',
@@ -28,15 +21,14 @@ const row = {
     gap: '8px',
 };
 
-const lbl = { fontSize: '11px', color: '#94a3b8', minWidth: '82px' };
-const section = { fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '6px', borderTop: '1px solid #334155', paddingTop: '8px' };
+const lbl = { fontSize: '11px', color: '#94a3b8', minWidth: '60px' };
 
-const MATERIALS = ['CARBON STEEL', 'A106-B', 'STAINLESS STEEL', 'SS304', 'SS316', 'ALLOY STEEL', 'DUPLEX', 'COPPER', 'PVC'];
+const MATERIALS = ['CARBON STEEL', 'STAINLESS STEEL', 'ALLOY STEEL', 'DUPLEX', 'COPPER', 'PVC'];
 const TYPES = ['PIPE', 'REDUCER', 'FLANGE', 'BRANCH LEG'];
 
 export const SegmentEditorPanel = () => {
     const {
-        selectedSegmentId, segments, nodes, defaultPipeClass,
+        selectedSegmentId, segments, nodes,
         setSelectedSegmentId, updateSegment, deleteSegment,
     } = useSketchStore();
 
@@ -50,16 +42,10 @@ export const SegmentEditorPanel = () => {
         ? new THREE.Vector3(...n1.pos).distanceTo(new THREE.Vector3(...n2.pos))
         : 0;
 
-    const pipeClass = getSegmentPipeClass(seg, defaultPipeClass || DEFAULT_PIPE_CLASS);
-    const validation = validateSegmentPipeProperties(seg);
+    const props = seg.properties || {};
 
-    const set = (sectionName, key, val) => {
-        const next = updateSegmentPipeClass(seg, sectionName, key, val, defaultPipeClass || DEFAULT_PIPE_CLASS);
-        updateSegment(selectedSegmentId, next);
-    };
-
-    const setProp = (key, val) => updateSegment(selectedSegmentId, {
-        properties: { ...(seg.properties || {}), [key]: val },
+    const set = (key, val) => updateSegment(selectedSegmentId, {
+        properties: { ...props, [key]: val }
     });
 
     return (
@@ -72,13 +58,12 @@ export const SegmentEditorPanel = () => {
             borderRadius: '8px',
             padding: '14px',
             color: '#f8fafc',
-            width: '315px',
-            maxHeight: '82vh',
-            overflow: 'auto',
+            width: '260px',
             zIndex: 100,
             boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
             fontSize: '12px',
         }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#f59e0b' }}>
                     Segment: {selectedSegmentId}
@@ -89,6 +74,7 @@ export const SegmentEditorPanel = () => {
                 </button>
             </div>
 
+            {/* Read-only info */}
             <div style={{ ...row, marginBottom: '6px' }}>
                 <span style={lbl}>Route</span>
                 <span style={{ color: '#cbd5e1' }}>{seg.startNode} → {seg.endNode}</span>
@@ -98,14 +84,11 @@ export const SegmentEditorPanel = () => {
                 <span style={{ color: '#a3e635', fontWeight: 'bold' }}>{(length / 1000).toFixed(3)} m</span>
             </div>
 
+            {/* Editable fields */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <SketcherMasterDbInsertPanel segmentId={selectedSegmentId} />
-
-                <div style={section}>Pipe</div>
-
                 <div style={row}>
                     <label style={lbl}>Type</label>
-                    <select style={inp} value={seg.properties?.type || seg.type || 'PIPE'} onChange={e => setProp('type', e.target.value)}>
+                    <select style={inp} value={props.type || 'PIPE'} onChange={e => set('type', e.target.value)}>
                         {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                 </div>
@@ -115,14 +98,14 @@ export const SegmentEditorPanel = () => {
                     <input
                         type="number" min="10" max="1200" step="25"
                         style={inp}
-                        value={pipeClass.pipe?.dn ?? 100}
+                        value={props.bore ?? 100}
                         onChange={e => {
                             const newBore = Number(e.target.value);
-                            const currentSched = pipeClass.pipe?.schedule || 'STD';
+                            const currentSched = props.schedule || 'STD';
                             const dims = getPipeDimensions(newBore, currentSched);
-                            let next = updateSegmentPipeClass(seg, 'pipe', 'dn', newBore, defaultPipeClass || DEFAULT_PIPE_CLASS);
-                            next = updateSegmentPipeClass(next, 'pipe', 'wall_mm', dims.wt, defaultPipeClass || DEFAULT_PIPE_CLASS);
-                            updateSegment(selectedSegmentId, next);
+                            updateSegment(selectedSegmentId, {
+                                properties: { ...props, bore: newBore, wt: dims.wt }
+                            });
                         }}
                     />
                 </div>
@@ -131,17 +114,17 @@ export const SegmentEditorPanel = () => {
                     <label style={lbl}>Schedule</label>
                     <select
                         style={inp}
-                        value={pipeClass.pipe?.schedule || 'STD'}
+                        value={props.schedule || 'STD'}
                         onChange={e => {
                             const newSched = e.target.value;
-                            const currentBore = pipeClass.pipe?.dn ?? 100;
+                            const currentBore = props.bore ?? 100;
                             const dims = getPipeDimensions(currentBore, newSched);
-                            let next = updateSegmentPipeClass(seg, 'pipe', 'schedule', newSched, defaultPipeClass || DEFAULT_PIPE_CLASS);
-                            next = updateSegmentPipeClass(next, 'pipe', 'wall_mm', dims.wt, defaultPipeClass || DEFAULT_PIPE_CLASS);
-                            updateSegment(selectedSegmentId, next);
+                            updateSegment(selectedSegmentId, {
+                                properties: { ...props, schedule: newSched, wt: dims.wt }
+                            });
                         }}
                     >
-                        {getAvailableSchedules(pipeClass.pipe?.dn ?? 100).map(s => <option key={s} value={s}>{s}</option>)}
+                        {getAvailableSchedules(props.bore ?? 100).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
 
@@ -150,169 +133,43 @@ export const SegmentEditorPanel = () => {
                     <input
                         type="number" min="0.1" step="0.1"
                         style={inp}
-                        value={pipeClass.pipe?.wall_mm ?? getPipeDimensions(pipeClass.pipe?.dn ?? 100, pipeClass.pipe?.schedule || 'STD').wt}
-                        onChange={e => set('pipe', 'wall_mm', Number(e.target.value))}
+                        value={props.wt ?? getPipeDimensions(props.bore ?? 100, props.schedule || 'STD').wt}
+                        onChange={e => set('wt', Number(e.target.value))}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>Material</label>
-                    <select style={inp} value={pipeClass.pipe?.material || 'CARBON STEEL'} onChange={e => set('pipe', 'material', e.target.value)}>
+                    <select style={inp} value={props.material || 'CARBON STEEL'} onChange={e => set('material', e.target.value)}>
                         {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                 </div>
 
-                <div style={section}>Line / Component Class</div>
-
                 <div style={row}>
-                    <label style={lbl}>Rating Class</label>
-                    <select
-                        data-testid="segment-rating-class"
-                        style={inp}
-                        value={pipeClass.lineClass?.ratingClass ?? 300}
-                        onChange={e => set('lineClass', 'ratingClass', Number(e.target.value))}
-                    >
-                        {[150, 300, 600, 900, 1500, 2500].map(rating => (
-                            <option key={rating} value={rating}>CL{rating}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Face Type</label>
-                    <select
-                        data-testid="segment-face-type"
-                        style={inp}
-                        value={pipeClass.lineClass?.faceType ?? 'RF'}
-                        onChange={e => set('lineClass', 'faceType', e.target.value)}
-                    >
-                        <option value="RF">RF</option>
-                        <option value="RTJ">RTJ</option>
-                        <option value="BW">BW</option>
-                    </select>
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Flange Type</label>
-                    <select
-                        data-testid="segment-flange-type"
-                        style={inp}
-                        value={pipeClass.lineClass?.flangeType ?? 'WN'}
-                        onChange={e => set('lineClass', 'flangeType', e.target.value)}
-                    >
-                        <option value="WN">Weld Neck</option>
-                        <option value="SO">Slip On</option>
-                        <option value="BLIND">Blind</option>
-                        <option value="LJ">Lap Joint</option>
-                    </select>
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Valve Type</label>
-                    <input
-                        data-testid="segment-valve-type"
-                        type="text"
-                        style={inp}
-                        value={pipeClass.lineClass?.valveType ?? 'Flanged Swing check Valve'}
-                        onChange={e => set('lineClass', 'valveType', e.target.value)}
-                    />
-                </div>
-
-                <div style={section}>Temperature / Pressure</div>
-
-                <div style={row}>
-                    <label style={lbl}>Temp °C</label>
-                    <input
-                        type="number" step="5"
-                        style={inp}
-                        value={pipeClass.operating?.designTemperature_C ?? 150}
-                        onChange={e => set('operating', 'designTemperature_C', Number(e.target.value))}
-                    />
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Pressure barg</label>
-                    <input
-                        type="number" step="1"
-                        style={inp}
-                        value={pipeClass.operating?.designPressure_barg ?? 20}
-                        onChange={e => set('operating', 'designPressure_barg', Number(e.target.value))}
-                    />
-                </div>
-
-                <div style={section}>Fluid / Insulation</div>
-
-                <div style={row}>
-                    <label style={lbl}>Fluid kg/m³</label>
+                    <label style={lbl}>Temp (°F)</label>
                     <input
                         type="number" step="10"
                         style={inp}
-                        value={pipeClass.contents?.fluidDensity_kg_m3 ?? 1000}
-                        onChange={e => set('contents', 'fluidDensity_kg_m3', Number(e.target.value))}
+                        value={props.designTemp ?? ''}
+                        placeholder="Global Default"
+                        onChange={e => {
+                            const val = e.target.value;
+                            set('designTemp', val === '' ? undefined : Number(val));
+                        }}
                     />
                 </div>
 
                 <div style={row}>
-                    <label style={lbl}>Fill fraction</label>
-                    <input
-                        type="number" min="0" max="1" step="0.05"
-                        style={inp}
-                        value={pipeClass.contents?.fillFraction ?? 1}
-                        onChange={e => set('contents', 'fillFraction', Number(e.target.value))}
-                    />
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Insul. mm</label>
+                    <label style={lbl}>Insul. (mm)</label>
                     <input
                         type="number" min="0" max="300" step="5"
                         style={inp}
-                        value={pipeClass.insulation?.thickness_mm ?? 0}
-                        onChange={e => set('insulation', 'thickness_mm', Number(e.target.value))}
+                        value={props.insulation ?? 0}
+                        onChange={e => set('insulation', Number(e.target.value))}
                     />
                 </div>
 
-                <div style={row}>
-                    <label style={lbl}>Insul. kg/m³</label>
-                    <input
-                        type="number" min="0" max="500" step="5"
-                        style={inp}
-                        value={pipeClass.insulation?.density_kg_m3 ?? 120}
-                        onChange={e => set('insulation', 'density_kg_m3', Number(e.target.value))}
-                    />
-                </div>
-
-                <div style={section}>Calculation Flags</div>
-
-                <label style={row}>
-                    <span style={lbl}>Deadweight</span>
-                    <input
-                        type="checkbox"
-                        checked={pipeClass.calculationFlags?.includeDeadweight !== false}
-                        onChange={e => set('calculationFlags', 'includeDeadweight', e.target.checked)}
-                    />
-                </label>
-
-                <label style={row}>
-                    <span style={lbl}>Thermal</span>
-                    <input
-                        type="checkbox"
-                        checked={pipeClass.calculationFlags?.includeThermal !== false}
-                        onChange={e => set('calculationFlags', 'includeThermal', e.target.checked)}
-                    />
-                </label>
-
-                {validation.diagnostics.length > 0 && (
-                    <div style={{ border: '1px solid #f59e0b', background: '#451a03', color: '#fde68a', borderRadius: '6px', padding: '8px' }}>
-                        <strong>Diagnostics</strong>
-                        <ul style={{ paddingLeft: '16px', margin: '6px 0 0' }}>
-                            {validation.diagnostics.map((item, index) => (
-                                <li key={`${item.code}-${index}`}>{item.code}: {item.message}</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
+                {/* Delete */}
                 <button
                     onClick={() => deleteSegment(selectedSegmentId)}
                     style={{

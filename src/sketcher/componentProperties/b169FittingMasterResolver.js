@@ -1,3 +1,0 @@
-import { resolveReducerComponentData, resolveTeeComponentData } from '../../core/engineering-data/resolveB169FittingData.js';
-export function resolveReducerInsertData(input = {}) { const r = resolveReducerComponentData(input); return { ...(r.value || {}), sourceStatus: r.sourceStatus, dataStatus: r.status, diagnostics: r.diagnostics || [], trace: ['b16-9-reducer-dimension-match'] }; }
-export function resolveTeeInsertData(input = {}) { const r = resolveTeeComponentData(input); return { ...(r.value || {}), sourceStatus: r.sourceStatus, dataStatus: r.status, diagnostics: r.diagnostics || [], trace: ['b16-9-tee-dimension-match'] }; }

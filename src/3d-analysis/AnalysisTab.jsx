@@ -5,18 +5,13 @@ import { ComponentPanel } from './ComponentPanel';
 import { DebugConsole } from './DebugConsole';
 import { DebugTable } from './DebugTable';
 import { ConfigPanel } from './ConfigPanel';
-import CalculationAssignmentPanel from './CalculationAssignmentPanel';
-import SupportLoadResultsPanel from './SupportLoadResultsPanel';
-import ForceActionResultsPanel from './ForceActionResultsPanel';
-import SimplifiedCalculationSuitePanel from './SimplifiedCalculationSuitePanel';
-import Report3DSimplifiedPanel from './Report3DSimplifiedPanel';
 import { Activity } from 'lucide-react';
 import { VERSION_STRING } from '../config/version';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export const AnalysisTab = () => {
-  const { includeSIF, setIncludeSIF, colorMode, setColorMode, dataGridCollapsed, toggleDataGrid, calculationModel } = useAnalysisStore();
+  const { includeSIF, setIncludeSIF, colorMode, setColorMode, dataGridCollapsed, toggleDataGrid } = useAnalysisStore();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
@@ -53,10 +48,6 @@ export const AnalysisTab = () => {
             <AnalysisCanvas />
             <ComponentPanel />
 
-            <div data-testid="3d-simplified-imported-model-summary" style={{ position: 'absolute', left: '16px', bottom: '16px', background: 'rgba(15,23,42,0.9)', border: '1px solid #334155', borderRadius: '8px', padding: '8px 10px', color: '#cbd5e1', fontSize: '12px', zIndex: 10 }}>
-              3D Simplified Model: {calculationModel ? `${Object.keys(calculationModel.nodes || {}).length} nodes / ${(calculationModel.segments || []).length} segments` : 'not imported'}
-            </div>
-
             {/* Right-side Collapsible Results & Debug Panel */}
             <div style={{
               position: 'absolute',
@@ -84,11 +75,6 @@ export const AnalysisTab = () => {
                     </div>
                     {!dataGridCollapsed && (
                       <div style={{ flex: 1, overflow: 'auto', background: 'transparent' }}>
-                          <CalculationAssignmentPanel />
-                          <SupportLoadResultsPanel />
-                          <ForceActionResultsPanel />
-                          <SimplifiedCalculationSuitePanel />
-                          <Report3DSimplifiedPanel />
                           <DebugTable />
                       </div>
                     )}

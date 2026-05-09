@@ -1,7 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useSketchStore } from './SketcherStore';
-import { resolveFlangeValveFlangeInsertData } from './componentProperties/componentMasterResolver.js';
-import { resolveReducerInsertData } from './componentProperties/b169FittingMasterResolver.js';
 
 const containerStyle = {
   borderTop: '1px solid #334155',
@@ -75,27 +73,6 @@ function EmptyRow({ colSpan = 6, text = 'No rows.' }) {
   return <tr><td style={{ ...tdStyle, color: '#64748b' }} colSpan={colSpan}>{text}</td></tr>;
 }
 
-
-function QuickInsertButtons() {
-  const selectedSegmentId = useSketchStore((s) => s.selectedSegmentId);
-  const segments = useSketchStore((s) => s.segments || []);
-  const insertReducerOnSelectedSegment = useSketchStore((s) => s.insertReducerOnSelectedSegment);
-  const insertFlangeValveFlangeOnSelectedSegment = useSketchStore((s) => s.insertFlangeValveFlangeOnSelectedSegment);
-  const selectedSegment = segments.find((segment) => segment.id === selectedSegmentId);
-  const selectedDn = selectedSegment?.pipe?.dn ?? selectedSegment?.properties?.bore ?? 200;
-  const ratingClass = selectedSegment?.lineClass?.ratingClass ?? selectedSegment?.properties?.ratingClass ?? 300;
-  const faceType = selectedSegment?.lineClass?.faceType ?? selectedSegment?.properties?.faceType ?? 'RF';
-  const flangeType = selectedSegment?.lineClass?.flangeType ?? selectedSegment?.properties?.flangeType ?? 'WN';
-  const valveType = selectedSegment?.lineClass?.valveType ?? selectedSegment?.properties?.valveType ?? 'Flanged Swing check Valve';
-  const schedule = selectedSegment?.pipe?.schedule ?? selectedSegment?.properties?.schedule ?? 'STD';
-  return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      <button type="button" data-testid="element-panel-insert-reducer" disabled={!selectedSegmentId} style={{ ...actionButtonStyle, opacity: selectedSegmentId ? 1 : 0.45 }} onClick={() => { const targetDn = selectedDn > 50 ? selectedDn - 50 : selectedDn; insertReducerOnSelectedSegment(resolveReducerInsertData({ fromDn: selectedDn, toDn: targetDn, reducerType: 'CONCENTRIC', scheduleFrom: schedule, scheduleTo: schedule })); }}>Insert Reducer</button>
-      <button type="button" data-testid="element-panel-insert-fvf" disabled={!selectedSegmentId} style={{ ...actionButtonStyle, opacity: selectedSegmentId ? 1 : 0.45 }} onClick={() => { insertFlangeValveFlangeOnSelectedSegment(resolveFlangeValveFlangeInsertData({ dn: selectedDn, ratingClass, valveType, flangeType, faceType })); }}>Insert F-V-F</button>
-    </div>
-  );
-}
-
 export default function ElementListingPanel() {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('pipes');
@@ -124,7 +101,6 @@ export default function ElementListingPanel() {
       <div style={headerStyle}>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           <strong style={{ color: '#e0f2fe' }}>Element Listing</strong>
-          <QuickInsertButtons />
           {!collapsed && tabs.map(([id, label, testId]) => (
             <button key={id} type="button" data-testid={testId} style={tabButtonStyle(activeTab === id)} onClick={() => setActiveTab(id)}>
               {label}

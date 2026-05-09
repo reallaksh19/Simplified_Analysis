@@ -15,7 +15,7 @@ test.describe('U7 browser workflow smoke', () => {
     await expect(page).toHaveTitle(/Simplified Analysis/i);
     await expect(page.locator('#root')).toBeVisible();
     await page.getByTestId('nav-tab-settings').click();
-    await expect(page.getByText('Settings / Defaults')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Settings / Defaults' })).toBeVisible();
     await expect(page.getByTestId('settings-contract-hash')).toContainText('engineering-settings-v1');
   });
 

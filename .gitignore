@@ -26,5 +26,3 @@ test-results/
 *.njsproj
 *.sln
 *.sw?
-patches/
-reports/

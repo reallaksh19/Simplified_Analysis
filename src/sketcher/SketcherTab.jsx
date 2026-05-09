@@ -17,11 +17,9 @@ import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSi
 import { useAnalysisStore } from '../3d-analysis/AnalysisStore';
 import { Activity } from 'lucide-react';
 import TopologyDiagnosticsPanel from './TopologyDiagnosticsPanel';
-import SketcherDisplaySettingsPanel from './SketcherDisplaySettingsPanel';
-import ElementListingPanel from './ElementListingPanel';
 
 const SketcherToolbar = () => {
-    const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromViewerComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
+    const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
     const appComponents = useAppStore(s => s.components);
     const canonicalGeometry = useAppStore(s => s.activeCanonicalGeometry || s.canonicalGeometry);
     const setAppComponents = useAppStore(s => s.setComponents);
@@ -40,8 +38,7 @@ const SketcherToolbar = () => {
             alert("No geometry in 3D Viewer to import.");
             return;
         }
-        if (importFromViewerComponents) importFromViewerComponents(appComponents);
-        else importFromComponents(appComponents);
+        importFromComponents(appComponents);
     };
 
     const handleSync = () => {
@@ -73,21 +70,12 @@ const SketcherToolbar = () => {
     };
 
     const handlePushTo3DGC = () => {
-        const sketchState = useSketchStore.getState();
-        const { nodes, segments, designTemperature } = sketchState;
+        const { nodes, segments, designTemperature } = useSketchStore.getState();
         if (Object.keys(nodes).length === 0 || segments.length === 0) {
             alert('Sketch is empty — draw at least one pipe segment before pushing.');
             return;
         }
-        const model = sketchState.pushTo3DSimplifiedCalculation
-            ? sketchState.pushTo3DSimplifiedCalculation()
-            : null;
-        const analysisStore = useAnalysisStore.getState();
-        if (model && analysisStore.importCalculationModel) {
-            analysisStore.importCalculationModel(model);
-        } else {
-            analysisStore.importFromSketcher(nodes, segments, { designTemperature });
-        }
+        useAnalysisStore.getState().importFromSketcher(nodes, segments, { designTemperature });
         setActiveTab('3d-analysis');
     };
 
@@ -159,10 +147,6 @@ const SketcherToolbar = () => {
 
             <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
 
-            <SketcherDisplaySettingsPanel />
-
-            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
-
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
                 <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>Global Settings</span>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
@@ -213,9 +197,9 @@ const SketcherToolbar = () => {
                 <ArrowRight size={18} color="#f59e0b" />
                 <span style={{ fontSize: '12px' }}>Analyze 2D</span>
             </button>
-            <button data-testid="sketcher-push-to-3d-simplified" title="Push sketch to 3D Simplified Calculation" style={btnStyle(false)} onClick={handlePushTo3DGC}>
+            <button title="Push sketch to 3D Guided Cantilever solver" style={btnStyle(false)} onClick={handlePushTo3DGC}>
                 <Activity size={18} color="#38bdf8" />
-                <span style={{ fontSize: '12px' }}>Push to 3D Simplified</span>
+                <span style={{ fontSize: '12px' }}>Push to 3D GC</span>
             </button>
             <button title="Sync to 3D Viewer" style={btnStyle(false)} onClick={handleSync}>
                 <UploadCloud size={18} color="#3b82f6" />
@@ -813,8 +797,6 @@ export const SketcherTab = () => {
                         onClose={() => setShowTopologyDiagnostics(false)}
                     />
                 )}
-
-                <ElementListingPanel />
 
                 <ErrorBoundary>
                     <Canvas style={{ cursor: activeTool !== 'select' ? 'crosshair' : 'default' }}>
