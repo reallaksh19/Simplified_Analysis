@@ -4,13 +4,19 @@ import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../cor
 import { convertSelectedNodeToBend, convertSelectedNodeToTee, convertSelectedNodeToOlet, autoConnectPipes as autoConnectPipesCmd, validateSketchCommand } from './commands/professionalDraftingCommands.js';
 import { exportSketchGraphToPCFX, importPCFXToSketchGraph, validatePCFXRoundtrip } from '../core/pcfx/pcfxRoundtripAdapter.js';
 import { serializePCFX, parsePCFXText, downloadTextFile, makePCFXFilename } from '../core/pcfx/pcfxFileUtils.js';
+import { build3DCalculationModelFromSketcher } from './adapters/sketcherTo3DCalculationModel.js';
+import { DEFAULT_PIPE_CLASS, applyPipeClassToSegment, validateSegmentPipeProperties } from './pipeProperties/pipePropertyModel.js';
+import { validateComponentEngineeringData } from './componentProperties/componentEngineeringModel.js';
+import { insertFlangeValveFlangeOnSegment, insertFlangeValveFlangeContinue as insertFlangeValveFlangeContinueCommand, insertReducerOnSegment } from './commands/insertComponentCommands.js';
+import { convertViewerComponentsToSketcher } from './adapters/viewerToSketcherAdapter.js';
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
   saveSnapshot: () => set((state) => {
       const snapshot = {
           nodes: JSON.parse(JSON.stringify(state.nodes)),
-          segments: JSON.parse(JSON.stringify(state.segments))
+          segments: JSON.parse(JSON.stringify(state.segments)),
+          components: JSON.parse(JSON.stringify(state.components || {}))
       };
       return {
           history: {
@@ -28,6 +34,7 @@ export const useSketchStore = create((set, get) => ({
       return {
           nodes: previousState.nodes,
           segments: previousState.segments,
+          components: previousState.components || {},
           history: { past, future: [...state.history.future, currentSnapshot] }
       };
   }),
@@ -40,12 +47,14 @@ export const useSketchStore = create((set, get) => ({
       return {
           nodes: nextState.nodes,
           segments: nextState.segments,
+          components: nextState.components || {},
           history: { past: [...state.history.past, currentSnapshot], future }
       };
   }),
 
   nodes: {},
   segments: [],
+  components: {},
   workingPlane: 'XY', // 'XY', 'XZ', 'YZ'
   workingElevation: 0,
   activeTool: 'select', // 'select', 'draw_pipe', 'add_node'
@@ -59,6 +68,9 @@ export const useSketchStore = create((set, get) => ({
   designTemperature: 450, // Global default temperature (F)
   setDesignTemperature: (temp) => set({ designTemperature: temp }),
 
+  defaultPipeClass: DEFAULT_PIPE_CLASS,
+  setDefaultPipeClass: (defaultPipeClass) => set({ defaultPipeClass }),
+
   topologyDiagnostics: null,
   showTopologyDiagnostics: false,
   lastDraftingCommand: null,
@@ -69,6 +81,10 @@ export const useSketchStore = create((set, get) => ({
   setDraftingState: (newState) => set(s => ({ draftingState: { ...s.draftingState, ...newState } })),
   
   importWarnings: [],
+  lastImportDiagnostics: [],
+  lastImportLossContract: [],
+  last3DCalculationModel: null,
+  last3DPushDiagnostics: [],
   clearWarnings: () => set({ importWarnings: [] }),
 
   autoCenterTrigger: 0,
@@ -78,9 +94,19 @@ export const useSketchStore = create((set, get) => ({
   annotationScale: 1.0,
   showNodeLabels: true,
   showLengthLabels: true,
+  showNodeCoordinates: true,
+  showGrid: true,
+  labelOpacity: 0.75,
+  gridOpacity: 0.32,
+  measureMode: false,
   setAnnotationScale: (scale) => set({ annotationScale: scale }),
   toggleNodeLabels: () => set(s => ({ showNodeLabels: !s.showNodeLabels })),
   toggleLengthLabels: () => set(s => ({ showLengthLabels: !s.showLengthLabels })),
+  toggleNodeCoordinates: () => set(s => ({ showNodeCoordinates: !s.showNodeCoordinates })),
+  toggleGrid: () => set(s => ({ showGrid: !s.showGrid })),
+  setLabelOpacity: (labelOpacity) => set({ labelOpacity }),
+  setGridOpacity: (gridOpacity) => set({ gridOpacity }),
+  setMeasureMode: (measureMode) => set({ measureMode }),
 
   selectedNodeId: null,
   setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedSegmentId: null }),
@@ -123,13 +149,153 @@ export const useSketchStore = create((set, get) => ({
       }));
   },
 
+  applyPipeClassToSegments: (segmentIds = [], pipeClass = get().defaultPipeClass) => {
+      get().saveSnapshot();
+      set((s) => ({
+          segments: s.segments.map((seg) =>
+              segmentIds.length === 0 || segmentIds.includes(seg.id)
+                  ? applyPipeClassToSegment(seg, pipeClass)
+                  : seg
+          )
+      }));
+  },
+
+  validatePipeProperties: () => {
+      const diagnostics = [];
+      for (const segment of get().segments || []) {
+          if (String(segment.type || segment.properties?.type || 'PIPE').toUpperCase() !== 'PIPE') continue;
+          diagnostics.push(...validateSegmentPipeProperties(segment).diagnostics);
+      }
+      set({ topologyDiagnostics: diagnostics, showTopologyDiagnostics: diagnostics.length > 0, lastDraftingCommand: 'VALIDATE_PIPE_PROPERTIES' });
+      return diagnostics;
+  },
+
+  upsertComponent: (component) => {
+      const validation = validateComponentEngineeringData(component);
+      set((s) => ({
+          components: { ...(s.components || {}), [component.id]: component },
+          topologyDiagnostics: validation.diagnostics,
+          showTopologyDiagnostics: validation.diagnostics.length > 0,
+      }));
+      return validation;
+  },
+
+  updateComponent: (componentId, updates) => set((s) => ({
+      components: {
+          ...(s.components || {}),
+          [componentId]: { ...((s.components || {})[componentId] || {}), ...updates },
+      },
+  })),
+
+  deleteComponent: (componentId) => set((s) => {
+      const nextComponents = { ...(s.components || {}) };
+      delete nextComponents[componentId];
+      return {
+          components: nextComponents,
+          segments: s.segments.map((seg) => seg.componentId === componentId ? { ...seg, componentId: null, componentData: null } : seg),
+      };
+  }),
+
+  validateComponents: () => {
+      const diagnostics = [];
+      for (const component of Object.values(get().components || {})) {
+          diagnostics.push(...validateComponentEngineeringData(component).diagnostics);
+      }
+      set({ topologyDiagnostics: diagnostics, showTopologyDiagnostics: diagnostics.length > 0, lastDraftingCommand: 'VALIDATE_COMPONENTS' });
+      return diagnostics;
+  },
+
+  applyInsertComponentCommandResult: (result) => {
+      if (!result) return result;
+      if (!result.ok) {
+          set({
+              topologyDiagnostics: result.diagnostics || [],
+              showTopologyDiagnostics: true,
+              lastDraftingCommand: result.command || 'INSERT_COMPONENT_FAILED',
+          });
+          return result;
+      }
+      get().saveSnapshot();
+      set({
+          nodes: result.nodes || get().nodes,
+          segments: result.segments || get().segments,
+          components: result.components || get().components || {},
+          selectedSegmentId: result.selectedSegmentId ?? null,
+          selectedNodeId: result.selectedNodeId ?? null,
+          topologyDiagnostics: result.diagnostics || [],
+          showTopologyDiagnostics: (result.diagnostics || []).length > 0,
+          lastDraftingCommand: result.command || null,
+      });
+      return result;
+  },
+
+  insertFlangeValveFlangeOnSelectedSegment: (componentInput = {}, insertionDistance_mm = null) => {
+      const state = get();
+      const result = insertFlangeValveFlangeOnSegment({
+          nodes: state.nodes,
+          segments: state.segments,
+          components: state.components || {},
+          segmentId: state.selectedSegmentId,
+          componentInput,
+          insertionDistance_mm,
+      });
+      return get().applyInsertComponentCommandResult(result);
+  },
+
+  insertFlangeValveFlangeContinue: (componentInput = {}, direction = [1, 0, 0]) => {
+      const state = get();
+      const startNodeId = state.selectedNodeId || state.draftingState?.startNodeId;
+      const result = insertFlangeValveFlangeContinueCommand({
+          nodes: state.nodes,
+          segments: state.segments,
+          components: state.components || {},
+          startNodeId,
+          direction,
+          componentInput,
+      });
+      return get().applyInsertComponentCommandResult(result);
+  },
+
+  insertReducerOnSelectedSegment: (componentInput = {}, insertionDistance_mm = null) => {
+      const state = get();
+      const result = insertReducerOnSegment({
+          nodes: state.nodes,
+          segments: state.segments,
+          components: state.components || {},
+          segmentId: state.selectedSegmentId,
+          componentInput,
+          insertionDistance_mm,
+      });
+      return get().applyInsertComponentCommandResult(result);
+  },
+
   selectedItems: { nodes: [], segments: [] },
   setSelectedItems: (items) => set({ selectedItems: items }),
 
   importFromComponents: (components) => {
+      get().importFromViewerComponents(components);
+  },
+
+  importFromViewerComponents: (components, options = {}) => {
       get().saveSnapshot();
-      const { nodes, segments, warnings } = buildGraphFromComponents(components);
-      set({ nodes, segments, importWarnings: warnings || [] });
+      const result = convertViewerComponentsToSketcher(components, {
+          source: options.source || 'viewer-components',
+          toleranceMm: options.toleranceMm ?? 1.0,
+      });
+
+      set({
+          nodes: result.nodes || {},
+          segments: result.segments || [],
+          importWarnings: (result.diagnostics || []).map((item) => item.message || String(item)),
+          lastImportDiagnostics: result.diagnostics || [],
+          lastImportLossContract: result.lossContract || [],
+          topologyDiagnostics: result.diagnostics || [],
+          showTopologyDiagnostics: (result.diagnostics || []).length > 0,
+          lastDraftingCommand: 'IMPORT_VIEWER_TO_SKETCHER',
+      });
+
+      get().triggerAutoCenter();
+      return result;
   },
 
   importFromCanonicalGeometry: (geometry) => {
@@ -146,6 +312,30 @@ export const useSketchStore = create((set, get) => ({
   exportToComponents: () => {
       const { nodes, segments } = get();
       return buildComponentsFromGraph(nodes, segments);
+  },
+
+  build3DCalculationModel: () => {
+      const { nodes, segments, components, designTemperature, workingPlane } = get();
+      const model = build3DCalculationModelFromSketcher({
+          nodes,
+          segments,
+          components: components || {},
+          settings: { designTemperature, workingPlane },
+      });
+      set({
+          last3DCalculationModel: model,
+          last3DPushDiagnostics: model.diagnostics || [],
+      });
+      return model;
+  },
+
+  pushTo3DSimplifiedCalculation: () => {
+      const model = get().build3DCalculationModel();
+      set({
+          last3DCalculationModel: model,
+          last3DPushDiagnostics: model.diagnostics || [],
+      });
+      return model;
   },
 
   // Geometric Actions
@@ -183,7 +373,11 @@ export const useSketchStore = create((set, get) => ({
       const nextNumStr = String(maxNum + 1).padStart(3, '0');
       const id = `S${nextNumStr}`;
 
-      set(s => ({ segments: [...s.segments, { id, startNode: startNodeId, endNode: endNodeId, ...properties }] }));
+      const rawSegment = { id, startNode: startNodeId, endNode: endNodeId, ...properties };
+      const segment = String(rawSegment.type || rawSegment.properties?.type || 'PIPE').toUpperCase() === 'PIPE'
+          ? applyPipeClassToSegment(rawSegment, get().defaultPipeClass)
+          : rawSegment;
+      set(s => ({ segments: [...s.segments, segment] }));
       return id;
   },
 
@@ -207,12 +401,12 @@ export const useSketchStore = create((set, get) => ({
   
   clearSketch: () => {
       get().saveSnapshot();
-      set({ nodes: {}, segments: [] });
+      set({ nodes: {}, segments: [], components: {} });
   },
 
   exportSketch: () => {
-      const { nodes, segments, workingPlane, workingElevation } = get();
-      const data = { version: 1, workingPlane, workingElevation, nodes, segments };
+      const { nodes, segments, components, workingPlane, workingElevation, defaultPipeClass } = get();
+      const data = { version: 2, workingPlane, workingElevation, nodes, segments, components, defaultPipeClass };
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -233,6 +427,8 @@ export const useSketchStore = create((set, get) => ({
           set({
               nodes: data.nodes,
               segments: data.segments,
+              components: data.components || {},
+              defaultPipeClass: data.defaultPipeClass || get().defaultPipeClass,
               workingPlane: data.workingPlane || 'XY',
               workingElevation: data.workingElevation ?? 0,
               importWarnings: [],
