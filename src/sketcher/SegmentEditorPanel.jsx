@@ -25,7 +25,22 @@ const row = {
 const lbl = { fontSize: '11px', color: '#94a3b8', minWidth: '60px' };
 
 const MATERIALS = ['CARBON STEEL', 'STAINLESS STEEL', 'ALLOY STEEL', 'DUPLEX', 'COPPER', 'PVC'];
-const TYPES = ['PIPE', 'REDUCER', 'FLANGE', 'BRANCH LEG'];
+const TYPES = ['PIPE', 'VALVE', 'FLANGE', 'FLANGE_VALVE_FLANGE', 'REDUCER', 'TEE', 'SUPPORT', 'BRANCH LEG'];
+
+const MATERIAL_DENSITY_BY_MATERIAL = {
+    'CARBON STEEL': 7850,
+    'STAINLESS STEEL': 8000,
+    'ALLOY STEEL': 7850,
+    'DUPLEX': 7800,
+    'COPPER': 8960,
+    'PVC': 1380,
+};
+
+function numberOrUndefined(value) {
+    if (value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 export const SegmentEditorPanel = () => {
     const {
@@ -49,6 +64,10 @@ export const SegmentEditorPanel = () => {
 
     const set = (key, val) => updateSegment(selectedSegmentId, {
         properties: { ...props, [key]: val }
+    });
+
+    const setMany = (updates) => updateSegment(selectedSegmentId, {
+        properties: { ...props, ...updates }
     });
 
     return (
@@ -147,8 +166,13 @@ export const SegmentEditorPanel = () => {
                             const newBore = Number(e.target.value);
                             const currentSched = props.schedule || 'STD';
                             const dims = getPipeDimensions(newBore, currentSched);
-                            updateSegment(selectedSegmentId, {
-                                properties: { ...props, bore: newBore, wt: dims.wt }
+
+                            setMany({
+                                bore: newBore,
+                                dn_mm: newBore,
+                                wt: dims.wt,
+                                wall_mm: dims.wt,
+                                od_mm: dims.od ?? props.od_mm,
                             });
                         }}
                     />
@@ -161,10 +185,14 @@ export const SegmentEditorPanel = () => {
                         value={props.schedule || 'STD'}
                         onChange={e => {
                             const newSched = e.target.value;
-                            const currentBore = props.bore ?? 100;
+                            const currentBore = props.dn_mm ?? props.bore ?? 100;
                             const dims = getPipeDimensions(currentBore, newSched);
-                            updateSegment(selectedSegmentId, {
-                                properties: { ...props, schedule: newSched, wt: dims.wt }
+
+                            setMany({
+                                schedule: newSched,
+                                wt: dims.wt,
+                                wall_mm: dims.wt,
+                                od_mm: dims.od ?? props.od_mm,
                             });
                         }}
                     >
@@ -178,38 +206,183 @@ export const SegmentEditorPanel = () => {
                         type="number" min="0.1" step="0.1"
                         style={inp}
                         value={props.wt ?? getPipeDimensions(props.bore ?? 100, props.schedule || 'STD').wt}
-                        onChange={e => set('wt', Number(e.target.value))}
-                    />
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Material</label>
-                    <select style={inp} value={props.material || 'CARBON STEEL'} onChange={e => set('material', e.target.value)}>
-                        {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                </div>
-
-                <div style={row}>
-                    <label style={lbl}>Temp (°F)</label>
-                    <input
-                        type="number" step="10"
-                        style={inp}
-                        value={props.designTemp ?? ''}
-                        placeholder="Global Default"
                         onChange={e => {
-                            const val = e.target.value;
-                            set('designTemp', val === '' ? undefined : Number(val));
+                            const wall = numberOrUndefined(e.target.value);
+                            setMany({
+                                wt: wall,
+                                wall_mm: wall,
+                            });
                         }}
                     />
                 </div>
 
                 <div style={row}>
-                    <label style={lbl}>Insul. (mm)</label>
-                    <input
-                        type="number" min="0" max="300" step="5"
+                    <label style={lbl}>Material</label>
+                    <select
+                        data-testid="sketcher-segment-material"
                         style={inp}
-                        value={props.insulation ?? 0}
-                        onChange={e => set('insulation', Number(e.target.value))}
+                        value={props.material || 'CARBON STEEL'}
+                        onChange={e => {
+                            const material = e.target.value;
+                            setMany({
+                                material,
+                                materialDensity_kg_m3: MATERIAL_DENSITY_BY_MATERIAL[material],
+                            });
+                        }}
+                    >
+                        {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Temp °C</label>
+                    <input
+                        data-testid="sketcher-segment-design-temperature-c"
+                        type="number"
+                        step="1"
+                        style={inp}
+                        value={props.designTemperature_C ?? ''}
+                        placeholder="232"
+                        onChange={e => set('designTemperature_C', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Insul mm</label>
+                    <input
+                        data-testid="sketcher-segment-insulation-thickness-mm"
+                        type="number"
+                        min="0"
+                        max="300"
+                        step="5"
+                        style={inp}
+                        value={props.insulationThickness_mm ?? ''}
+                        placeholder="50"
+                        onChange={e => set('insulationThickness_mm', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Insul ρ</label>
+                    <input
+                        data-testid="sketcher-segment-insulation-density-kg-m3"
+                        type="number"
+                        min="0"
+                        step="5"
+                        style={inp}
+                        value={props.insulationDensity_kg_m3 ?? ''}
+                        placeholder="120"
+                        onChange={e => set('insulationDensity_kg_m3', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>NPS</label>
+                    <input
+                        data-testid="sketcher-segment-nps"
+                        type="text"
+                        style={inp}
+                        value={props.nps ?? ''}
+                        placeholder="4"
+                        onChange={e => set('nps', e.target.value)}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>OD mm</label>
+                    <input
+                        data-testid="sketcher-segment-od-mm"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        style={inp}
+                        value={props.od_mm ?? ''}
+                        placeholder="114.3"
+                        onChange={e => set('od_mm', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Pipe ρ</label>
+                    <input
+                        data-testid="sketcher-segment-material-density-kg-m3"
+                        type="number"
+                        min="0"
+                        step="10"
+                        style={inp}
+                        value={props.materialDensity_kg_m3 ?? ''}
+                        placeholder="7850"
+                        onChange={e => set('materialDensity_kg_m3', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Rating</label>
+                    <input
+                        data-testid="sketcher-segment-rating-class"
+                        type="number"
+                        min="0"
+                        step="1"
+                        style={inp}
+                        value={props.ratingClass ?? ''}
+                        placeholder="150"
+                        onChange={e => set('ratingClass', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Press barg</label>
+                    <input
+                        data-testid="sketcher-segment-design-pressure-barg"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        style={inp}
+                        value={props.designPressure_barg ?? ''}
+                        placeholder="12.5"
+                        onChange={e => set('designPressure_barg', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Fluid ρ</label>
+                    <input
+                        data-testid="sketcher-segment-fluid-density-kg-m3"
+                        type="number"
+                        min="0"
+                        step="1"
+                        style={inp}
+                        value={props.fluidDensity_kg_m3 ?? ''}
+                        placeholder="850"
+                        onChange={e => set('fluidDensity_kg_m3', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Comp kg</label>
+                    <input
+                        data-testid="sketcher-segment-component-weight-kg"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        style={inp}
+                        value={props.componentWeight_kg ?? ''}
+                        placeholder="0"
+                        onChange={e => set('componentWeight_kg', numberOrUndefined(e.target.value))}
+                    />
+                </div>
+
+                <div style={row}>
+                    <label style={lbl}>Comp mm</label>
+                    <input
+                        data-testid="sketcher-segment-component-length-mm"
+                        type="number"
+                        min="0"
+                        step="1"
+                        style={inp}
+                        value={props.componentLength_mm ?? ''}
+                        placeholder="3000"
+                        onChange={e => set('componentLength_mm', numberOrUndefined(e.target.value))}
                     />
                 </div>
 
