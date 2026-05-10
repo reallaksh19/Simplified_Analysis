@@ -3,6 +3,7 @@ import { useSketchStore } from './SketcherStore';
 import { X, Trash2 } from 'lucide-react';
 import * as THREE from 'three';
 import { getAvailableSchedules, getPipeDimensions } from '../core/geometry/pipeSchedules';
+import { listSketcherMasterComponentRows } from './masterDb/sketcherMasterComponentDb.js';
 
 const inp = {
     width: '100%',
@@ -30,6 +31,7 @@ export const SegmentEditorPanel = () => {
     const {
         selectedSegmentId, segments, nodes,
         setSelectedSegmentId, updateSegment, deleteSegment,
+        applyMasterDbComponentToSegment,
     } = useSketchStore();
 
     if (!selectedSegmentId) return null;
@@ -43,6 +45,7 @@ export const SegmentEditorPanel = () => {
         : 0;
 
     const props = seg.properties || {};
+    const masterRows = listSketcherMasterComponentRows();
 
     const set = (key, val) => updateSegment(selectedSegmentId, {
         properties: { ...props, [key]: val }
@@ -92,6 +95,47 @@ export const SegmentEditorPanel = () => {
                         {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                 </div>
+
+                <div style={row}>
+                    <label style={lbl}>Master DB</label>
+                    <select
+                        data-testid="sketcher-master-db-component-select"
+                        style={inp}
+                        value={props.masterDbRowId || ''}
+                        onChange={(e) => {
+                            const rowId = e.target.value;
+                            if (!rowId) return;
+                            applyMasterDbComponentToSegment(selectedSegmentId, rowId);
+                        }}
+                    >
+                        <option value="">Manual / not assigned</option>
+                        {masterRows.map((item) => (
+                            <option key={item.id} value={item.id}>
+                                {item.displayName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {props.masterDbRowId && (
+                    <div
+                        data-testid="sketcher-master-db-provenance"
+                        style={{
+                            border: '1px solid #334155',
+                            background: '#0f172a',
+                            borderRadius: '6px',
+                            padding: '6px',
+                            color: '#cbd5e1',
+                            fontSize: '11px',
+                            lineHeight: 1.35,
+                        }}
+                    >
+                        <div>Row: {props.masterDbRowId}</div>
+                        <div>Length: {props.componentLength_mm ?? 0} mm</div>
+                        <div>Weight: {props.componentWeight_kg ?? 0} kg</div>
+                        <div>Source: {props.propertySource || 'UNSPECIFIED'}</div>
+                    </div>
+                )}
 
                 <div style={row}>
                     <label style={lbl}>Bore (DN)</label>
