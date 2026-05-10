@@ -51,7 +51,7 @@ export const TopNav = () => {
         <TabItem id="home" name="Home" icon={Home} />
         <TabItem id="pcf" name="PCF Import" icon={Table} />
         <TabItem id="sketcher" name="Geometry / Sketcher" icon={PenTool} />
-        <TabItem id="3d-analysis" name="3D Guided Cantilever" icon={Layers} />
+        <TabItem id="3d-analysis" name="3D Simplified Calculation" icon={Layers} />
         <TabItem id="simpAnalysis" name="2D/3D/Pipe Rack Solver" icon={Activity} />
         <TabItem id="reports" name="Reports" icon={FileText} />
         <TabItem id="benchmarks" name="Benchmarks / Validation" icon={CheckSquare} />

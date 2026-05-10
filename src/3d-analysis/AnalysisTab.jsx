@@ -14,11 +14,17 @@ export const AnalysisTab = () => {
   const { includeSIF, setIncludeSIF, colorMode, setColorMode, dataGridCollapsed, toggleDataGrid } = useAnalysisStore();
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+    <div
+      data-testid="3d-simplified-analysis-tab"
+      style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' }}
+    >
       <div style={{ height: '56px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#f8fafc', fontWeight: 'bold', fontSize: '18px' }}>
+        <div
+          data-testid="3d-simplified-analysis-header"
+          style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#f8fafc', fontWeight: 'bold', fontSize: '18px' }}
+        >
           <Activity size={24} color="#3b82f6" />
-          3D Simpl. Analysis
+          <h2 style={{ margin: 0, fontSize: '18px' }}>3D Simplified Calculation</h2>
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'normal', marginLeft: '8px' }}>
             {VERSION_STRING}
           </span>
@@ -28,6 +34,7 @@ export const AnalysisTab = () => {
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontSize: '12px' }}>
                 <span style={{ color: '#94a3b8' }}>Color Mode:</span>
                 <select
+                    data-testid="3d-simplified-color-mode"
                     value={colorMode}
                     onChange={e => setColorMode(e.target.value)}
                     style={{ background: '#0f172a', color: '#f8fafc', border: '1px solid #334155', borderRadius: '4px', padding: '4px' }}
@@ -37,7 +44,12 @@ export const AnalysisTab = () => {
                 </select>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', cursor: 'pointer', fontSize: '12px' }}>
-                <input type="checkbox" checked={includeSIF} onChange={e => setIncludeSIF(e.target.checked)} />
+                <input
+                  data-testid="3d-simplified-include-sif"
+                  type="checkbox"
+                  checked={includeSIF}
+                  onChange={e => setIncludeSIF(e.target.checked)}
+                />
                 Include SIF & k
             </label>
         </div>
@@ -49,7 +61,9 @@ export const AnalysisTab = () => {
             <ComponentPanel />
 
             {/* Right-side Collapsible Results & Debug Panel */}
-            <div style={{
+            <div
+              data-testid="3d-simplified-results-panel"
+              style={{
               position: 'absolute',
               top: '16px',
               right: '16px',
