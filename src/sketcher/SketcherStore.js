@@ -5,6 +5,10 @@ import { convertSelectedNodeToBend, convertSelectedNodeToTee, convertSelectedNod
 import { exportSketchGraphToPCFX, importPCFXToSketchGraph, validatePCFXRoundtrip } from '../core/pcfx/pcfxRoundtripAdapter.js';
 import { serializePCFX, parsePCFXText, downloadTextFile, makePCFXFilename } from '../core/pcfx/pcfxFileUtils.js';
 import { convertViewerComponentsToSketcher } from './adapters/viewerToSketcherAdapter.js';
+import {
+  buildMasterDbSegmentProperties,
+  findSketcherMasterComponentRow,
+} from './masterDb/sketcherMasterComponentDb.js';
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
@@ -134,6 +138,89 @@ export const useSketchStore = create((set, get) => ({
           segments: s.segments.filter(seg => seg.id !== id),
           selectedSegmentId: null,
       }));
+  },
+
+  lastMasterDbApplication: null,
+
+  applyMasterDbComponentToSegment: (segmentId, masterDbRowId) => {
+      const row = findSketcherMasterComponentRow(masterDbRowId);
+
+      if (!row) {
+          const diagnostic = {
+              severity: 'error',
+              code: 'MASTER_DB_ROW_NOT_FOUND',
+              message: `Master DB row was not found: ${masterDbRowId}`,
+              data: { masterDbRowId }
+          };
+
+          set({
+              lastMasterDbApplication: diagnostic,
+              topologyDiagnostics: [diagnostic],
+              showTopologyDiagnostics: true,
+              lastDraftingCommand: 'MASTER_DB_APPLY_FAILED'
+          });
+
+          return { ok: false, diagnostic };
+      }
+
+      const { segments } = get();
+      const target = segments.find((segment) => segment.id === segmentId);
+
+      if (!target) {
+          const diagnostic = {
+              severity: 'error',
+              code: 'MASTER_DB_TARGET_SEGMENT_NOT_FOUND',
+              message: `Cannot apply Master DB row ${masterDbRowId}; segment ${segmentId} was not found.`,
+              data: { masterDbRowId, segmentId }
+          };
+
+          set({
+              lastMasterDbApplication: diagnostic,
+              topologyDiagnostics: [diagnostic],
+              showTopologyDiagnostics: true,
+              lastDraftingCommand: 'MASTER_DB_APPLY_FAILED'
+          });
+
+          return { ok: false, diagnostic };
+      }
+
+      get().saveSnapshot();
+
+      const currentProps = target.properties || {};
+      const masterProps = buildMasterDbSegmentProperties(row);
+
+      const updatedSegment = {
+          ...target,
+          type: masterProps.type,
+          properties: {
+              ...currentProps,
+              ...masterProps
+          }
+      };
+
+      const diagnostic = {
+          severity: 'info',
+          code: 'MASTER_DB_COMPONENT_APPLIED',
+          message: `Applied ${row.displayName} to segment ${segmentId}.`,
+          data: {
+              segmentId,
+              masterDbRowId: row.id,
+              componentLength_mm: row.componentLength_mm,
+              componentWeight_kg: row.componentWeight_kg
+          }
+      };
+
+      set((state) => ({
+          segments: state.segments.map((segment) =>
+              segment.id === segmentId ? updatedSegment : segment
+          ),
+          lastMasterDbApplication: diagnostic,
+          topologyDiagnostics: [diagnostic],
+          showTopologyDiagnostics: true,
+          lastDraftingCommand: 'MASTER_DB_APPLY_COMPONENT'
+      }));
+
+      return { ok: true, row, segment: updatedSegment, diagnostic };
   },
 
   selectedItems: { nodes: [], segments: [] },

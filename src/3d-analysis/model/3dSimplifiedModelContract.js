@@ -132,6 +132,9 @@ function normalizeSegment(segment = {}, index = 0) {
     provenance: {
       propertySource: text(segment.propertySource, ''),
       sourceSegmentId: text(segment.sourceSegmentId, segment.id || ''),
+      masterDbRowId: text(segment.masterDbRowId, ''),
+      masterDbVersion: text(segment.masterDbVersion, ''),
+      masterDbProvenance: clone(segment.masterDbProvenance || null),
     },
 
     componentRefs: Array.isArray(segment.componentRefs) ? [...segment.componentRefs] : [],

@@ -194,6 +194,10 @@ export function ModelContractPanel() {
             propertySummary,
             supportLoadSummary: supportLoads.summary,
             status: validation.status,
+            segments: model.segments.map(s => ({
+              id: s.id,
+              provenance: s.provenance,
+            })),
           },
           null,
           2

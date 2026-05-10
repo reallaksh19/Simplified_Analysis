@@ -573,6 +573,10 @@ export const useAnalysisStore = create((set, get) => ({
           const componentWeight_kg = finiteOrNull(props.componentWeight_kg);
           const componentLength_mm = finiteOrNull(props.componentLength_mm);
 
+          const masterDbRowId = textOrEmpty(props.masterDbRowId);
+          const masterDbVersion = textOrEmpty(props.masterDbVersion);
+          const masterDbProvenance = props.masterDbProvenance ? { ...props.masterDbProvenance } : null;
+
           let compType = props.type || seg.type || 'PIPE';
           compType = String(compType || 'PIPE').toUpperCase();
 
@@ -616,6 +620,9 @@ export const useAnalysisStore = create((set, get) => ({
               componentLength_mm,
 
               propertySource: props.propertySource || 'sketcher-segment-properties',
+              masterDbRowId,
+              masterDbVersion,
+              masterDbProvenance,
               rawProperties: { ...props },
           };
 
