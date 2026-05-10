@@ -563,6 +563,7 @@ export const useAnalysisStore = create((set, get) => ({
           const wt_in = wall_mm != null ? wall_mm / 25.4 : od_in * 0.065;
 
           const material = textOrEmpty(props.material) || get().config.defaultMaterial;
+          const materialDensity_kg_m3 = finiteOrNull(props.materialDensity_kg_m3);
           const ratingClass = finiteOrNull(props.ratingClass) ?? finiteOrNull(props.rating);
           const designTemperature_C = finiteOrNull(props.designTemperature_C);
           const designPressure_barg = finiteOrNull(props.designPressure_barg);
@@ -604,6 +605,7 @@ export const useAnalysisStore = create((set, get) => ({
               od_mm,
               wall_mm,
               material,
+              materialDensity_kg_m3,
               ratingClass,
               designTemperature_C,
               designPressure_barg,

@@ -1,6 +1,6 @@
 {
-  "caseId": "SLICE-D-SKETCHER-PROPERTY-CONTRACT-RUN",
-  "description": "Sketcher pipe run with assignable 3D Simplified Calculation properties. This fixture validates transfer and normalization only; it is not a support-load benchmark.",
+  "caseId": "SLICE-E-SUPPORT-LOAD-SIMPLE-RUN",
+  "description": "Simple 3 m, DN100/NPS4 carbon steel pipe segment with water-equivalent fluid, insulation, and no inline component mass. Used to verify 3D Simplified support load equations only.",
   "sketcher": {
     "workingPlane": "XY",
     "workingElevation": 0,
@@ -60,23 +60,18 @@
           "insulationDensity_kg_m3": 120,
           "componentWeight_kg": 0,
           "componentLength_mm": 3000,
-          "propertySource": "SLICE-D-FIXTURE"
+          "propertySource": "SLICE-E-FIXTURE"
         }
       }
     ]
   },
   "expected": {
     "validationStatus": "READY",
-    "nodes": 2,
-    "segments": 1,
-    "supports": 2,
-    "pipeSegments": 1,
-    "componentSegments": 0,
-    "material": "CARBON STEEL",
-    "schedule": "STD",
-    "rating": "150",
-    "segmentsWithFluidDensity": 1,
-    "segmentsWithInsulation": 1,
-    "segmentsWithComponentWeight": 1
+    "methodId": "SL-E-SIMPLE-END-SUPPORT-WEIGHT-SHARE",
+    "totalWeight_N": 769.435,
+    "totalReaction_N": 769.436,
+    "imbalance_N": -0.001,
+    "supportReaction_N": 384.718,
+    "supportReaction_kgf": 39.230277
   }
 }

@@ -50,6 +50,13 @@ function normalizeNode(id, node = {}) {
     type: text(node.type, 'free'),
     label: text(node.label, id),
     point: toPoint3(node),
+
+    // Slice E — preserve support properties for support-load solver.
+    supportType: text(node.supportType, ''),
+    supportTag: text(node.supportTag, ''),
+    restraint: normalizeRestraint(node.restraint || {}),
+    frictionFactor: finite(node.frictionFactor, null),
+
     raw: clone(node),
   };
 }
@@ -92,6 +99,9 @@ function normalizeSegment(segment = {}, index = 0) {
       wall_mm,
       schedule: text(segment.schedule, ''),
       material: text(segment.material, 'UNSPECIFIED'),
+
+      // Slice E — support-load solver input.
+      materialDensity_kg_m3: finite(segment.materialDensity_kg_m3, null),
     },
 
     lineClass: {
@@ -270,6 +280,15 @@ export function validate3DSimplifiedModelContract(model = {}) {
         severity: 'warn',
         code: 'MODEL_SEGMENT_MATERIAL_UNSPECIFIED',
         message: `Segment ${segment.id} has no assigned material.`,
+        data: { segmentId: segment.id },
+      });
+    }
+
+    if (!(segment.pipe?.materialDensity_kg_m3 > 0)) {
+      diagnostics.push({
+        severity: 'warn',
+        code: 'MODEL_SEGMENT_MATERIAL_DENSITY_MISSING',
+        message: `Segment ${segment.id} has no assigned material density. Support-load solver will use fallback density if executed.`,
         data: { segmentId: segment.id },
       });
     }

@@ -6,6 +6,7 @@ import {
   build3DSimplifiedPropertySummary,
   validate3DSimplifiedModelContract,
 } from './model/3dSimplifiedModelContract.js';
+import { solve3DSimplifiedSupportLoads } from './solvers/supportLoadSolver.js';
 
 const panelStyle = {
   borderBottom: '1px solid #334155',
@@ -47,6 +48,7 @@ export function ModelContractPanel() {
   const validation = useMemo(() => validate3DSimplifiedModelContract(model), [model]);
   const summary = useMemo(() => build3DSimplifiedModelSummary(model), [model]);
   const propertySummary = useMemo(() => build3DSimplifiedPropertySummary(model), [model]);
+  const supportLoads = useMemo(() => solve3DSimplifiedSupportLoads(model), [model]);
 
   return (
     <div data-testid="3d-simplified-model-contract-panel" style={panelStyle}>
@@ -89,6 +91,73 @@ export function ModelContractPanel() {
         <span>Component weights assigned: {propertySummary.segmentsWithComponentWeight}</span>
       </div>
 
+      <div
+        data-testid="3d-simplified-support-load-summary"
+        style={{
+          marginTop: 8,
+          borderTop: '1px solid #1e293b',
+          paddingTop: 8,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 4,
+        }}
+      >
+        <span>Support-load method: {supportLoads.methodId}</span>
+        <span>Total weight N: {supportLoads.summary.totalSegmentWeight_N}</span>
+        <span>Total reaction N: {supportLoads.summary.totalReaction_N}</span>
+        <span>Imbalance N: {supportLoads.summary.imbalance_N}</span>
+      </div>
+
+      <div
+        data-testid="3d-simplified-support-load-table"
+        style={{
+          marginTop: 8,
+          border: '1px solid #1e293b',
+          borderRadius: 6,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr 1fr',
+            background: '#0f172a',
+            color: '#e2e8f0',
+            padding: '4px 6px',
+            fontWeight: 700,
+          }}
+        >
+          <span>Support</span>
+          <span>Node</span>
+          <span>Reaction N</span>
+          <span>Reaction kgf</span>
+        </div>
+
+        {supportLoads.supportReactions.length === 0 ? (
+          <div style={{ padding: '6px', color: '#fca5a5' }}>
+            No support reactions calculated.
+          </div>
+        ) : (
+          supportLoads.supportReactions.map((support) => (
+            <div
+              key={support.supportId}
+              data-testid={`3d-simplified-support-reaction-${support.supportId}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                padding: '4px 6px',
+                borderTop: '1px solid #1e293b',
+              }}
+            >
+              <span>{support.supportId}</span>
+              <span>{support.nodeId}</span>
+              <span>{support.reaction_N}</span>
+              <span>{support.reaction_kgf}</span>
+            </div>
+          ))
+        )}
+      </div>
+
       <details style={{ marginTop: 8 }}>
         <summary style={{ cursor: 'pointer', color: '#93c5fd' }}>Diagnostics</summary>
         <ul data-testid="3d-simplified-model-diagnostics" style={{ paddingLeft: 16, margin: '6px 0 0' }}>
@@ -123,6 +192,7 @@ export function ModelContractPanel() {
             schemaVersion: model.schemaVersion,
             summary,
             propertySummary,
+            supportLoadSummary: supportLoads.summary,
             status: validation.status,
           },
           null,
