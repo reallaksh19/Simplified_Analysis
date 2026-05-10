@@ -9,6 +9,7 @@ import { Activity } from 'lucide-react';
 import { VERSION_STRING } from '../config/version';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ModelContractPanel } from './ModelContractPanel';
 
 export const AnalysisTab = () => {
   const { includeSIF, setIncludeSIF, colorMode, setColorMode, dataGridCollapsed, toggleDataGrid } = useAnalysisStore();
@@ -79,6 +80,8 @@ export const AnalysisTab = () => {
               overflow: 'hidden',
               zIndex: 10
             }}>
+                <ModelContractPanel />
+
                 <div style={{ display: 'flex', flexDirection: 'column', flex: dataGridCollapsed ? '0 0 auto' : '1', transition: 'flex 0.3s' }}>
                     <div
                        style={{ padding: '8px 16px', background: 'rgba(30, 41, 59, 0.9)', borderBottom: '1px solid #334155', fontSize: '12px', fontWeight: 'bold', color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
