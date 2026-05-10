@@ -11,6 +11,10 @@ import {
   create3DSimplifiedReport,
   create3DSimplifiedReportMarkdown,
 } from './reporting/create3DSimplifiedReport.js';
+import {
+  download3DSimplifiedReportText,
+  make3DSimplifiedReportFilename,
+} from './reporting/download3DSimplifiedReport.js';
 
 const panelStyle = {
   borderBottom: '1px solid #334155',
@@ -70,6 +74,28 @@ export function ModelContractPanel() {
     () => create3DSimplifiedReportMarkdown(report),
     [report]
   );
+
+  const handleDownloadMarkdown = () => {
+    download3DSimplifiedReportText({
+      filename: make3DSimplifiedReportFilename({
+        report,
+        extension: 'md',
+      }),
+      content: reportMarkdown,
+      mimeType: 'text/markdown;charset=utf-8',
+    });
+  };
+
+  const handleDownloadJson = () => {
+    download3DSimplifiedReportText({
+      filename: make3DSimplifiedReportFilename({
+        report,
+        extension: 'json',
+      }),
+      content: JSON.stringify(report, null, 2),
+      mimeType: 'application/json;charset=utf-8',
+    });
+  };
 
   return (
     <div data-testid="3d-simplified-model-contract-panel" style={panelStyle}>
@@ -189,11 +215,48 @@ export function ModelContractPanel() {
           padding: 8,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
           <strong style={{ color: '#e0f2fe' }}>3D Simplified Report</strong>
-          <span data-testid="3d-simplified-report-status" style={badgeStyle}>
-            {report.status}
-          </span>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              type="button"
+              data-testid="3d-simplified-report-download-md"
+              onClick={handleDownloadMarkdown}
+              style={{
+                border: '1px solid #2563eb',
+                borderRadius: 6,
+                background: '#1d4ed8',
+                color: '#e0f2fe',
+                padding: '3px 8px',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
+            >
+              Export MD
+            </button>
+
+            <button
+              type="button"
+              data-testid="3d-simplified-report-download-json"
+              onClick={handleDownloadJson}
+              style={{
+                border: '1px solid #0f766e',
+                borderRadius: 6,
+                background: '#0f766e',
+                color: '#ccfbf1',
+                padding: '3px 8px',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
+            >
+              Export JSON
+            </button>
+
+            <span data-testid="3d-simplified-report-status" style={badgeStyle}>
+              {report.status}
+            </span>
+          </div>
         </div>
 
         <div
