@@ -14,7 +14,7 @@ import MarqueeSelection from './MarqueeSelection';
 import { DynamicGrid } from './DynamicGrid';
 import { DraggableNode } from './DraggableNode';
 import { canonicalToSimplified2D } from '../core/geometry/adapters/canonicalToSimplified2D';
-import { useAnalysisStore } from '../3d-analysis/AnalysisStore';
+import { useAnalysisStore } from '../3d-analysis';
 import { Activity } from 'lucide-react';
 import TopologyDiagnosticsPanel from './TopologyDiagnosticsPanel';
 
@@ -28,6 +28,20 @@ const SketcherToolbar = () => {
     const setSimplifiedGeometry = useAppStore(s => s.setSimplifiedGeometry);
     const setAnalysisPayload = useAppStore(s => s.setAnalysisPayload);
     const setActiveTab = useAppStore(s => s.setActiveTab);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        if (window.__SIMPLIFIED_ANALYSIS_E2E__) {
+            window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__ = useSketchStore;
+        }
+
+        return () => {
+            if (window.__SIMPLIFIED_ANALYSIS_E2E__) {
+                delete window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__;
+            }
+        };
+    }, []);
 
     const handleImport = () => {
         if (canonicalGeometry?.segments?.length) {
@@ -69,12 +83,14 @@ const SketcherToolbar = () => {
         setActiveTab('simpAnalysis');
     };
 
-    const handlePushTo3DGC = () => {
+    const handlePushTo3DSimplified = () => {
         const { nodes, segments, designTemperature } = useSketchStore.getState();
-        if (Object.keys(nodes).length === 0 || segments.length === 0) {
+
+        if (Object.keys(nodes || {}).length === 0 || !segments?.length) {
             alert('Sketch is empty — draw at least one pipe segment before pushing.');
             return;
         }
+
         useAnalysisStore.getState().importFromSketcher(nodes, segments, { designTemperature });
         setActiveTab('3d-analysis');
     };
@@ -197,9 +213,14 @@ const SketcherToolbar = () => {
                 <ArrowRight size={18} color="#f59e0b" />
                 <span style={{ fontSize: '12px' }}>Analyze 2D</span>
             </button>
-            <button title="Push sketch to 3D Guided Cantilever solver" style={btnStyle(false)} onClick={handlePushTo3DGC}>
+            <button
+                data-testid="sketcher-push-to-3d-simplified"
+                title="Push sketch to 3D Simplified Calculation"
+                style={btnStyle(false)}
+                onClick={handlePushTo3DSimplified}
+            >
                 <Activity size={18} color="#38bdf8" />
-                <span style={{ fontSize: '12px' }}>Push to 3D GC</span>
+                <span style={{ fontSize: '12px' }}>Push 3D Calc</span>
             </button>
             <button title="Sync to 3D Viewer" style={btnStyle(false)} onClick={handleSync}>
                 <UploadCloud size={18} color="#3b82f6" />
