@@ -7,6 +7,10 @@ import {
   validate3DSimplifiedModelContract,
 } from './model/3dSimplifiedModelContract.js';
 import { solve3DSimplifiedSupportLoads } from './solvers/supportLoadSolver.js';
+import {
+  create3DSimplifiedReport,
+  create3DSimplifiedReportMarkdown,
+} from './reporting/create3DSimplifiedReport.js';
 
 const panelStyle = {
   borderBottom: '1px solid #334155',
@@ -49,6 +53,23 @@ export function ModelContractPanel() {
   const summary = useMemo(() => build3DSimplifiedModelSummary(model), [model]);
   const propertySummary = useMemo(() => build3DSimplifiedPropertySummary(model), [model]);
   const supportLoads = useMemo(() => solve3DSimplifiedSupportLoads(model), [model]);
+
+  const report = useMemo(
+    () =>
+      create3DSimplifiedReport({
+        model,
+        validation,
+        summary,
+        propertySummary,
+        supportLoads,
+      }),
+    [model, validation, summary, propertySummary, supportLoads]
+  );
+
+  const reportMarkdown = useMemo(
+    () => create3DSimplifiedReportMarkdown(report),
+    [report]
+  );
 
   return (
     <div data-testid="3d-simplified-model-contract-panel" style={panelStyle}>
@@ -158,6 +179,90 @@ export function ModelContractPanel() {
         )}
       </div>
 
+      <div
+        data-testid="3d-simplified-report-panel"
+        style={{
+          marginTop: 8,
+          border: '1px solid #1e293b',
+          borderRadius: 6,
+          background: '#020617',
+          padding: 8,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+          <strong style={{ color: '#e0f2fe' }}>3D Simplified Report</strong>
+          <span data-testid="3d-simplified-report-status" style={badgeStyle}>
+            {report.status}
+          </span>
+        </div>
+
+        <div
+          data-testid="3d-simplified-report-summary"
+          style={{
+            marginTop: 8,
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 4,
+          }}
+        >
+          <span>Report ID: {report.reportId}</span>
+          <span>Schema: {report.schemaVersion}</span>
+          <span>Methods: {report.methodIds.join(', ') || 'UNSPECIFIED'}</span>
+          <span>Formula count: {report.formulaIds.length}</span>
+          <span>Support rows: {report.supportLoadTable.length}</span>
+          <span>Segment rows: {report.segmentLoadTable.length}</span>
+          <span>Master DB rows: {report.masterDbProvenance.length}</span>
+          <span>Diagnostics: {report.diagnostics.length}</span>
+        </div>
+
+        <pre
+          data-testid="3d-simplified-report-markdown"
+          style={{
+            marginTop: 8,
+            maxHeight: 180,
+            overflow: 'auto',
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: 6,
+            padding: 8,
+            fontSize: 10,
+            color: '#cbd5e1',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {reportMarkdown}
+        </pre>
+
+        <pre
+          data-testid="3d-simplified-report-json"
+          style={{
+            marginTop: 8,
+            maxHeight: 120,
+            overflow: 'auto',
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: 6,
+            padding: 8,
+            fontSize: 10,
+            color: '#94a3b8',
+          }}
+        >
+          {JSON.stringify(
+            {
+              schemaVersion: report.schemaVersion,
+              reportId: report.reportId,
+              status: report.status,
+              methodIds: report.methodIds,
+              formulaIds: report.formulaIds,
+              supportLoadSummary: report.supportLoadSummary,
+              masterDbProvenance: report.masterDbProvenance,
+            },
+            null,
+            2
+          )}
+        </pre>
+      </div>
+
       <details style={{ marginTop: 8 }}>
         <summary style={{ cursor: 'pointer', color: '#93c5fd' }}>Diagnostics</summary>
         <ul data-testid="3d-simplified-model-diagnostics" style={{ paddingLeft: 16, margin: '6px 0 0' }}>
@@ -193,6 +298,13 @@ export function ModelContractPanel() {
             summary,
             propertySummary,
             supportLoadSummary: supportLoads.summary,
+            reportSummary: {
+              reportId: report.reportId,
+              schemaVersion: report.schemaVersion,
+              methodIds: report.methodIds,
+              formulaIds: report.formulaIds,
+              masterDbRows: report.masterDbProvenance.length,
+            },
             status: validation.status,
             segments: model.segments.map(s => ({
               id: s.id,
