@@ -14,6 +14,26 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value ?? null));
 }
 
+function bool(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (value == null) return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', 'yes', 'y', '1'].includes(normalized)) return true;
+  if (['false', 'no', 'n', '0'].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeRestraint(restraint = {}) {
+  return {
+    x: bool(restraint.x, true),
+    y: bool(restraint.y, true),
+    z: bool(restraint.z, true),
+    rx: bool(restraint.rx, false),
+    ry: bool(restraint.ry, false),
+    rz: bool(restraint.rz, false),
+  };
+}
+
 function toPoint3(node = {}) {
   const pos = Array.isArray(node.pos) ? node.pos : [node.x, node.y, node.z];
 
@@ -51,6 +71,12 @@ function normalizeSegment(segment = {}, index = 0) {
     finite(segment.wt_mm) ??
     (finite(segment.wt_in) != null ? finite(segment.wt_in) * 25.4 : null);
 
+  const dn_mm =
+    finite(segment.dn_mm) ??
+    finite(segment.bore_mm) ??
+    finite(segment.bore) ??
+    null;
+
   return {
     id,
     type: compType,
@@ -60,7 +86,8 @@ function normalizeSegment(segment = {}, index = 0) {
     axis: text(segment.axis, 'UNSPECIFIED'),
 
     pipe: {
-      dn_mm: finite(segment.dn_mm) ?? finite(segment.bore_mm) ?? null,
+      dn_mm,
+      nps: text(segment.nps, ''),
       od_mm,
       wall_mm,
       schedule: text(segment.schedule, ''),
@@ -87,6 +114,16 @@ function normalizeSegment(segment = {}, index = 0) {
       density_kg_m3: finite(segment.insulationDensity_kg_m3, null),
     },
 
+    component: {
+      componentWeight_kg: finite(segment.componentWeight_kg, null),
+      componentLength_mm: finite(segment.componentLength_mm, null),
+    },
+
+    provenance: {
+      propertySource: text(segment.propertySource, ''),
+      sourceSegmentId: text(segment.sourceSegmentId, segment.id || ''),
+    },
+
     componentRefs: Array.isArray(segment.componentRefs) ? [...segment.componentRefs] : [],
     raw: clone(segment),
   };
@@ -94,19 +131,17 @@ function normalizeSegment(segment = {}, index = 0) {
 
 function deriveSupportsFromNodes(nodes = {}) {
   return Object.entries(nodes)
-    .filter(([, node]) => text(node.type).toLowerCase() === 'anchor' || text(node.type).toLowerCase() === 'support')
+    .filter(([, node]) => {
+      const nodeType = text(node.type).toLowerCase();
+      const supportType = text(node.supportType).toLowerCase();
+      return ['anchor', 'support', 'guide', 'rest'].includes(nodeType)
+        || ['anchor', 'support', 'guide', 'rest'].includes(supportType);
+    })
     .map(([id, node]) => ({
-      id: `SUP-${id}`,
+      id: text(node.supportTag, `SUP-${id}`),
       nodeId: id,
-      type: text(node.type, 'anchor'),
-      restraint: {
-        x: true,
-        y: true,
-        z: true,
-        rx: false,
-        ry: false,
-        rz: false,
-      },
+      type: text(node.supportType || node.type, 'support'),
+      restraint: normalizeRestraint(node.restraint),
       frictionFactor: finite(node.frictionFactor, null),
       raw: clone(node),
     }));
@@ -132,14 +167,7 @@ export function build3DSimplifiedModelContract({
         id: text(support.id, `SUP-${index + 1}`),
         nodeId: text(support.nodeId),
         type: text(support.type, 'support'),
-        restraint: {
-          x: Boolean(support.restraint?.x ?? true),
-          y: Boolean(support.restraint?.y ?? true),
-          z: Boolean(support.restraint?.z ?? true),
-          rx: Boolean(support.restraint?.rx ?? false),
-          ry: Boolean(support.restraint?.ry ?? false),
-          rz: Boolean(support.restraint?.rz ?? false),
-        },
+        restraint: normalizeRestraint(support.restraint),
         frictionFactor: finite(support.frictionFactor, null),
         raw: clone(support),
       }))
@@ -236,6 +264,33 @@ export function validate3DSimplifiedModelContract(model = {}) {
         data: { segmentId: segment.id, length_mm: segment.length_mm },
       });
     }
+
+    if (!segment.pipe?.material || segment.pipe.material === 'UNSPECIFIED') {
+      diagnostics.push({
+        severity: 'warn',
+        code: 'MODEL_SEGMENT_MATERIAL_UNSPECIFIED',
+        message: `Segment ${segment.id} has no assigned material.`,
+        data: { segmentId: segment.id },
+      });
+    }
+
+    if (!(segment.pipe?.wall_mm > 0)) {
+      diagnostics.push({
+        severity: 'warn',
+        code: 'MODEL_SEGMENT_WALL_THICKNESS_MISSING',
+        message: `Segment ${segment.id} has no assigned wall thickness.`,
+        data: { segmentId: segment.id },
+      });
+    }
+
+    if (!(segment.contents?.fluidDensity_kg_m3 >= 0)) {
+      diagnostics.push({
+        severity: 'warn',
+        code: 'MODEL_SEGMENT_FLUID_DENSITY_MISSING',
+        message: `Segment ${segment.id} has no assigned fluid density.`,
+        data: { segmentId: segment.id },
+      });
+    }
   }
 
   for (const support of supports) {
@@ -275,5 +330,51 @@ export function build3DSimplifiedModelSummary(model = {}) {
     segments: Array.isArray(model.segments) ? model.segments.length : 0,
     components: Object.keys(model.components || {}).length,
     supports: Array.isArray(model.supports) ? model.supports.length : 0,
+  };
+}
+
+export function build3DSimplifiedPropertySummary(model = {}) {
+  const segments = Array.isArray(model.segments) ? model.segments : [];
+  const supports = Array.isArray(model.supports) ? model.supports : [];
+
+  const pipeMaterials = new Set();
+  const schedules = new Set();
+  const ratings = new Set();
+
+  let pipeSegments = 0;
+  let componentSegments = 0;
+  let segmentsWithFluidDensity = 0;
+  let segmentsWithInsulation = 0;
+  let segmentsWithComponentWeight = 0;
+
+  for (const segment of segments) {
+    if (segment.type === 'PIPE') pipeSegments += 1;
+    if (segment.type !== 'PIPE') componentSegments += 1;
+
+    if (segment.pipe?.material) pipeMaterials.add(segment.pipe.material);
+    if (segment.pipe?.schedule) schedules.add(segment.pipe.schedule);
+    if (segment.lineClass?.ratingClass != null) ratings.add(String(segment.lineClass.ratingClass));
+
+    if (segment.contents?.fluidDensity_kg_m3 != null) segmentsWithFluidDensity += 1;
+    if (
+      segment.insulation?.thickness_mm != null &&
+      segment.insulation?.density_kg_m3 != null
+    ) {
+      segmentsWithInsulation += 1;
+    }
+    if (segment.component?.componentWeight_kg != null) segmentsWithComponentWeight += 1;
+  }
+
+  return {
+    schemaVersion: `${MODEL_3D_SIMPLIFIED_SCHEMA_VERSION}-property-summary`,
+    pipeSegments,
+    componentSegments,
+    supports: supports.length,
+    materials: [...pipeMaterials],
+    schedules: [...schedules],
+    ratings: [...ratings],
+    segmentsWithFluidDensity,
+    segmentsWithInsulation,
+    segmentsWithComponentWeight,
   };
 }

@@ -3,6 +3,7 @@ import { useAnalysisStore } from './AnalysisStore';
 import {
   build3DSimplifiedModelContract,
   build3DSimplifiedModelSummary,
+  build3DSimplifiedPropertySummary,
   validate3DSimplifiedModelContract,
 } from './model/3dSimplifiedModelContract.js';
 
@@ -45,6 +46,7 @@ export function ModelContractPanel() {
 
   const validation = useMemo(() => validate3DSimplifiedModelContract(model), [model]);
   const summary = useMemo(() => build3DSimplifiedModelSummary(model), [model]);
+  const propertySummary = useMemo(() => build3DSimplifiedPropertySummary(model), [model]);
 
   return (
     <div data-testid="3d-simplified-model-contract-panel" style={panelStyle}>
@@ -64,6 +66,27 @@ export function ModelContractPanel() {
         <span>Segments: {summary.segments}</span>
         <span>Components: {summary.components}</span>
         <span>Supports: {summary.supports}</span>
+      </div>
+
+      <div
+        data-testid="3d-simplified-property-contract-summary"
+        style={{
+          marginTop: 8,
+          borderTop: '1px solid #1e293b',
+          paddingTop: 8,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 4,
+        }}
+      >
+        <span>Pipe segments: {propertySummary.pipeSegments}</span>
+        <span>Component segments: {propertySummary.componentSegments}</span>
+        <span>Materials: {propertySummary.materials.join(', ') || 'UNSPECIFIED'}</span>
+        <span>Schedules: {propertySummary.schedules.join(', ') || 'UNSPECIFIED'}</span>
+        <span>Ratings: {propertySummary.ratings.join(', ') || 'UNSPECIFIED'}</span>
+        <span>Fluid density assigned: {propertySummary.segmentsWithFluidDensity}</span>
+        <span>Insulation assigned: {propertySummary.segmentsWithInsulation}</span>
+        <span>Component weights assigned: {propertySummary.segmentsWithComponentWeight}</span>
       </div>
 
       <details style={{ marginTop: 8 }}>
@@ -95,7 +118,16 @@ export function ModelContractPanel() {
           color: '#94a3b8',
         }}
       >
-        {JSON.stringify({ schemaVersion: model.schemaVersion, summary, status: validation.status }, null, 2)}
+        {JSON.stringify(
+          {
+            schemaVersion: model.schemaVersion,
+            summary,
+            propertySummary,
+            status: validation.status,
+          },
+          null,
+          2
+        )}
       </pre>
     </div>
   );
