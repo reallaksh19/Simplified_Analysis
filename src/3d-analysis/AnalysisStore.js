@@ -3,6 +3,26 @@ import { getSIFData } from './GC3DSIFEngine';
 import { getMaterialProperties } from '../utils/materialUtils';
 import { solveGC3D } from '../solvers/3d/solveGC3D.js';
 
+function finiteOrNull(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function textOrEmpty(value) {
+  return String(value ?? '').trim();
+}
+
+function normalizeSupportRestraint(raw = {}) {
+  return {
+    x: Boolean(raw.x ?? true),
+    y: Boolean(raw.y ?? true),
+    z: Boolean(raw.z ?? true),
+    rx: Boolean(raw.rx ?? false),
+    ry: Boolean(raw.ry ?? false),
+    rz: Boolean(raw.rz ?? false),
+  };
+}
+
 export const useAnalysisStore = create((set, get) => ({
   nodes: {},
   segments: [],
@@ -493,10 +513,19 @@ export const useAnalysisStore = create((set, get) => ({
 
       // Convert sketcher nodes — preserve type (anchor, elbow, tee, free)
       Object.entries(sketchNodes).forEach(([id, node]) => {
+          const nodeProps = node.properties || {};
+
           nodes[id] = {
               pos: node.pos,
               type: node.type || 'free',
-              label: id,
+              label: node.label || id,
+
+              // Slice D — support/restraint property contract fields
+              supportType: node.supportType || nodeProps.supportType || node.type || '',
+              restraint: normalizeSupportRestraint(node.restraint || nodeProps.restraint || {}),
+              frictionFactor: finiteOrNull(node.frictionFactor ?? nodeProps.frictionFactor),
+              supportTag: textOrEmpty(node.supportTag || nodeProps.supportTag),
+              rawProperties: { ...nodeProps },
           };
       });
 
@@ -517,11 +546,34 @@ export const useAnalysisStore = create((set, get) => ({
           if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > Math.abs(dz)) axis = 'Y';
           if (Math.abs(dz) > Math.abs(dx) && Math.abs(dz) > Math.abs(dy)) axis = 'Z';
 
-          const bore_mm = seg.properties?.bore || 100;
-          const od_in   = bore_mm / 25.4;
-          const wt_in   = (seg.properties?.wt) ? (seg.properties.wt / 25.4) : (od_in * 0.065); // Use exact WT from schedule if available
-          const material = seg.properties?.material || get().config.defaultMaterial;
-          let compType = seg.properties?.type || 'PIPE';
+          const props = seg.properties || {};
+
+          const dn_mm = finiteOrNull(props.dn_mm) ?? finiteOrNull(props.dn) ?? finiteOrNull(props.bore) ?? 100;
+          const nps = textOrEmpty(props.nps);
+          const schedule = textOrEmpty(props.schedule);
+          const wall_mm = finiteOrNull(props.wall_mm) ?? finiteOrNull(props.wt) ?? finiteOrNull(props.wt_mm);
+
+          const od_mm =
+              finiteOrNull(props.od_mm) ??
+              finiteOrNull(props.od) ??
+              finiteOrNull(props.bore) ??
+              dn_mm;
+
+          const od_in = od_mm / 25.4;
+          const wt_in = wall_mm != null ? wall_mm / 25.4 : od_in * 0.065;
+
+          const material = textOrEmpty(props.material) || get().config.defaultMaterial;
+          const ratingClass = finiteOrNull(props.ratingClass) ?? finiteOrNull(props.rating);
+          const designTemperature_C = finiteOrNull(props.designTemperature_C);
+          const designPressure_barg = finiteOrNull(props.designPressure_barg);
+          const fluidDensity_kg_m3 = finiteOrNull(props.fluidDensity_kg_m3);
+          const insulationThickness_mm = finiteOrNull(props.insulationThickness_mm);
+          const insulationDensity_kg_m3 = finiteOrNull(props.insulationDensity_kg_m3);
+          const componentWeight_kg = finiteOrNull(props.componentWeight_kg);
+          const componentLength_mm = finiteOrNull(props.componentLength_mm);
+
+          let compType = props.type || seg.type || 'PIPE';
+          compType = String(compType || 'PIPE').toUpperCase();
 
           // Inject fitting types if connected to an elbow or tee node
           // This ensures the GC3D solver applies proper Stress Intensification Factors (SIFs)
@@ -538,11 +590,31 @@ export const useAnalysisStore = create((set, get) => ({
               startNode: seg.startNode,
               endNode: seg.endNode,
               compType,
+              type: compType,
               axis,
               length_in,
+              length_mm,
               od_in,
               wt_in,
+
+              // Slice D — 3D Simplified assignable property contract fields
+              dn_mm,
+              nps,
+              schedule,
+              od_mm,
+              wall_mm,
               material,
+              ratingClass,
+              designTemperature_C,
+              designPressure_barg,
+              fluidDensity_kg_m3,
+              insulationThickness_mm,
+              insulationDensity_kg_m3,
+              componentWeight_kg,
+              componentLength_mm,
+
+              propertySource: props.propertySource || 'sketcher-segment-properties',
+              rawProperties: { ...props },
           };
 
           segments.push(gcSeg);
