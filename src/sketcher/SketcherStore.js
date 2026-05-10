@@ -4,6 +4,7 @@ import { sketcherToCanonicalGeometry, canonicalGeometryToSketcher } from '../cor
 import { convertSelectedNodeToBend, convertSelectedNodeToTee, convertSelectedNodeToOlet, autoConnectPipes as autoConnectPipesCmd, validateSketchCommand } from './commands/professionalDraftingCommands.js';
 import { exportSketchGraphToPCFX, importPCFXToSketchGraph, validatePCFXRoundtrip } from '../core/pcfx/pcfxRoundtripAdapter.js';
 import { serializePCFX, parsePCFXText, downloadTextFile, makePCFXFilename } from '../core/pcfx/pcfxFileUtils.js';
+import { convertViewerComponentsToSketcher } from './adapters/viewerToSketcherAdapter.js';
 
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
@@ -69,6 +70,8 @@ export const useSketchStore = create((set, get) => ({
   setDraftingState: (newState) => set(s => ({ draftingState: { ...s.draftingState, ...newState } })),
   
   importWarnings: [],
+  lastImportDiagnostics: [],
+  lastImportLossContract: [],
   clearWarnings: () => set({ importWarnings: [] }),
 
   autoCenterTrigger: 0,
@@ -78,9 +81,19 @@ export const useSketchStore = create((set, get) => ({
   annotationScale: 1.0,
   showNodeLabels: true,
   showLengthLabels: true,
+  showNodeCoordinates: true,
+  showGrid: true,
+  labelOpacity: 0.75,
+  gridOpacity: 0.32,
+  measureMode: false,
   setAnnotationScale: (scale) => set({ annotationScale: scale }),
   toggleNodeLabels: () => set(s => ({ showNodeLabels: !s.showNodeLabels })),
   toggleLengthLabels: () => set(s => ({ showLengthLabels: !s.showLengthLabels })),
+  toggleNodeCoordinates: () => set(s => ({ showNodeCoordinates: !s.showNodeCoordinates })),
+  toggleGrid: () => set(s => ({ showGrid: !s.showGrid })),
+  setLabelOpacity: (labelOpacity) => set({ labelOpacity }),
+  setGridOpacity: (gridOpacity) => set({ gridOpacity }),
+  setMeasureMode: (measureMode) => set({ measureMode }),
 
   selectedNodeId: null,
   setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedSegmentId: null }),
@@ -127,9 +140,29 @@ export const useSketchStore = create((set, get) => ({
   setSelectedItems: (items) => set({ selectedItems: items }),
 
   importFromComponents: (components) => {
+      get().importFromViewerComponents(components);
+  },
+
+  importFromViewerComponents: (components, options = {}) => {
       get().saveSnapshot();
-      const { nodes, segments, warnings } = buildGraphFromComponents(components);
-      set({ nodes, segments, importWarnings: warnings || [] });
+      const result = convertViewerComponentsToSketcher(components, {
+          source: options.source || 'viewer-components',
+          toleranceMm: options.toleranceMm ?? 1.0,
+      });
+
+      set({
+          nodes: result.nodes || {},
+          segments: result.segments || [],
+          importWarnings: (result.diagnostics || []).map((item) => item.message || String(item)),
+          lastImportDiagnostics: result.diagnostics || [],
+          lastImportLossContract: result.lossContract || [],
+          topologyDiagnostics: result.diagnostics || [],
+          showTopologyDiagnostics: (result.diagnostics || []).length > 0,
+          lastDraftingCommand: 'IMPORT_VIEWER_TO_SKETCHER',
+      });
+
+      get().triggerAutoCenter();
+      return result;
   },
 
   importFromCanonicalGeometry: (geometry) => {

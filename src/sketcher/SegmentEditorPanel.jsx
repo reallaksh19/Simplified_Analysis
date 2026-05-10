@@ -112,9 +112,9 @@ export const SegmentEditorPanel = () => {
 
                 <div style={row}>
                     <label style={lbl}>Schedule</label>
-                    <select 
-                        style={inp} 
-                        value={props.schedule || 'STD'} 
+                    <select
+                        style={inp}
+                        value={props.schedule || 'STD'}
                         onChange={e => {
                             const newSched = e.target.value;
                             const currentBore = props.bore ?? 100;
