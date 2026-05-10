@@ -19,7 +19,8 @@
           "type": "PIPE",
           "bore": 100,
           "wt": 6.02,
-          "material": "CARBON STEEL"
+          "material": "CARBON STEEL",
+          "materialDensity_kg_m3": 7850
         }
       }
     ]
