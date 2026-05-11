@@ -10,6 +10,73 @@ import {
   findSketcherMasterComponentRow,
 } from './masterDb/sketcherMasterComponentDb.js';
 
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
+function finiteOrNull(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function vectorLength(a, b) {
+  const dx = Number(b[0]) - Number(a[0]);
+  const dy = Number(b[1]) - Number(a[1]);
+  const dz = Number(b[2]) - Number(a[2]);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function interpolatePoint(a, b, ratio) {
+  return [
+    Number(a[0]) + (Number(b[0]) - Number(a[0])) * ratio,
+    Number(a[1]) + (Number(b[1]) - Number(a[1])) * ratio,
+    Number(a[2]) + (Number(b[2]) - Number(a[2])) * ratio,
+  ];
+}
+
+function nextPaddedIds(existingIds, prefix, count) {
+  let maxNum = 0;
+
+  for (const id of existingIds || []) {
+    const text = String(id || '');
+    if (!text.startsWith(prefix)) continue;
+
+    const parsed = Number.parseInt(text.slice(prefix.length), 10);
+    if (Number.isFinite(parsed) && parsed > maxNum) {
+      maxNum = parsed;
+    }
+  }
+
+  return Array.from({ length: count }, (_, index) =>
+    `${prefix}${String(maxNum + index + 1).padStart(3, '0')}`
+  );
+}
+
+function buildPipeSplitProperties(originalProperties = {}) {
+  const props = cloneJson(originalProperties) || {};
+
+  props.type = 'PIPE';
+
+  delete props.masterDbRowId;
+  delete props.masterDbVersion;
+  delete props.masterDbProvenance;
+  delete props.componentWeight_kg;
+  delete props.componentLength_mm;
+  delete props.propertySource;
+
+  if (props.component) {
+    delete props.component.componentWeight_kg;
+    delete props.component.componentLength_mm;
+  }
+
+  return props;
+}
+
+function uniqueNonEmpty(values = []) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
 export const useSketchStore = create((set, get) => ({
   history: { past: [], future: [] },
   saveSnapshot: () => set((state) => {

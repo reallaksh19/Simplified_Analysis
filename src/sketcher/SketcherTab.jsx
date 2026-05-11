@@ -32,7 +32,7 @@ const SketcherToolbar = () => {
     exportSketch,
     importSketch,
     selectedSegmentId,
-    applyMasterDbComponentToSegment,
+    insertMasterDbComponentIntoSegment,
 } = useSketchStore();
     const appComponents = useAppStore(s => s.components);
     const canonicalGeometry = useAppStore(s => s.activeCanonicalGeometry || s.canonicalGeometry);
@@ -110,16 +110,19 @@ const SketcherToolbar = () => {
         setActiveTab('3d-analysis');
     };
 
-    const handleInsertMasterComponent = (masterDbRowId) => {
+    const handleSplitInsertMasterComponent = (masterDbRowId) => {
         if (!selectedSegmentId) {
             alert('Select a pipe segment before inserting a component.');
             return;
         }
 
-        const result = applyMasterDbComponentToSegment(selectedSegmentId, masterDbRowId);
+        const result = insertMasterDbComponentIntoSegment(selectedSegmentId, masterDbRowId, {
+            placementRatio: 0.5,
+            minimumPipeStub_mm: 1,
+        });
 
         if (!result?.ok) {
-            alert(result?.diagnostic?.message || 'Failed to insert component from Master DB.');
+            alert(result?.diagnostic?.message || 'Failed to split segment and insert component.');
         }
     };
 
@@ -259,27 +262,27 @@ const SketcherToolbar = () => {
 
                 <button
                     data-testid="sketcher-insert-component-valve"
-                    title="Insert valve data from Master DB onto selected segment"
+                    title="Split selected pipe and insert valve data from Master DB"
                     style={{ ...btnStyle(false), fontSize: '11px' }}
-                    onClick={() => handleInsertMasterComponent('MDB-VALVE-4IN-150-CS-001')}
+                    onClick={() => handleSplitInsertMasterComponent('MDB-VALVE-4IN-150-CS-001')}
                 >
                     Insert Valve
                 </button>
 
                 <button
                     data-testid="sketcher-insert-component-flange"
-                    title="Insert flange data from Master DB onto selected segment"
+                    title="Split selected pipe and insert flange data from Master DB"
                     style={{ ...btnStyle(false), fontSize: '11px' }}
-                    onClick={() => handleInsertMasterComponent('MDB-FLANGE-4IN-150-CS-001')}
+                    onClick={() => handleSplitInsertMasterComponent('MDB-FLANGE-4IN-150-CS-001')}
                 >
                     Insert Flange
                 </button>
 
                 <button
                     data-testid="sketcher-insert-component-vfv"
-                    title="Insert flange-valve-flange assembly data from Master DB onto selected segment"
+                    title="Split selected pipe and insert flange-valve-flange assembly data from Master DB"
                     style={{ ...btnStyle(false), fontSize: '11px' }}
-                    onClick={() => handleInsertMasterComponent('MDB-VFV-4IN-150-CS-001')}
+                    onClick={() => handleSplitInsertMasterComponent('MDB-VFV-4IN-150-CS-001')}
                 >
                     Insert F-V-F
                 </button>

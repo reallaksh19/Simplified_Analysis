@@ -577,6 +577,12 @@ export const useAnalysisStore = create((set, get) => ({
           const masterDbRowId = textOrEmpty(props.masterDbRowId);
           const masterDbVersion = textOrEmpty(props.masterDbVersion);
           const masterDbProvenance = props.masterDbProvenance ? { ...props.masterDbProvenance } : null;
+          const loadShareNodeIds = Array.isArray(seg.loadShareNodeIds)
+              ? seg.loadShareNodeIds
+              : Array.isArray(props.loadShareNodeIds)
+                ? props.loadShareNodeIds
+                : [];
+
 
           let compType = props.type || seg.type || 'PIPE';
           compType = String(compType || 'PIPE').toUpperCase();
@@ -631,6 +637,7 @@ export const useAnalysisStore = create((set, get) => ({
               masterDbRowId,
               masterDbVersion,
               masterDbProvenance,
+              loadShareNodeIds,
               rawProperties: { ...props },
           };
 
