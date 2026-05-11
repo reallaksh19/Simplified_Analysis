@@ -70,15 +70,21 @@ function normalizeSegment(segment = {}, index = 0) {
     (finite(segment.length_in) != null ? finite(segment.length_in) * 25.4 : null);
 
   const od_mm =
+    finite(segment.pipe?.od_mm) ??
+    finite(segment.properties?.pipe?.od_mm) ??
     finite(segment.od_mm) ??
     (finite(segment.od_in) != null ? finite(segment.od_in) * 25.4 : null);
 
   const wall_mm =
+    finite(segment.pipe?.wall_mm) ??
+    finite(segment.properties?.pipe?.wall_mm) ??
     finite(segment.wall_mm) ??
     finite(segment.wt_mm) ??
     (finite(segment.wt_in) != null ? finite(segment.wt_in) * 25.4 : null);
 
   const dn_mm =
+    finite(segment.pipe?.dn_mm) ??
+    finite(segment.properties?.pipe?.dn_mm) ??
     finite(segment.dn_mm) ??
     finite(segment.bore_mm) ??
     finite(segment.bore) ??
@@ -94,39 +100,43 @@ function normalizeSegment(segment = {}, index = 0) {
 
     pipe: {
       dn_mm,
-      nps: text(segment.nps, ''),
+      nps: text(segment.pipe?.nps || segment.properties?.pipe?.nps || segment.nps, ''),
       od_mm,
       wall_mm,
-      schedule: text(segment.schedule, ''),
-      material: text(segment.material, 'UNSPECIFIED'),
+      schedule: text(segment.pipe?.schedule || segment.properties?.pipe?.schedule || segment.schedule, ''),
+      material: text(segment.pipe?.material || segment.properties?.pipe?.material || segment.material, 'UNSPECIFIED'),
 
-      // Slice E — support-load solver input.
-      materialDensity_kg_m3: finite(segment.materialDensity_kg_m3, null),
+      // Slice E / M — support-load solver input.
+      materialDensity_kg_m3:
+        finite(segment.pipe?.materialDensity_kg_m3) ??
+        finite(segment.properties?.pipe?.materialDensity_kg_m3) ??
+        finite(segment.materialDensity_kg_m3) ??
+        null,
     },
 
     lineClass: {
-      ratingClass: finite(segment.ratingClass, null),
-      faceType: text(segment.faceType, ''),
-      flangeType: text(segment.flangeType, ''),
+      ratingClass: finite(segment.lineClass?.ratingClass ?? segment.properties?.lineClass?.ratingClass ?? segment.ratingClass, null),
+      faceType: text(segment.lineClass?.faceType || segment.properties?.lineClass?.faceType || segment.faceType, ''),
+      flangeType: text(segment.lineClass?.flangeType || segment.properties?.lineClass?.flangeType || segment.flangeType, ''),
     },
 
     operating: {
-      designTemperature_C: finite(segment.designTemperature_C, null),
-      designPressure_barg: finite(segment.designPressure_barg, null),
+      designTemperature_C: finite(segment.operating?.designTemperature_C ?? segment.properties?.operating?.designTemperature_C ?? segment.designTemperature_C, null),
+      designPressure_barg: finite(segment.operating?.designPressure_barg ?? segment.properties?.operating?.designPressure_barg ?? segment.designPressure_barg, null),
     },
 
     contents: {
-      fluidDensity_kg_m3: finite(segment.fluidDensity_kg_m3, null),
+      fluidDensity_kg_m3: finite(segment.contents?.fluidDensity_kg_m3 ?? segment.properties?.contents?.fluidDensity_kg_m3 ?? segment.fluidDensity_kg_m3, null),
     },
 
     insulation: {
-      thickness_mm: finite(segment.insulationThickness_mm, null),
-      density_kg_m3: finite(segment.insulationDensity_kg_m3, null),
+      thickness_mm: finite(segment.insulation?.thickness_mm ?? segment.properties?.insulation?.thickness_mm ?? segment.insulationThickness_mm, null),
+      density_kg_m3: finite(segment.insulation?.density_kg_m3 ?? segment.properties?.insulation?.density_kg_m3 ?? segment.insulationDensity_kg_m3, null),
     },
 
     component: {
-      componentWeight_kg: finite(segment.componentWeight_kg, null),
-      componentLength_mm: finite(segment.componentLength_mm, null),
+      componentWeight_kg: finite(segment.component?.componentWeight_kg ?? segment.properties?.component?.componentWeight_kg ?? segment.componentWeight_kg, null),
+      componentLength_mm: finite(segment.component?.componentLength_mm ?? segment.properties?.component?.componentLength_mm ?? segment.componentLength_mm, null),
     },
 
     provenance: {
@@ -146,16 +156,23 @@ function deriveSupportsFromNodes(nodes = {}) {
   return Object.entries(nodes)
     .filter(([, node]) => {
       const nodeType = text(node.type).toLowerCase();
-      const supportType = text(node.supportType).toLowerCase();
+      const supportType = text(node.support?.supportType || node.supportType).toLowerCase();
       return ['anchor', 'support', 'guide', 'rest'].includes(nodeType)
         || ['anchor', 'support', 'guide', 'rest'].includes(supportType);
     })
     .map(([id, node]) => ({
       id: text(node.supportTag, `SUP-${id}`),
       nodeId: id,
-      type: text(node.supportType || node.type, 'support'),
-      restraint: normalizeRestraint(node.restraint),
-      frictionFactor: finite(node.frictionFactor, null),
+      type: text(node.support?.supportType || node.supportType || node.type, 'support'),
+      restraint: {
+        x: Boolean(node.support?.restraint?.x ?? node.restraint?.x ?? true),
+        y: Boolean(node.support?.restraint?.y ?? node.restraint?.y ?? true),
+        z: Boolean(node.support?.restraint?.z ?? node.restraint?.z ?? true),
+        rx: Boolean(node.support?.restraint?.rx ?? node.restraint?.rx ?? false),
+        ry: Boolean(node.support?.restraint?.ry ?? node.restraint?.ry ?? false),
+        rz: Boolean(node.support?.restraint?.rz ?? node.restraint?.rz ?? false),
+      },
+      frictionFactor: finite(node.support?.frictionFactor ?? node.frictionFactor, null),
       raw: clone(node),
     }));
 }

@@ -71,7 +71,7 @@ export const SegmentEditorPanel = () => {
     });
 
     return (
-        <div style={{
+        <div data-testid="sketcher-pipe-load-editor" style={{
             position: 'absolute',
             bottom: '16px',
             right: '16px',
@@ -161,18 +161,20 @@ export const SegmentEditorPanel = () => {
                     <input
                         type="number" min="10" max="1200" step="25"
                         style={inp}
-                        value={props.bore ?? 100}
+                        value={props.pipe?.dn_mm ?? props.bore ?? 100}
                         onChange={e => {
                             const newBore = Number(e.target.value);
-                            const currentSched = props.schedule || 'STD';
+                            const currentSched = props.pipe?.schedule || props.schedule || 'STD';
                             const dims = getPipeDimensions(newBore, currentSched);
 
                             setMany({
                                 bore: newBore,
-                                dn_mm: newBore,
-                                wt: dims.wt,
-                                wall_mm: dims.wt,
-                                od_mm: dims.od ?? props.od_mm,
+                                pipe: {
+                                    ...(props.pipe || {}),
+                                    dn_mm: newBore,
+                                    wall_mm: dims.wt,
+                                    od_mm: dims.od ?? props.pipe?.od_mm ?? props.od_mm,
+                                }
                             });
                         }}
                     />
@@ -182,35 +184,42 @@ export const SegmentEditorPanel = () => {
                     <label style={lbl}>Schedule</label>
                     <select
                         style={inp}
-                        value={props.schedule || 'STD'}
+                        value={props.pipe?.schedule || props.schedule || 'STD'}
                         onChange={e => {
                             const newSched = e.target.value;
-                            const currentBore = props.dn_mm ?? props.bore ?? 100;
+                            const currentBore = props.pipe?.dn_mm ?? props.dn_mm ?? props.bore ?? 100;
                             const dims = getPipeDimensions(currentBore, newSched);
 
                             setMany({
                                 schedule: newSched,
-                                wt: dims.wt,
-                                wall_mm: dims.wt,
-                                od_mm: dims.od ?? props.od_mm,
+                                pipe: {
+                                    ...(props.pipe || {}),
+                                    schedule: newSched,
+                                    wall_mm: dims.wt,
+                                    od_mm: dims.od ?? props.pipe?.od_mm ?? props.od_mm,
+                                }
                             });
                         }}
                     >
-                        {getAvailableSchedules(props.bore ?? 100).map(s => <option key={s} value={s}>{s}</option>)}
+                        {getAvailableSchedules(props.pipe?.dn_mm ?? props.bore ?? 100).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>WT (mm)</label>
                     <input
+                        data-testid="sketcher-pipe-wall-mm"
                         type="number" min="0.1" step="0.1"
                         style={inp}
-                        value={props.wt ?? getPipeDimensions(props.bore ?? 100, props.schedule || 'STD').wt}
+                        value={props.pipe?.wall_mm ?? props.wt ?? getPipeDimensions(props.pipe?.dn_mm ?? props.bore ?? 100, props.pipe?.schedule || props.schedule || 'STD').wt}
                         onChange={e => {
                             const wall = numberOrUndefined(e.target.value);
                             setMany({
                                 wt: wall,
-                                wall_mm: wall,
+                                pipe: {
+                                    ...(props.pipe || {}),
+                                    wall_mm: wall,
+                                }
                             });
                         }}
                     />
@@ -221,12 +230,16 @@ export const SegmentEditorPanel = () => {
                     <select
                         data-testid="sketcher-segment-material"
                         style={inp}
-                        value={props.material || 'CARBON STEEL'}
+                        value={props.pipe?.material || props.material || 'CARBON STEEL'}
                         onChange={e => {
                             const material = e.target.value;
                             setMany({
                                 material,
-                                materialDensity_kg_m3: MATERIAL_DENSITY_BY_MATERIAL[material],
+                                pipe: {
+                                    ...(props.pipe || {}),
+                                    material,
+                                    materialDensity_kg_m3: MATERIAL_DENSITY_BY_MATERIAL[material],
+                                }
                             });
                         }}
                     >
@@ -237,42 +250,42 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Temp °C</label>
                     <input
-                        data-testid="sketcher-segment-design-temperature-c"
+                        data-testid="sketcher-design-temperature-c"
                         type="number"
                         step="1"
                         style={inp}
-                        value={props.designTemperature_C ?? ''}
+                        value={props.operating?.designTemperature_C ?? props.designTemperature_C ?? ''}
                         placeholder="232"
-                        onChange={e => set('designTemperature_C', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ operating: { ...(props.operating || {}), designTemperature_C: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>Insul mm</label>
                     <input
-                        data-testid="sketcher-segment-insulation-thickness-mm"
+                        data-testid="sketcher-insulation-thickness-mm"
                         type="number"
                         min="0"
                         max="300"
                         step="5"
                         style={inp}
-                        value={props.insulationThickness_mm ?? ''}
+                        value={props.insulation?.thickness_mm ?? props.insulationThickness_mm ?? ''}
                         placeholder="50"
-                        onChange={e => set('insulationThickness_mm', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ insulation: { ...(props.insulation || {}), thickness_mm: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>Insul ρ</label>
                     <input
-                        data-testid="sketcher-segment-insulation-density-kg-m3"
+                        data-testid="sketcher-insulation-density-kg-m3"
                         type="number"
                         min="0"
                         step="5"
                         style={inp}
-                        value={props.insulationDensity_kg_m3 ?? ''}
+                        value={props.insulation?.density_kg_m3 ?? props.insulationDensity_kg_m3 ?? ''}
                         placeholder="120"
-                        onChange={e => set('insulationDensity_kg_m3', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ insulation: { ...(props.insulation || {}), density_kg_m3: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -282,23 +295,23 @@ export const SegmentEditorPanel = () => {
                         data-testid="sketcher-segment-nps"
                         type="text"
                         style={inp}
-                        value={props.nps ?? ''}
+                        value={props.pipe?.nps ?? props.nps ?? ''}
                         placeholder="4"
-                        onChange={e => set('nps', e.target.value)}
+                        onChange={e => setMany({ pipe: { ...(props.pipe || {}), nps: e.target.value }})}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>OD mm</label>
                     <input
-                        data-testid="sketcher-segment-od-mm"
+                        data-testid="sketcher-pipe-od-mm"
                         type="number"
                         min="0"
                         step="0.1"
                         style={inp}
-                        value={props.od_mm ?? ''}
+                        value={props.pipe?.od_mm ?? props.od_mm ?? ''}
                         placeholder="114.3"
-                        onChange={e => set('od_mm', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ pipe: { ...(props.pipe || {}), od_mm: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -310,9 +323,9 @@ export const SegmentEditorPanel = () => {
                         min="0"
                         step="10"
                         style={inp}
-                        value={props.materialDensity_kg_m3 ?? ''}
+                        value={props.pipe?.materialDensity_kg_m3 ?? props.materialDensity_kg_m3 ?? ''}
                         placeholder="7850"
-                        onChange={e => set('materialDensity_kg_m3', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ pipe: { ...(props.pipe || {}), materialDensity_kg_m3: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -324,37 +337,37 @@ export const SegmentEditorPanel = () => {
                         min="0"
                         step="1"
                         style={inp}
-                        value={props.ratingClass ?? ''}
+                        value={props.lineClass?.ratingClass ?? props.ratingClass ?? ''}
                         placeholder="150"
-                        onChange={e => set('ratingClass', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ lineClass: { ...(props.lineClass || {}), ratingClass: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>Press barg</label>
                     <input
-                        data-testid="sketcher-segment-design-pressure-barg"
+                        data-testid="sketcher-design-pressure-barg"
                         type="number"
                         min="0"
                         step="0.1"
                         style={inp}
-                        value={props.designPressure_barg ?? ''}
+                        value={props.operating?.designPressure_barg ?? props.designPressure_barg ?? ''}
                         placeholder="12.5"
-                        onChange={e => set('designPressure_barg', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ operating: { ...(props.operating || {}), designPressure_barg: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
                 <div style={row}>
                     <label style={lbl}>Fluid ρ</label>
                     <input
-                        data-testid="sketcher-segment-fluid-density-kg-m3"
+                        data-testid="sketcher-fluid-density-kg-m3"
                         type="number"
                         min="0"
                         step="1"
                         style={inp}
-                        value={props.fluidDensity_kg_m3 ?? ''}
+                        value={props.contents?.fluidDensity_kg_m3 ?? props.fluidDensity_kg_m3 ?? ''}
                         placeholder="850"
-                        onChange={e => set('fluidDensity_kg_m3', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ contents: { ...(props.contents || {}), fluidDensity_kg_m3: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -366,9 +379,9 @@ export const SegmentEditorPanel = () => {
                         min="0"
                         step="0.1"
                         style={inp}
-                        value={props.componentWeight_kg ?? ''}
+                        value={props.component?.componentWeight_kg ?? props.componentWeight_kg ?? ''}
                         placeholder="0"
-                        onChange={e => set('componentWeight_kg', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ component: { ...(props.component || {}), componentWeight_kg: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -380,9 +393,9 @@ export const SegmentEditorPanel = () => {
                         min="0"
                         step="1"
                         style={inp}
-                        value={props.componentLength_mm ?? ''}
+                        value={props.component?.componentLength_mm ?? props.componentLength_mm ?? ''}
                         placeholder="3000"
-                        onChange={e => set('componentLength_mm', numberOrUndefined(e.target.value))}
+                        onChange={e => setMany({ component: { ...(props.component || {}), componentLength_mm: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 

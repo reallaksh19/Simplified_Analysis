@@ -2,13 +2,47 @@ import React from 'react';
 import { useSketchStore } from './SketcherStore';
 import { X } from 'lucide-react';
 
+function numberOrUndefined(value) {
+    if (value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function boolFromCheckbox(event) {
+    return Boolean(event.target.checked);
+}
+
+const SUPPORT_TYPES = ['anchor', 'rest', 'guide', 'support', 'free'];
+
+const inp = {
+    width: '100%',
+    background: '#0f172a',
+    border: '1px solid #334155',
+    color: '#f8fafc',
+    padding: '4px 6px',
+    borderRadius: '4px',
+    fontSize: '12px',
+};
+
+const row = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px',
+};
+
+const lbl = { fontSize: '11px', color: '#94a3b8', minWidth: '60px' };
+
 export const NodeEditorPanel = () => {
-    const { selectedNodeId, nodes, updateNode, setSelectedNodeId } = useSketchStore();
+    const selectedNodeId = useSketchStore(s => s.selectedNodeId);
+    const nodes = useSketchStore(s => s.nodes);
+    const segments = useSketchStore(s => s.segments);
+    const updateNode = useSketchStore(s => s.updateNode);
+    const setSelectedNodeId = useSketchStore(s => s.setSelectedNodeId);
 
     if (!selectedNodeId || !nodes[selectedNodeId]) return null;
 
     const node = nodes[selectedNodeId];
-    const segments = useSketchStore(s => s.segments);
 
     // Count how many segments connect to this node
     const connCount = segments.filter(
@@ -31,8 +65,33 @@ export const NodeEditorPanel = () => {
         updateNode(selectedNodeId, { type: e.target.value });
     };
 
+    const supportType = node.supportType || node.type || 'free';
+    const restraint = node.restraint || {
+        x: supportType !== 'free',
+        y: supportType !== 'free',
+        z: supportType !== 'free',
+        rx: false,
+        ry: false,
+        rz: false,
+    };
+
+    const updateSupportField = (updates) => {
+        updateNode(selectedNodeId, {
+            ...updates,
+        });
+    };
+
+    const updateRestraint = (key, value) => {
+        updateNode(selectedNodeId, {
+            restraint: {
+                ...restraint,
+                [key]: value,
+            },
+        });
+    };
+
     return (
-        <div style={{
+        <div data-testid="sketcher-node-editor" style={{
             position: 'absolute',
             bottom: '16px',
             left: '16px',
@@ -67,7 +126,7 @@ export const NodeEditorPanel = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                     <label style={{ fontSize: '12px', width: '40px' }}>Type:</label>
-                    <select value={node.type} onChange={handleTypeChange} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '4px', borderRadius: '4px' }}>
+                    <select data-testid="sketcher-node-type" value={node.type} onChange={handleTypeChange} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', padding: '4px', borderRadius: '4px' }}>
                         <option value="free">Free Node</option>
                         <option value="anchor">Anchor Node</option>
                         <option value="support">Resting Support (+Y)</option>
@@ -89,6 +148,112 @@ export const NodeEditorPanel = () => {
                         <div style={{ fontSize: '10px', color: '#a3e635', marginTop: '4px' }}>✓ Tee fully connected (3/3)</div>
                     )}
                 </div>
+
+                {['support', 'anchor', 'rest', 'guide'].includes(String(node.type || '').toLowerCase()) && (
+                <div
+                    data-testid="sketcher-support-editor"
+                    style={{
+                        marginTop: '10px',
+                        borderTop: '1px solid #334155',
+                        paddingTop: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                    }}
+                >
+                    <div style={{ fontWeight: 700, color: '#bae6fd' }}>
+                        3D Support Properties
+                    </div>
+
+                    <div style={row}>
+                        <label style={lbl}>Tag</label>
+                        <input
+                            data-testid="sketcher-node-support-tag"
+                            style={inp}
+                            value={node.supportTag || ''}
+                            placeholder={`SUP-${selectedNodeId}`}
+                            onChange={(e) => updateSupportField({ supportTag: e.target.value })}
+                        />
+                    </div>
+
+                    <div style={row}>
+                        <label style={lbl}>Type</label>
+                        <select
+                            data-testid="sketcher-node-support-type"
+                            style={inp}
+                            value={supportType}
+                            onChange={(e) => {
+                                const nextType = e.target.value;
+                                const isSupport = nextType !== 'free';
+
+                                updateSupportField({
+                                    type: nextType === 'free' ? 'free' : nextType,
+                                    supportType: nextType,
+                                    restraint: {
+                                        x: isSupport,
+                                        y: isSupport,
+                                        z: isSupport,
+                                        rx: false,
+                                        ry: false,
+                                        rz: false,
+                                    },
+                                });
+                            }}
+                        >
+                            {SUPPORT_TYPES.map((item) => (
+                                <option key={item} value={item}>
+                                    {item}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={row}>
+                        <label style={lbl}>Friction</label>
+                        <input
+                            data-testid="sketcher-node-friction-factor"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            style={inp}
+                            value={node.frictionFactor ?? ''}
+                            placeholder="0.30"
+                            onChange={(e) => updateSupportField({ frictionFactor: numberOrUndefined(e.target.value) })}
+                        />
+                    </div>
+
+                    <div
+                        data-testid="sketcher-node-restraint-editor"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: '6px',
+                            fontSize: '11px',
+                        }}
+                    >
+                        {['x', 'y', 'z', 'rx', 'ry', 'rz'].map((key) => (
+                            <label
+                                key={key}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: '#cbd5e1',
+                                }}
+                            >
+                                <input
+                                    data-testid={`sketcher-node-restraint-${key}`}
+                                    type="checkbox"
+                                    checked={Boolean(restraint[key])}
+                                    onChange={(e) => updateRestraint(key, boolFromCheckbox(e))}
+                                />
+                                {key.toUpperCase()}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+                )}
             </div>
         </div>
     );
