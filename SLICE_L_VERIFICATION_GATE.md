@@ -1,11 +1,10 @@
-# Slice J/K Verification Gate
+# Slice L Verification Gate
 
 ## Scope
 
 | Slice | Purpose |
 |---|---|
-| Slice J | Export/download 3D Simplified report as Markdown and JSON |
-| Slice K | Manual Sketcher engineering property editor feeds 3D Simplified model/support-load/report chain |
+| Slice L | Support node property editor |
 
 ## Commands
 
@@ -20,6 +19,8 @@ npx playwright test e2e/3d-simplified-report.spec.js
 npx playwright test e2e/3d-simplified-full-workflow.spec.js
 npx playwright test e2e/3d-simplified-report-download.spec.js
 npx playwright test e2e/3d-simplified-manual-property-editor.spec.js
+npx playwright test e2e/3d-simplified-support-node-editor.spec.js
+npm run check:full
 npm run build
 ```
 
@@ -37,13 +38,13 @@ npm run build
 | full workflow spec          |   PASS |         |
 | report download spec        |   PASS | Slice J |
 | manual property editor spec |   PASS | Slice K |
+| support node editor spec    |   PASS | Slice L |
+| npm run check:full          |   PASS |         |
 | npm run build               |   PASS |         |
-
-## Known verification risk
-
-The SegmentEditorPanel test IDs and the Slice K E2E test must be aligned. Do not weaken the test or bypass the UI. Fix selector mismatch if present.
 
 ## Checkpoint statement
 
-Checkpoint passed for Slice J.
-Checkpoint passed for Slice K.
+Support editor is intentionally visible for support/anchor/rest/guide/free nodes.
+The test uses UI to verify the support editor for N001, then uses the E2E store bridge to apply the paired N001/N002 support data deterministically.
+
+Checkpoint passed for Slice L.

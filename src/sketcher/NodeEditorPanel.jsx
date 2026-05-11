@@ -149,7 +149,7 @@ export const NodeEditorPanel = () => {
                     )}
                 </div>
 
-                {['support', 'anchor', 'rest', 'guide'].includes(String(node.type || '').toLowerCase()) && (
+                {['support', 'anchor', 'rest', 'guide', 'free'].includes(String(node.type || '').toLowerCase()) && (
                 <div
                     data-testid="sketcher-support-editor"
                     style={{
