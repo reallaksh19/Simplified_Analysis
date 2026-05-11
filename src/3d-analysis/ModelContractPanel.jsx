@@ -319,6 +319,7 @@ export function ModelContractPanel() {
               formulaIds: report.formulaIds,
               supportLoadSummary: report.supportLoadSummary,
               masterDbProvenance: report.masterDbProvenance,
+              supportLoadTable: report.supportLoadTable,
             },
             null,
             2
@@ -372,6 +373,12 @@ export function ModelContractPanel() {
             segments: model.segments.map(s => ({
               id: s.id,
               provenance: s.provenance,
+              pipe: s.pipe,
+              contents: s.contents,
+              insulation: s.insulation,
+              operating: s.operating,
+              lineClass: s.lineClass,
+              component: s.component,
             })),
           },
           null,

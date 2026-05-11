@@ -114,6 +114,8 @@ export function create3DSimplifiedReport({
       supportId: support.supportId,
       nodeId: support.nodeId,
       type: support.type,
+      restraint: support.restraint || {},
+      frictionFactor: support.frictionFactor ?? null,
       reaction_N: support.reaction_N,
       reaction_kgf: support.reaction_kgf,
       assignedSegments: support.assignedSegments || [],
@@ -173,11 +175,16 @@ export function create3DSimplifiedReportMarkdown(report = {}) {
 
   lines.push('## Support Load Table');
   lines.push('');
-  lines.push('| Support | Node | Type | Reaction N | Reaction kgf | Assigned Segments |');
-  lines.push('|---|---|---|---:|---:|---|');
+  lines.push('| Support | Node | Type | Friction | Restraint | Reaction N | Reaction kgf | Assigned Segments |');
+  lines.push('|---|---|---|---:|---|---:|---:|---|');
   for (const support of report.supportLoadTable || []) {
+    const restraint = support.restraint || {};
+    const restraintText = ['x', 'y', 'z', 'rx', 'ry', 'rz']
+      .filter((key) => Boolean(restraint[key]))
+      .join(' ') || 'none';
+
     lines.push(
-      `| ${support.supportId} | ${support.nodeId} | ${support.type} | ${support.reaction_N} | ${support.reaction_kgf} | ${(support.assignedSegments || []).join(', ')} |`
+      `| ${support.supportId} | ${support.nodeId} | ${support.type} | ${support.frictionFactor ?? ''} | ${restraintText} | ${support.reaction_N} | ${support.reaction_kgf} | ${(support.assignedSegments || []).join(', ')} |`
     );
   }
   lines.push('');

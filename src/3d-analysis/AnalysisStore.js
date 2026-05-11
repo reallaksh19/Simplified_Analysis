@@ -519,11 +519,12 @@ export const useAnalysisStore = create((set, get) => ({
               pos: node.pos,
               type: node.type || 'free',
               label: node.label || id,
+              support: node.support || null,
+              frictionFactor: node.support?.frictionFactor ?? node.frictionFactor ?? null,
 
               // Slice D — support/restraint property contract fields
               supportType: node.supportType || nodeProps.supportType || node.type || '',
               restraint: normalizeSupportRestraint(node.restraint || nodeProps.restraint || {}),
-              frictionFactor: finiteOrNull(node.frictionFactor ?? nodeProps.frictionFactor),
               supportTag: textOrEmpty(node.supportTag || nodeProps.supportTag),
               rawProperties: { ...nodeProps },
           };
@@ -618,6 +619,13 @@ export const useAnalysisStore = create((set, get) => ({
               insulationDensity_kg_m3,
               componentWeight_kg,
               componentLength_mm,
+
+              // Slice M — structured properties
+              pipe: props.pipe || null,
+              contents: props.contents || null,
+              insulation: props.insulation || null,
+              operating: props.operating || null,
+              lineClass: props.lineClass || null,
 
               propertySource: props.propertySource || 'sketcher-segment-properties',
               masterDbRowId,
