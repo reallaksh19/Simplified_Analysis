@@ -250,7 +250,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Temp °C</label>
                     <input
-                        data-testid="sketcher-design-temperature-c"
+                        data-testid="sketcher-segment-design-temperature-c"
                         type="number"
                         step="1"
                         style={inp}
@@ -263,7 +263,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Insul mm</label>
                     <input
-                        data-testid="sketcher-insulation-thickness-mm"
+                        data-testid="sketcher-segment-insulation-thickness-mm"
                         type="number"
                         min="0"
                         max="300"
@@ -278,7 +278,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Insul ρ</label>
                     <input
-                        data-testid="sketcher-insulation-density-kg-m3"
+                        data-testid="sketcher-segment-insulation-density-kg-m3"
                         type="number"
                         min="0"
                         step="5"
@@ -304,7 +304,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>OD mm</label>
                     <input
-                        data-testid="sketcher-pipe-od-mm"
+                        data-testid="sketcher-segment-od-mm"
                         type="number"
                         min="0"
                         step="0.1"
@@ -346,7 +346,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Press barg</label>
                     <input
-                        data-testid="sketcher-design-pressure-barg"
+                        data-testid="sketcher-segment-design-pressure-barg"
                         type="number"
                         min="0"
                         step="0.1"
@@ -360,7 +360,7 @@ export const SegmentEditorPanel = () => {
                 <div style={row}>
                     <label style={lbl}>Fluid ρ</label>
                     <input
-                        data-testid="sketcher-fluid-density-kg-m3"
+                        data-testid="sketcher-segment-fluid-density-kg-m3"
                         type="number"
                         min="0"
                         step="1"
@@ -381,7 +381,7 @@ export const SegmentEditorPanel = () => {
                         style={inp}
                         value={props.component?.componentWeight_kg ?? props.componentWeight_kg ?? ''}
                         placeholder="0"
-                        onChange={e => setMany({ component: { ...(props.component || {}), componentWeight_kg: numberOrUndefined(e.target.value) }})}
+                        onChange={e => setMany({ componentWeight_kg: numberOrUndefined(e.target.value), component: { ...(props.component || {}), componentWeight_kg: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
@@ -395,7 +395,7 @@ export const SegmentEditorPanel = () => {
                         style={inp}
                         value={props.component?.componentLength_mm ?? props.componentLength_mm ?? ''}
                         placeholder="3000"
-                        onChange={e => setMany({ component: { ...(props.component || {}), componentLength_mm: numberOrUndefined(e.target.value) }})}
+                        onChange={e => setMany({ componentLength_mm: numberOrUndefined(e.target.value), component: { ...(props.component || {}), componentLength_mm: numberOrUndefined(e.target.value) }})}
                     />
                 </div>
 
