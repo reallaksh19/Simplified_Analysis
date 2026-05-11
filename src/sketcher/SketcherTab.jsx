@@ -19,7 +19,21 @@ import { Activity } from 'lucide-react';
 import TopologyDiagnosticsPanel from './TopologyDiagnosticsPanel';
 
 const SketcherToolbar = () => {
-    const { activeTool, setActiveTool, workingPlane, setWorkingPlane, importFromComponents, importFromCanonicalGeometry, exportToComponents, exportToCanonicalGeometry, clearSketch, exportSketch, importSketch } = useSketchStore();
+    const {
+    activeTool,
+    setActiveTool,
+    workingPlane,
+    setWorkingPlane,
+    importFromComponents,
+    importFromCanonicalGeometry,
+    exportToComponents,
+    exportToCanonicalGeometry,
+    clearSketch,
+    exportSketch,
+    importSketch,
+    selectedSegmentId,
+    applyMasterDbComponentToSegment,
+} = useSketchStore();
     const appComponents = useAppStore(s => s.components);
     const canonicalGeometry = useAppStore(s => s.activeCanonicalGeometry || s.canonicalGeometry);
     const setAppComponents = useAppStore(s => s.setComponents);
@@ -83,6 +97,7 @@ const SketcherToolbar = () => {
         setActiveTab('simpAnalysis');
     };
 
+
     const handlePushTo3DSimplified = () => {
         const { nodes, segments, designTemperature } = useSketchStore.getState();
 
@@ -93,6 +108,19 @@ const SketcherToolbar = () => {
 
         useAnalysisStore.getState().importFromSketcher(nodes, segments, { designTemperature });
         setActiveTab('3d-analysis');
+    };
+
+    const handleInsertMasterComponent = (masterDbRowId) => {
+        if (!selectedSegmentId) {
+            alert('Select a pipe segment before inserting a component.');
+            return;
+        }
+
+        const result = applyMasterDbComponentToSegment(selectedSegmentId, masterDbRowId);
+
+        if (!result?.ok) {
+            alert(result?.diagnostic?.message || 'Failed to insert component from Master DB.');
+        }
     };
 
     const btnStyle = (active) => ({
@@ -222,6 +250,40 @@ const SketcherToolbar = () => {
                 <Activity size={18} color="#38bdf8" />
                 <span style={{ fontSize: '12px' }}>Push 3D Calc</span>
             </button>
+            <div style={{ height: '1px', background: '#334155', width: '100%', margin: '4px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>
+                    Insert Component
+                </span>
+
+                <button
+                    data-testid="sketcher-insert-component-valve"
+                    title="Insert valve data from Master DB onto selected segment"
+                    style={{ ...btnStyle(false), fontSize: '11px' }}
+                    onClick={() => handleInsertMasterComponent('MDB-VALVE-4IN-150-CS-001')}
+                >
+                    Insert Valve
+                </button>
+
+                <button
+                    data-testid="sketcher-insert-component-flange"
+                    title="Insert flange data from Master DB onto selected segment"
+                    style={{ ...btnStyle(false), fontSize: '11px' }}
+                    onClick={() => handleInsertMasterComponent('MDB-FLANGE-4IN-150-CS-001')}
+                >
+                    Insert Flange
+                </button>
+
+                <button
+                    data-testid="sketcher-insert-component-vfv"
+                    title="Insert flange-valve-flange assembly data from Master DB onto selected segment"
+                    style={{ ...btnStyle(false), fontSize: '11px' }}
+                    onClick={() => handleInsertMasterComponent('MDB-VFV-4IN-150-CS-001')}
+                >
+                    Insert F-V-F
+                </button>
+            </div>
             <button title="Sync to 3D Viewer" style={btnStyle(false)} onClick={handleSync}>
                 <UploadCloud size={18} color="#3b82f6" />
                 <span style={{ fontSize: '12px' }}>Sync 3D</span>
