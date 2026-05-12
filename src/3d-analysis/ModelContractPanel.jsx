@@ -319,6 +319,7 @@ export function ModelContractPanel() {
               formulaIds: report.formulaIds,
               supportLoadSummary: report.supportLoadSummary,
               masterDbProvenance: report.masterDbProvenance,
+              componentPlacementTable: report.componentPlacementTable,
               supportLoadTable: report.supportLoadTable,
             },
             null,

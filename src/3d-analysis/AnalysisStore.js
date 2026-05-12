@@ -574,6 +574,12 @@ export const useAnalysisStore = create((set, get) => ({
           const componentWeight_kg = finiteOrNull(props.componentWeight_kg);
           const componentLength_mm = finiteOrNull(props.componentLength_mm);
 
+          const placementRatio = finiteOrNull(props.placementRatio);
+          const componentStartDistance_mm = finiteOrNull(props.componentStartDistance_mm);
+          const componentEndDistance_mm = finiteOrNull(props.componentEndDistance_mm);
+          const splitParentSegmentId = textOrEmpty(props.splitParentSegmentId);
+          const splitRole = textOrEmpty(props.splitRole);
+
           const masterDbRowId = textOrEmpty(props.masterDbRowId);
           const masterDbVersion = textOrEmpty(props.masterDbVersion);
           const masterDbProvenance = props.masterDbProvenance ? { ...props.masterDbProvenance } : null;
@@ -619,6 +625,12 @@ export const useAnalysisStore = create((set, get) => ({
               insulationDensity_kg_m3,
               componentWeight_kg,
               componentLength_mm,
+
+              placementRatio,
+              componentStartDistance_mm,
+              componentEndDistance_mm,
+              splitParentSegmentId,
+              splitRole,
 
               // Slice M — structured properties
               pipe: props.pipe || null,
