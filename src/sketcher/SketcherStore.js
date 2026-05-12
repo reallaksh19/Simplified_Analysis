@@ -165,6 +165,9 @@ export const useSketchStore = create((set, get) => ({
   designTemperature: 450, // Global default temperature (F)
   setDesignTemperature: (temp) => set({ designTemperature: temp }),
 
+  componentPlacementRatio: 50,
+  setComponentPlacementRatio: (ratio) => set({ componentPlacementRatio: ratio }),
+
   topologyDiagnostics: null,
   showTopologyDiagnostics: false,
   lastDraftingCommand: null,
