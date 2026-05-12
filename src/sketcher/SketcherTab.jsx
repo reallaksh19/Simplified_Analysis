@@ -33,6 +33,7 @@ const SketcherToolbar = () => {
     importSketch,
     selectedSegmentId,
     applyMasterDbComponentToSegment,
+    splitInsertMasterDbComponentIntoSegment,
 } = useSketchStore();
     const appComponents = useAppStore(s => s.components);
     const canonicalGeometry = useAppStore(s => s.activeCanonicalGeometry || s.canonicalGeometry);
@@ -120,6 +121,22 @@ const SketcherToolbar = () => {
 
         if (!result?.ok) {
             alert(result?.diagnostic?.message || 'Failed to insert component from Master DB.');
+        }
+    };
+
+    const handlePlaceMasterComponent = (masterDbRowId) => {
+        if (!selectedSegmentId) {
+            alert('Select a pipe segment before placing a component.');
+            return;
+        }
+
+        const result = splitInsertMasterDbComponentIntoSegment(selectedSegmentId, masterDbRowId, {
+            placementRatio: 0.5,
+            minimumPipeStub_mm: 1,
+        });
+
+        if (!result?.ok) {
+            alert(result?.diagnostic?.message || 'Failed to place component from Master DB.');
         }
     };
 
@@ -283,6 +300,39 @@ const SketcherToolbar = () => {
                 >
                     Insert F-V-F
                 </button>
+
+                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>
+                        Place / Split
+                    </span>
+
+                    <button
+                        data-testid="sketcher-place-component-valve"
+                        title="Split selected pipe and place valve from Master DB"
+                        style={{ ...btnStyle(false), fontSize: '11px' }}
+                        onClick={() => handlePlaceMasterComponent('MDB-VALVE-4IN-150-CS-001')}
+                    >
+                        Place Valve
+                    </button>
+
+                    <button
+                        data-testid="sketcher-place-component-flange"
+                        title="Split selected pipe and place flange from Master DB"
+                        style={{ ...btnStyle(false), fontSize: '11px' }}
+                        onClick={() => handlePlaceMasterComponent('MDB-FLANGE-4IN-150-CS-001')}
+                    >
+                        Place Flange
+                    </button>
+
+                    <button
+                        data-testid="sketcher-place-component-vfv"
+                        title="Split selected pipe and place flange-valve-flange assembly from Master DB"
+                        style={{ ...btnStyle(false), fontSize: '11px' }}
+                        onClick={() => handlePlaceMasterComponent('MDB-VFV-4IN-150-CS-001')}
+                    >
+                        Place F-V-F
+                    </button>
+                </div>
             </div>
             <button title="Sync to 3D Viewer" style={btnStyle(false)} onClick={handleSync}>
                 <UploadCloud size={18} color="#3b82f6" />

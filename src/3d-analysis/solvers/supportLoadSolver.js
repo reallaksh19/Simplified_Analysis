@@ -90,7 +90,11 @@ function getSegmentSupportNodes(segment, supportMap) {
   if (supportMap.has(segment.startNode)) nodes.push(segment.startNode);
   if (supportMap.has(segment.endNode)) nodes.push(segment.endNode);
 
-  return nodes;
+  if (nodes.length > 0) {
+    return [...new Set(nodes)];
+  }
+
+  return [...supportMap.keys()];
 }
 
 export function solve3DSimplifiedSupportLoads(model = {}) {
@@ -117,7 +121,7 @@ export function solve3DSimplifiedSupportLoads(model = {}) {
       diagnostics.push({
         severity: 'warn',
         code: 'SUPPORT_LOAD_SEGMENT_HAS_NO_SUPPORT_NODE',
-        message: `Segment ${segment.id} is not connected to a support node. Its weight is not assigned to reactions.`,
+        message: `Segment ${segment.id} is not connected directly to a support node. Its weight is distributed across all available supports by simplified fallback.`,
         data: { segmentId: segment.id },
       });
     }
