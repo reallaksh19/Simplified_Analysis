@@ -34,6 +34,8 @@ const SketcherToolbar = () => {
     selectedSegmentId,
     applyMasterDbComponentToSegment,
     splitInsertMasterDbComponentIntoSegment,
+    componentPlacementRatio,
+    setComponentPlacementRatio,
 } = useSketchStore();
     const appComponents = useAppStore(s => s.components);
     const canonicalGeometry = useAppStore(s => s.activeCanonicalGeometry || s.canonicalGeometry);
@@ -131,7 +133,7 @@ const SketcherToolbar = () => {
         }
 
         const result = splitInsertMasterDbComponentIntoSegment(selectedSegmentId, masterDbRowId, {
-            placementRatio: 0.5,
+            placementRatio: componentPlacementRatio / 100,
             minimumPipeStub_mm: 1,
         });
 
@@ -305,6 +307,28 @@ const SketcherToolbar = () => {
                     <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>
                         Place / Split
                     </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#cbd5e1' }}>Component position %</span>
+                        <input
+                            data-testid="sketcher-component-placement-ratio"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={componentPlacementRatio}
+                            onChange={(e) => setComponentPlacementRatio(Number(e.target.value))}
+                            style={{
+                                width: '40px',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                color: '#fff',
+                                padding: '2px 4px',
+                                fontSize: '11px',
+                                borderRadius: '4px',
+                            }}
+                        />
+                    </div>
 
                     <button
                         data-testid="sketcher-place-component-valve"
