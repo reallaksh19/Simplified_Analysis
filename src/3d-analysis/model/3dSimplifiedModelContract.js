@@ -401,7 +401,9 @@ export function build3DSimplifiedPropertySummary(model = {}) {
     ) {
       segmentsWithInsulation += 1;
     }
-    if (segment.component?.componentWeight_kg != null) segmentsWithComponentWeight += 1;
+    if (Number(segment.component?.componentWeight_kg) > 0) {
+      segmentsWithComponentWeight += 1;
+    }
   }
 
   return {
