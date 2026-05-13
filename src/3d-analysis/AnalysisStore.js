@@ -575,6 +575,10 @@ export const useAnalysisStore = create((set, get) => ({
           const componentLength_mm = finiteOrNull(props.componentLength_mm);
 
           const placementRatio = finiteOrNull(props.placementRatio);
+          const requestedPlacementRatio = finiteOrNull(props.requestedPlacementRatio);
+          const actualPlacementRatio = finiteOrNull(props.actualPlacementRatio);
+          const placementWasClamped = Boolean(props.placementWasClamped);
+          const minimumPipeStub_mm = finiteOrNull(props.minimumPipeStub_mm);
           const componentStartDistance_mm = finiteOrNull(props.componentStartDistance_mm);
           const componentEndDistance_mm = finiteOrNull(props.componentEndDistance_mm);
           const splitParentSegmentId = textOrEmpty(props.splitParentSegmentId);
@@ -627,6 +631,10 @@ export const useAnalysisStore = create((set, get) => ({
               componentLength_mm,
 
               placementRatio,
+              requestedPlacementRatio,
+              actualPlacementRatio,
+              placementWasClamped,
+              minimumPipeStub_mm,
               componentStartDistance_mm,
               componentEndDistance_mm,
               splitParentSegmentId,

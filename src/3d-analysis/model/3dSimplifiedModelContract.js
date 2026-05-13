@@ -100,6 +100,10 @@ function normalizeSegment(segment = {}, index = 0) {
 
     placement: {
       placementRatio: finite(segment.placementRatio, null),
+      requestedPlacementRatio: finite(segment.requestedPlacementRatio, null),
+      actualPlacementRatio: finite(segment.actualPlacementRatio, null),
+      placementWasClamped: segment.placementWasClamped ?? false,
+      minimumPipeStub_mm: finite(segment.minimumPipeStub_mm, null),
       componentStartDistance_mm: finite(segment.componentStartDistance_mm, null),
       componentEndDistance_mm: finite(segment.componentEndDistance_mm, null),
       splitParentSegmentId: text(segment.splitParentSegmentId, ''),
