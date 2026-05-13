@@ -90,6 +90,10 @@ function collectComponentPlacementTable(model = {}) {
       componentLength_mm: round(segment.component?.componentLength_mm, 3),
       componentWeight_kg: round(segment.component?.componentWeight_kg, 6),
       placementRatio: round(segment.placement?.placementRatio, 6),
+      requestedPlacementRatio: round(segment.placement?.requestedPlacementRatio, 6),
+      actualPlacementRatio: round(segment.placement?.actualPlacementRatio, 6),
+      placementWasClamped: segment.placement?.placementWasClamped ?? false,
+      minimumPipeStub_mm: round(segment.placement?.minimumPipeStub_mm, 3),
       componentStartDistance_mm: round(segment.placement?.componentStartDistance_mm, 3),
       componentEndDistance_mm: round(segment.placement?.componentEndDistance_mm, 3),
       splitParentSegmentId: segment.placement?.splitParentSegmentId || '',
@@ -217,12 +221,12 @@ export function create3DSimplifiedReportMarkdown(report = {}) {
   if ((report.componentPlacementTable || []).length === 0) {
     lines.push('No placed components.');
   } else {
-    lines.push('| Segment | Type | Start Node | End Node | Row ID | Source | Placement Ratio | Start mm | End mm | Length mm | Weight kg |');
-    lines.push('|---|---|---|---|---|---|---:|---:|---:|---:|---:|');
+    lines.push('| Segment | Type | Start Node | End Node | Row ID | Source | Requested Ratio | Actual Ratio | Clamped | Minimum Stub mm | Start mm | End mm | Length mm | Weight kg |');
+    lines.push('|---|---|---|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|');
 
     for (const row of report.componentPlacementTable || []) {
       lines.push(
-        `| ${row.segmentId} | ${row.type} | ${row.startNode} | ${row.endNode} | ${row.masterDbRowId} | ${row.propertySource} | ${row.placementRatio} | ${row.componentStartDistance_mm} | ${row.componentEndDistance_mm} | ${row.componentLength_mm} | ${row.componentWeight_kg} |`
+        `| ${row.segmentId} | ${row.type} | ${row.startNode} | ${row.endNode} | ${row.masterDbRowId} | ${row.propertySource} | ${row.requestedPlacementRatio ?? row.placementRatio} | ${row.actualPlacementRatio ?? row.placementRatio} | ${row.placementWasClamped} | ${row.minimumPipeStub_mm ?? ''} | ${row.componentStartDistance_mm} | ${row.componentEndDistance_mm} | ${row.componentLength_mm} | ${row.componentWeight_kg} |`
       );
     }
   }

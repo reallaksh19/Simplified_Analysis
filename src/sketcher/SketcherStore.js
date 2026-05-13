@@ -68,6 +68,11 @@ function sanitizePipeProperties(originalProperties = {}) {
 
   // Remove split/component metadata that should not live on pipe stubs.
   delete props.placementRatio;
+  delete props.requestedPlacementRatio;
+  delete props.actualPlacementRatio;
+  delete props.placementWasClamped;
+  delete props.minimumPipeStub_mm;
+  delete props.componentCenterDistance_mm;
   delete props.componentStartDistance_mm;
   delete props.componentEndDistance_mm;
 
@@ -98,6 +103,11 @@ function buildComponentSegmentProperties(pipeProperties = {}, masterProps = {}, 
     splitRole: 'inline-component',
     splitParentSegmentId: placement.parentSegmentId,
     placementRatio: placement.placementRatio,
+    requestedPlacementRatio: placement.requestedPlacementRatio,
+    actualPlacementRatio: placement.actualPlacementRatio,
+    placementWasClamped: placement.placementWasClamped,
+    minimumPipeStub_mm: placement.minimumPipeStub_mm,
+    componentCenterDistance_mm: placement.componentCenterDistance_mm,
     componentStartDistance_mm: placement.componentStartDistance_mm,
     componentEndDistance_mm: placement.componentEndDistance_mm,
 
@@ -445,17 +455,20 @@ export const useSketchStore = create((set, get) => ({
           return { ok: false, diagnostic };
       }
 
-      const placementRatioRaw = Number(options.placementRatio ?? 0.5);
-      const placementRatio = Number.isFinite(placementRatioRaw)
-          ? Math.min(Math.max(placementRatioRaw, 0), 1)
+      const requestedPlacementRatioRaw = Number(options.placementRatio ?? 0.5);
+      const requestedPlacementRatio = Number.isFinite(requestedPlacementRatioRaw)
+          ? Math.min(Math.max(requestedPlacementRatioRaw, 0), 1)
           : 0.5;
 
       const halfComponent_mm = componentLength_mm / 2;
-      const requestedCenterDistance_mm = segmentLength_mm * placementRatio;
+      const requestedCenterDistance_mm = segmentLength_mm * requestedPlacementRatio;
       const centerDistance_mm = Math.min(
           Math.max(requestedCenterDistance_mm, halfComponent_mm + minimumPipeStub_mm),
           segmentLength_mm - halfComponent_mm - minimumPipeStub_mm
       );
+
+      const actualPlacementRatio = centerDistance_mm / segmentLength_mm;
+      const placementWasClamped = Math.abs(actualPlacementRatio - requestedPlacementRatio) > 1e-6;
 
       const componentStartDistance_mm = centerDistance_mm - halfComponent_mm;
       const componentEndDistance_mm = centerDistance_mm + halfComponent_mm;
@@ -513,7 +526,12 @@ export const useSketchStore = create((set, get) => ({
           endNode: componentEndNodeId,
           properties: buildComponentSegmentProperties(pipeProperties, masterProps, {
               parentSegmentId: target.id,
-              placementRatio,
+              placementRatio: actualPlacementRatio,
+              requestedPlacementRatio,
+              actualPlacementRatio,
+              placementWasClamped,
+              minimumPipeStub_mm,
+              componentCenterDistance_mm: centerDistance_mm,
               componentStartDistance_mm,
               componentEndDistance_mm,
           })
@@ -547,7 +565,9 @@ export const useSketchStore = create((set, get) => ({
               segmentLength_mm,
               componentLength_mm,
               componentWeight_kg: row.componentWeight_kg,
-              placementRatio,
+              requestedPlacementRatio,
+              actualPlacementRatio,
+              placementWasClamped,
           }
       };
 
