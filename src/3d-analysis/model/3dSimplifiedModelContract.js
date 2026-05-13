@@ -98,6 +98,14 @@ function normalizeSegment(segment = {}, index = 0) {
     length_mm,
     axis: text(segment.axis, 'UNSPECIFIED'),
 
+    placement: {
+      placementRatio: finite(segment.placementRatio, null),
+      componentStartDistance_mm: finite(segment.componentStartDistance_mm, null),
+      componentEndDistance_mm: finite(segment.componentEndDistance_mm, null),
+      splitParentSegmentId: text(segment.splitParentSegmentId, ''),
+      splitRole: text(segment.splitRole, ''),
+    },
+
     pipe: {
       dn_mm,
       nps: text(segment.pipe?.nps || segment.properties?.pipe?.nps || segment.nps, ''),

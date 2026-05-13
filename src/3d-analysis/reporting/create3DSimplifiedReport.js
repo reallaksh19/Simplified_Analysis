@@ -77,6 +77,26 @@ function collectInputSummary(model = {}, propertySummary = {}, supportLoads = {}
   };
 }
 
+function collectComponentPlacementTable(model = {}) {
+  return (model.segments || [])
+    .filter((segment) => segment.provenance?.masterDbRowId)
+    .map((segment) => ({
+      segmentId: segment.id,
+      type: segment.type,
+      startNode: segment.startNode,
+      endNode: segment.endNode,
+      masterDbRowId: segment.provenance?.masterDbRowId || '',
+      propertySource: segment.provenance?.propertySource || '',
+      componentLength_mm: round(segment.component?.componentLength_mm, 3),
+      componentWeight_kg: round(segment.component?.componentWeight_kg, 6),
+      placementRatio: round(segment.placement?.placementRatio, 6),
+      componentStartDistance_mm: round(segment.placement?.componentStartDistance_mm, 3),
+      componentEndDistance_mm: round(segment.placement?.componentEndDistance_mm, 3),
+      splitParentSegmentId: segment.placement?.splitParentSegmentId || '',
+      splitRole: segment.placement?.splitRole || '',
+    }));
+}
+
 export function create3DSimplifiedReport({
   model,
   validation,
@@ -142,6 +162,8 @@ export function create3DSimplifiedReport({
     diagnostics,
 
     masterDbProvenance,
+
+    componentPlacementTable: collectComponentPlacementTable(model),
   };
 }
 
@@ -188,6 +210,25 @@ export function create3DSimplifiedReportMarkdown(report = {}) {
     );
   }
   lines.push('');
+
+  lines.push('## Component Placement Table');
+  lines.push('');
+
+  if ((report.componentPlacementTable || []).length === 0) {
+    lines.push('No placed components.');
+  } else {
+    lines.push('| Segment | Type | Start Node | End Node | Row ID | Source | Placement Ratio | Start mm | End mm | Length mm | Weight kg |');
+    lines.push('|---|---|---|---|---|---|---:|---:|---:|---:|---:|');
+
+    for (const row of report.componentPlacementTable || []) {
+      lines.push(
+        `| ${row.segmentId} | ${row.type} | ${row.startNode} | ${row.endNode} | ${row.masterDbRowId} | ${row.propertySource} | ${row.placementRatio} | ${row.componentStartDistance_mm} | ${row.componentEndDistance_mm} | ${row.componentLength_mm} | ${row.componentWeight_kg} |`
+      );
+    }
+  }
+  lines.push('');
+
+
 
   lines.push('## Segment Load Table');
   lines.push('');
