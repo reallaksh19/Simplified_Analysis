@@ -1,0 +1,32 @@
+{
+  "caseId": "SLICE-R-COMPONENT-PLACEMENT-WARNING-RUN",
+  "description": "Verifies that the Sketcher SegmentEditorPanel displays a visible warning when a component's placement was clamped due to minimum stub constraints.",
+  "sketcher": {
+    "nodes": {
+      "N001": { "pos": [0, 0, 0] },
+      "N002": { "pos": [3000, 0, 0] }
+    },
+    "segments": [
+      {
+        "id": "S001",
+        "startNode": "N001",
+        "endNode": "N002",
+        "type": "PIPE",
+        "properties": {
+          "type": "PIPE",
+          "dn_mm": 100,
+          "componentLength_mm": 3000,
+          "placementWasClamped": true,
+          "requestedPlacementRatio": 0.05,
+          "actualPlacementRatio": 0.166667
+        }
+      }
+    ],
+    "selectedSegmentId": "S001"
+  },
+  "expected": {
+    "warningVisible": true,
+    "requestedText": "Requested ratio: 0.05",
+    "actualText": "Actual ratio: 0.166667"
+  }
+}

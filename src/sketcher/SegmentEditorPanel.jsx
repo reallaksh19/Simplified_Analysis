@@ -116,6 +116,27 @@ export const SegmentEditorPanel = () => {
                 <span style={{ color: '#a3e635', fontWeight: 'bold' }}>{(length / 1000).toFixed(3)} m</span>
             </div>
 
+
+            {props.placementWasClamped && (
+                <div
+                    data-testid="sketcher-component-placement-warning"
+                    style={{
+                        background: '#7f1d1d',
+                        border: '1px solid #ef4444',
+                        color: '#fca5a5',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        marginBottom: '6px',
+                        fontSize: '11px',
+                        lineHeight: '1.4'
+                    }}
+                >
+                    <strong>Placement was clamped</strong><br/>
+                    Requested ratio: {formatPlacementNumber(props.requestedPlacementRatio)}<br/>
+                    Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}
+                </div>
+            )}
+
             {/* Editable fields */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={row}>

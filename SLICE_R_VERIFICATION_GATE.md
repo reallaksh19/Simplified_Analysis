@@ -13,6 +13,7 @@ npx playwright test e2e/3d-simplified-component-split-placement.spec.js
 npx playwright test e2e/3d-simplified-component-placement-ratio.spec.js
 npx playwright test e2e/3d-simplified-component-placement-report.spec.js
 npx playwright test e2e/3d-simplified-component-placement-clamp.spec.js
+npx playwright test e2e/3d-simplified-component-placement-warning.spec.js
 npm run check:full
 npm run build
 ```
@@ -25,6 +26,7 @@ npm run build
 | component placement ratio spec |   PASS | Slice O            |
 | component placement report spec|   PASS | Slice P            |
 | component placement clamp spec |   PASS | Slice Q            |
+| component placement warning spec |   PASS | Slice R            |
 | npm run check:full             |   PASS |                    |
 | npm run build                  |   PASS |                    |
 
