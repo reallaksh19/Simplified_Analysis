@@ -133,7 +133,10 @@ export const SegmentEditorPanel = () => {
                 >
                     <strong>Placement was clamped</strong><br/>
                     Requested ratio: {formatPlacementNumber(props.requestedPlacementRatio)}<br/>
-                    Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}
+                    Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}<br/>
+                    Min stub: {props.minimumPipeStub_mm || 1} mm<br/>
+                    Start: {formatPlacementNumber(props.componentStartDistance_mm)} mm<br/>
+                    End: {formatPlacementNumber(props.componentEndDistance_mm)} mm
                 </div>
             )}
 

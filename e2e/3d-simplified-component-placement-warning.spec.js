@@ -16,15 +16,38 @@ test.describe('Slice R — component placement warning UI', () => {
       Boolean(window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__)
     );
 
+    // Apply baseline model
     await page.evaluate((caseData) => {
       const store = window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__;
-
       store.setState({
         nodes: caseData.sketcher.nodes,
         segments: caseData.sketcher.segments,
-        selectedSegmentId: caseData.sketcher.selectedSegmentId,
+        selectedSegmentId: caseData.sketcher.segments[0].id,
+        selectedNodeId: null,
+        workingPlane: caseData.sketcher.workingPlane,
+        workingElevation: caseData.sketcher.workingElevation,
+        designTemperature: caseData.sketcher.designTemperature,
+        componentPlacementRatio: caseData.placement.requestedRatio
       });
     }, fixture);
+
+    // Select the segment and run placement command
+    await expect(page.getByText('Segment: S001')).toBeVisible();
+    await page.getByTestId(fixture.placement.testId).click();
+
+    // Verify split topology occurred
+    await page.waitForFunction(() => {
+      const store = window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__;
+      return store.getState().segments.length === 3 &&
+             Object.keys(store.getState().nodes).length === 4;
+    });
+
+    // Make sure the inline component segment is still selected (default behavior)
+    const splitState = await page.evaluate(() => {
+        const store = window.__SIMPLIFIED_ANALYSIS_SKETCHER_STORE__;
+        return { selectedSegmentId: store.getState().selectedSegmentId };
+    });
+    expect(splitState.selectedSegmentId).toBeTruthy();
 
     const warningBox = page.getByTestId('sketcher-component-placement-warning');
 
@@ -33,6 +56,9 @@ test.describe('Slice R — component placement warning UI', () => {
       await expect(warningBox).toContainText('Placement was clamped');
       await expect(warningBox).toContainText(fixture.expected.requestedText);
       await expect(warningBox).toContainText(fixture.expected.actualText);
+      await expect(warningBox).toContainText(fixture.expected.minStubText);
+      await expect(warningBox).toContainText(fixture.expected.startDistanceText);
+      await expect(warningBox).toContainText(fixture.expected.endDistanceText);
     } else {
       await expect(warningBox).not.toBeVisible();
     }
