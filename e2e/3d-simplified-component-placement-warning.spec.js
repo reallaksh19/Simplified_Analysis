@@ -27,7 +27,7 @@ test.describe('Slice R — component placement warning UI', () => {
         workingPlane: caseData.sketcher.workingPlane,
         workingElevation: caseData.sketcher.workingElevation,
         designTemperature: caseData.sketcher.designTemperature,
-        componentPlacementRatio: caseData.placement.requestedRatio
+        componentPlacementRatio: caseData.placement.requestedRatio * 100
       });
     }, fixture);
 
@@ -62,5 +62,16 @@ test.describe('Slice R — component placement warning UI', () => {
     } else {
       await expect(warningBox).not.toBeVisible();
     }
+
+    await page.getByTestId('sketcher-push-to-3d-simplified').click();
+
+    await expect(page.getByTestId('3d-simplified-analysis-tab')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '3D Simplified Calculation' })).toBeVisible();
+
+    const reportMarkdown = page.getByTestId('3d-simplified-report-markdown');
+    await expect(reportMarkdown).toContainText('true');
+
+    const reportJson = page.getByTestId('3d-simplified-report-json');
+    await expect(reportJson).toContainText('"placementWasClamped": true');
   });
 });
