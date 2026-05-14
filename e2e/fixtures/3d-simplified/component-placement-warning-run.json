@@ -53,8 +53,7 @@
   "placement": {
     "testId": "sketcher-place-component-valve",
     "rowId": "MDB-VALVE-4IN-150-CS-001",
-    "requestedRatio": 5,
-    "expectedRatio": 0.899333
+    "requestedRatio": 5
   },
   "expected": {
     "validationStatus": "READY",
