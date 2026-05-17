@@ -457,7 +457,7 @@ export const useSketchStore = create((set, get) => ({
 
       const requestedPlacementRatioRaw = Number(options.placementRatio ?? 0.5);
       const requestedPlacementRatio = Number.isFinite(requestedPlacementRatioRaw)
-          ? Math.min(Math.max(requestedPlacementRatioRaw, 0), 1)
+          ? requestedPlacementRatioRaw
           : 0.5;
 
       const halfComponent_mm = componentLength_mm / 2;

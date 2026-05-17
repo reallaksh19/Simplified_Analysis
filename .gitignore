@@ -26,3 +26,4 @@ test-results/
 *.njsproj
 *.sln
 *.sw?
+slice-r-final.patch
