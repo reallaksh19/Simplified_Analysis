@@ -320,6 +320,7 @@ export function ModelContractPanel() {
               supportLoadSummary: report.supportLoadSummary,
               masterDbProvenance: report.masterDbProvenance,
               componentPlacementTable: report.componentPlacementTable,
+              diagnostics: report.diagnostics,
               supportLoadTable: report.supportLoadTable,
             },
             null,
