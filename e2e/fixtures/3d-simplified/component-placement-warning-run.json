@@ -1,6 +1,20 @@
 {
   "caseId": "SLICE-R-COMPONENT-PLACEMENT-WARNING-RUN",
-  "description": "Verifies that splitting a component with an extreme requested ratio correctly triggers the Sketcher clamping fallback, creating upstream/downstream pipe stubs while issuing a visible warning in the Segment Editor panel.",
+  "description": "Verifies Sketcher shows a visible placement clamp warning after requested component position is adjusted to preserve minimum pipe stub.",
+  "componentButton": {
+    "testId": "sketcher-place-component-vfv",
+    "rowId": "MDB-VFV-4IN-150-CS-001",
+    "expectedSource": "SLICE-F-MASTER-DB-FIXTURE",
+    "expectedComponentLength_mm": 650,
+    "expectedComponentWeight_kg": 86,
+    "requestedPlacementPercent": 5,
+    "requestedPlacementRatio": 0.05,
+    "actualPlacementRatio": 0.108667,
+    "placementWasClamped": true,
+    "minimumPipeStub_mm": 1,
+    "expectedStartDistance_mm": 1,
+    "expectedEndDistance_mm": 651
+  },
   "sketcher": {
     "workingPlane": "XY",
     "workingElevation": 0,
@@ -12,15 +26,29 @@
         "supportTag": "SUP-A",
         "supportType": "anchor",
         "frictionFactor": 0.3,
-        "restraint": { "x": true, "y": true, "z": true, "rx": false, "ry": false, "rz": false }
+        "restraint": {
+          "x": true,
+          "y": true,
+          "z": true,
+          "rx": false,
+          "ry": false,
+          "rz": false
+        }
       },
       "N002": {
-        "pos": [1500, 0, 0],
+        "pos": [3000, 0, 0],
         "type": "support",
         "supportTag": "SUP-B",
         "supportType": "rest",
         "frictionFactor": 0.3,
-        "restraint": { "x": false, "y": true, "z": true, "rx": false, "ry": false, "rz": false }
+        "restraint": {
+          "x": false,
+          "y": true,
+          "z": true,
+          "rx": false,
+          "ry": false,
+          "rz": false
+        }
       }
     },
     "segments": [
@@ -45,28 +73,18 @@
           "insulationThickness_mm": 50,
           "insulationDensity_kg_m3": 120,
           "componentWeight_kg": 0,
-          "componentLength_mm": 1500
+          "componentLength_mm": 3000,
+          "propertySource": "SLICE-R-BASE-FIXTURE"
         }
       }
     ]
-  },
-  "placement": {
-    "testId": "sketcher-place-component-valve",
-    "rowId": "MDB-VALVE-4IN-150-CS-001",
-    "requestedRatio": 5
   },
   "expected": {
     "validationStatus": "READY",
     "nodes": 4,
     "segments": 3,
     "supports": 2,
-    "masterDbRowId": "MDB-VALVE-4IN-150-CS-001",
-    "componentLength_mm": 300,
-    "warningVisible": true,
-    "requestedText": "Requested ratio: 5",
-    "actualText": "Actual ratio: 0.899333",
-    "minStubText": "Minimum pipe stub: 1 mm",
-    "startDistanceText": "Start distance: 1199 mm",
-    "endDistanceText": "End distance: 1499 mm"
+    "masterDbRowId": "MDB-VFV-4IN-150-CS-001",
+    "propertySource": "SLICE-F-MASTER-DB-FIXTURE"
   }
 }

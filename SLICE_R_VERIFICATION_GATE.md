@@ -4,11 +4,23 @@
 
 | Slice | Purpose |
 |---|---|
-| Slice R | Component placement clamp warning UI in Segment Editor |
+| Slice R | Show visible Sketcher warning when component placement is clamped |
 
 ## Commands
 
 ```bash
+npx playwright test e2e/3d-simplified-navigation.spec.js
+npx playwright test e2e/3d-simplified-model-contract.spec.js
+npx playwright test e2e/3d-simplified-sketcher-push.spec.js
+npx playwright test e2e/3d-simplified-property-contract.spec.js
+npx playwright test e2e/3d-simplified-support-loads.spec.js
+npx playwright test e2e/3d-simplified-master-db-component.spec.js
+npx playwright test e2e/3d-simplified-report.spec.js
+npx playwright test e2e/3d-simplified-full-workflow.spec.js
+npx playwright test e2e/3d-simplified-report-download.spec.js
+npx playwright test e2e/3d-simplified-manual-property-editor.spec.js
+npx playwright test e2e/3d-simplified-support-node-editor.spec.js
+npx playwright test e2e/3d-simplified-component-insert-buttons.spec.js
 npx playwright test e2e/3d-simplified-component-split-placement.spec.js
 npx playwright test e2e/3d-simplified-component-placement-ratio.spec.js
 npx playwright test e2e/3d-simplified-component-placement-report.spec.js
@@ -20,20 +32,47 @@ npm run build
 
 ## Result log
 
-| Command                        | Result | Notes              |
-| ------------------------------ | -----: | ------------------ |
-| component split placement spec |   PASS | Slice N            |
-| component placement ratio spec |   PASS | Slice O            |
-| component placement report spec|   PASS | Slice P            |
-| component placement clamp spec |   PASS | Slice Q            |
+| Command                          | Result | Notes              |
+| -------------------------------- | -----: | ------------------ |
+| navigation spec                  |   PASS |                    |
+| model contract spec              |   PASS |                    |
+| sketcher push spec               |   PASS |                    |
+| property contract spec           |   PASS |                    |
+| support loads spec               |   PASS |                    |
+| Master DB component spec         |   PASS |                    |
+| report spec                      |   PASS |                    |
+| full workflow spec               |   PASS |                    |
+| report download spec             |   PASS |                    |
+| manual property editor spec      |   PASS |                    |
+| support node editor spec         |   PASS |                    |
+| component insert buttons spec    |   PASS |                    |
+| component split placement spec   |   PASS |                    |
+| component placement ratio spec   |   PASS |                    |
+| component placement report spec  |   PASS |                    |
+| component placement clamp spec   |   PASS | Slice Q regression |
 | component placement warning spec |   PASS | Slice R            |
-| npm run check:full             |   PASS |                    |
-| npm run build                  |   PASS |                    |
+| npm run check:full               |   PASS |                    |
+| npm run build                    |   PASS |                    |
 
 ## Engineering notes
 
-Segment Editor now reliably shows a warning notification when `placementWasClamped` is true, displaying the requested ratio vs. the actual valid ratio. The logic clamps placement so that at least `minimumPipeStub_mm` remains upstream and downstream. Upstream and downstream pipe properties are also rigorously sanitized (e.g., dropping component weights) to ensure proper modeling.
+Slice R adds a visible Sketcher-side warning for clamped component placement.
+
+The warning is rendered on the selected inline component segment in `SegmentEditorPanel.jsx`, using the already stored split-placement fields:
+
+```text
+requestedPlacementRatio
+actualPlacementRatio
+placementWasClamped
+minimumPipeStub_mm
+componentStartDistance_mm
+componentEndDistance_mm
+```
+
+This avoids duplicating placement math in the UI.
 
 ## Checkpoint statement
 
+```text
 Checkpoint passed for Slice R.
+```
