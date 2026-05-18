@@ -71,7 +71,6 @@ export const SegmentEditorPanel = () => {
 
     const props = seg.properties || {};
     const masterRows = listSketcherMasterComponentRows();
-    const placementWasClamped = Boolean(props.placementWasClamped);
 
     const set = (key, val) => updateSegment(selectedSegmentId, {
         properties: { ...props, [key]: val }
@@ -116,6 +115,30 @@ export const SegmentEditorPanel = () => {
                 <span style={lbl}>Length</span>
                 <span style={{ color: '#a3e635', fontWeight: 'bold' }}>{(length / 1000).toFixed(3)} m</span>
             </div>
+
+
+            {props.placementWasClamped && (
+                <div
+                    data-testid="sketcher-component-placement-warning"
+                    style={{
+                        background: '#7f1d1d',
+                        border: '1px solid #ef4444',
+                        color: '#fca5a5',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        marginBottom: '6px',
+                        fontSize: '11px',
+                        lineHeight: '1.4'
+                    }}
+                >
+                    <strong>Placement was clamped</strong><br/>
+                    Requested ratio: {formatPlacementNumber(props.requestedPlacementRatio)}<br/>
+                    Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}<br/>
+                    Minimum pipe stub: {props.minimumPipeStub_mm || 1} mm<br/>
+                    Start distance: {formatPlacementNumber(props.componentStartDistance_mm)} mm<br/>
+                    End distance: {formatPlacementNumber(props.componentEndDistance_mm)} mm
+                </div>
+            )}
 
             {/* Editable fields */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -164,40 +187,6 @@ export const SegmentEditorPanel = () => {
                         <div>Length: {props.componentLength_mm ?? 0} mm</div>
                         <div>Weight: {props.componentWeight_kg ?? 0} kg</div>
                         <div>Source: {props.propertySource || 'UNSPECIFIED'}</div>
-                    </div>
-                )}
-
-                {placementWasClamped && (
-                    <div
-                        data-testid="sketcher-component-placement-warning"
-                        style={{
-                            border: '1px solid #f97316',
-                            background: '#431407',
-                            borderRadius: '6px',
-                            padding: '8px',
-                            color: '#fed7aa',
-                            fontSize: '11px',
-                            lineHeight: 1.45,
-                        }}
-                    >
-                        <div style={{ fontWeight: 700, color: '#fdba74' }}>
-                            Placement was clamped
-                        </div>
-                        <div>
-                            Requested ratio: {formatPlacementNumber(props.requestedPlacementRatio)}
-                        </div>
-                        <div>
-                            Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}
-                        </div>
-                        <div>
-                            Minimum pipe stub: {formatPlacementNumber(props.minimumPipeStub_mm, 3)} mm
-                        </div>
-                        <div>
-                            Start distance: {formatPlacementNumber(props.componentStartDistance_mm, 3)} mm
-                        </div>
-                        <div>
-                            End distance: {formatPlacementNumber(props.componentEndDistance_mm, 3)} mm
-                        </div>
                     </div>
                 )}
 

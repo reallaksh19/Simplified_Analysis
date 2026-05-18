@@ -101,6 +101,29 @@ function collectComponentPlacementTable(model = {}) {
     }));
 }
 
+function collectComponentPlacementDiagnostics(componentPlacementTable = []) {
+  return componentPlacementTable
+    .filter((row) => row.placementWasClamped === true)
+    .map((row) => ({
+      severity: 'warning',
+      code: 'COMPONENT_PLACEMENT_CLAMPED',
+      message:
+        `Component ${row.segmentId} placement was clamped from requested ratio ` +
+        `${row.requestedPlacementRatio} to actual ratio ${row.actualPlacementRatio} ` +
+        `to maintain minimum pipe stub ${row.minimumPipeStub_mm} mm.`,
+      data: {
+        segmentId: row.segmentId,
+        type: row.type,
+        masterDbRowId: row.masterDbRowId,
+        requestedPlacementRatio: row.requestedPlacementRatio,
+        actualPlacementRatio: row.actualPlacementRatio,
+        minimumPipeStub_mm: row.minimumPipeStub_mm,
+        componentStartDistance_mm: row.componentStartDistance_mm,
+        componentEndDistance_mm: row.componentEndDistance_mm,
+      },
+    }));
+}
+
 export function create3DSimplifiedReport({
   model,
   validation,
@@ -109,13 +132,16 @@ export function create3DSimplifiedReport({
   supportLoads,
   source = '3d-simplified-panel',
 } = {}) {
+  const masterDbProvenance = collectMasterDbProvenance(model);
+  const formulaIds = collectFormulaIds(supportLoads);
+  const componentPlacementTable = collectComponentPlacementTable(model);
+  const placementDiagnostics = collectComponentPlacementDiagnostics(componentPlacementTable);
+
   const diagnostics = [
     ...(validation?.diagnostics || []),
     ...(supportLoads?.diagnostics || []),
+    ...placementDiagnostics,
   ];
-
-  const masterDbProvenance = collectMasterDbProvenance(model);
-  const formulaIds = collectFormulaIds(supportLoads);
 
   return {
     schemaVersion: REPORT_3D_SIMPLIFIED_SCHEMA_VERSION,
@@ -167,7 +193,7 @@ export function create3DSimplifiedReport({
 
     masterDbProvenance,
 
-    componentPlacementTable: collectComponentPlacementTable(model),
+    componentPlacementTable,
   };
 }
 
