@@ -132,6 +132,9 @@ export const SegmentEditorPanel = () => {
                     }}
                 >
                     <strong>Placement was clamped</strong><br/>
+                    {props.placementInputMode === 'distance_mm' && (
+                        <>Requested distance: {formatPlacementNumber(props.requestedPlacementDistance_mm)} mm<br/></>
+                    )}
                     Requested ratio: {formatPlacementNumber(props.requestedPlacementRatio)}<br/>
                     Actual ratio: {formatPlacementNumber(props.actualPlacementRatio)}<br/>
                     Minimum pipe stub: {props.minimumPipeStub_mm || 1} mm<br/>

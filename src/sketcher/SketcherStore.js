@@ -102,12 +102,15 @@ function buildComponentSegmentProperties(pipeProperties = {}, masterProps = {}, 
 
     splitRole: 'inline-component',
     splitParentSegmentId: placement.parentSegmentId,
-    placementRatio: placement.placementRatio,
+    placementInputMode: placement.placementInputMode,
     requestedPlacementRatio: placement.requestedPlacementRatio,
     actualPlacementRatio: placement.actualPlacementRatio,
+    placementRatio: placement.actualPlacementRatio,
+    requestedPlacementDistance_mm: placement.requestedPlacementDistance_mm,
+    actualPlacementDistance_mm: placement.actualPlacementDistance_mm,
+    componentCenterDistance_mm: placement.componentCenterDistance_mm,
     placementWasClamped: placement.placementWasClamped,
     minimumPipeStub_mm: placement.minimumPipeStub_mm,
-    componentCenterDistance_mm: placement.componentCenterDistance_mm,
     componentStartDistance_mm: placement.componentStartDistance_mm,
     componentEndDistance_mm: placement.componentEndDistance_mm,
 
@@ -455,20 +458,39 @@ export const useSketchStore = create((set, get) => ({
           return { ok: false, diagnostic };
       }
 
-      const requestedPlacementRatioRaw = Number(options.placementRatio ?? 0.5);
-      const requestedPlacementRatio = Number.isFinite(requestedPlacementRatioRaw)
-          ? requestedPlacementRatioRaw
+      const placementRatioRaw = Number(options.placementRatio ?? 0.5);
+      const placementRatioFromPercent = Number.isFinite(placementRatioRaw)
+          ? placementRatioRaw
           : 0.5;
 
+      const placementDistanceRaw = Number(options.placementDistance_mm);
+      const hasPlacementDistance = Number.isFinite(placementDistanceRaw) && placementDistanceRaw > 0;
+
+      const placementInputMode = hasPlacementDistance ? 'distance_mm' : 'ratio';
+
       const halfComponent_mm = componentLength_mm / 2;
-      const requestedCenterDistance_mm = segmentLength_mm * requestedPlacementRatio;
+
+      const requestedCenterDistance_mm = hasPlacementDistance
+          ? placementDistanceRaw
+          : segmentLength_mm * placementRatioFromPercent;
+
+      const requestedPlacementRatio = segmentLength_mm > 0
+          ? requestedCenterDistance_mm / segmentLength_mm
+          : placementRatioFromPercent;
+
+      const minimumCenterDistance_mm = halfComponent_mm + minimumPipeStub_mm;
+      const maximumCenterDistance_mm = segmentLength_mm - halfComponent_mm - minimumPipeStub_mm;
+
       const centerDistance_mm = Math.min(
-          Math.max(requestedCenterDistance_mm, halfComponent_mm + minimumPipeStub_mm),
-          segmentLength_mm - halfComponent_mm - minimumPipeStub_mm
+          Math.max(requestedCenterDistance_mm, minimumCenterDistance_mm),
+          maximumCenterDistance_mm
       );
 
-      const actualPlacementRatio = centerDistance_mm / segmentLength_mm;
-      const placementWasClamped = Math.abs(actualPlacementRatio - requestedPlacementRatio) > 1e-6;
+      const actualPlacementRatio = segmentLength_mm > 0
+          ? centerDistance_mm / segmentLength_mm
+          : requestedPlacementRatio;
+
+      const placementWasClamped = Math.abs(centerDistance_mm - requestedCenterDistance_mm) > 1e-6;
 
       const componentStartDistance_mm = centerDistance_mm - halfComponent_mm;
       const componentEndDistance_mm = centerDistance_mm + halfComponent_mm;
@@ -526,12 +548,15 @@ export const useSketchStore = create((set, get) => ({
           endNode: componentEndNodeId,
           properties: buildComponentSegmentProperties(pipeProperties, masterProps, {
               parentSegmentId: target.id,
-              placementRatio: actualPlacementRatio,
+              placementInputMode,
               requestedPlacementRatio,
               actualPlacementRatio,
+              placementRatio: actualPlacementRatio,
+              requestedPlacementDistance_mm: requestedCenterDistance_mm,
+              actualPlacementDistance_mm: centerDistance_mm,
+              componentCenterDistance_mm: centerDistance_mm,
               placementWasClamped,
               minimumPipeStub_mm,
-              componentCenterDistance_mm: centerDistance_mm,
               componentStartDistance_mm,
               componentEndDistance_mm,
           })
@@ -565,9 +590,16 @@ export const useSketchStore = create((set, get) => ({
               segmentLength_mm,
               componentLength_mm,
               componentWeight_kg: row.componentWeight_kg,
+              placementInputMode,
               requestedPlacementRatio,
               actualPlacementRatio,
+              requestedPlacementDistance_mm: requestedCenterDistance_mm,
+              actualPlacementDistance_mm: centerDistance_mm,
+              componentCenterDistance_mm: centerDistance_mm,
               placementWasClamped,
+              minimumPipeStub_mm,
+              componentStartDistance_mm,
+              componentEndDistance_mm,
           }
       };
 

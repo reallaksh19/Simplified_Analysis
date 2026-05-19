@@ -46,6 +46,8 @@ const SketcherToolbar = () => {
     const setAnalysisPayload = useAppStore(s => s.setAnalysisPayload);
     const setActiveTab = useAppStore(s => s.setActiveTab);
 
+    const [componentPlacementDistanceMm, setComponentPlacementDistanceMm] = React.useState('');
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -132,10 +134,23 @@ const SketcherToolbar = () => {
             return;
         }
 
-        const result = splitInsertMasterDbComponentIntoSegment(selectedSegmentId, masterDbRowId, {
+        const placementDistance_mm = Number(componentPlacementDistanceMm);
+        const hasPlacementDistance = Number.isFinite(placementDistance_mm) && placementDistance_mm > 0;
+
+        const options = {
             placementRatio: componentPlacementRatio / 100,
             minimumPipeStub_mm: 1,
-        });
+        };
+
+        if (hasPlacementDistance) {
+            options.placementDistance_mm = placementDistance_mm;
+        }
+
+        const result = splitInsertMasterDbComponentIntoSegment(
+            selectedSegmentId,
+            masterDbRowId,
+            options
+        );
 
         if (!result?.ok) {
             alert(result?.diagnostic?.message || 'Failed to place component from Master DB.');
@@ -326,6 +341,30 @@ const SketcherToolbar = () => {
                                 padding: '2px 4px',
                                 fontSize: '11px',
                                 borderRadius: '4px',
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <label style={{ fontSize: '10px', color: '#94a3b8' }}>
+                            Placement distance mm
+                        </label>
+                        <input
+                            data-testid="sketcher-component-placement-distance-mm"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={componentPlacementDistanceMm}
+                            placeholder="blank = use %"
+                            onChange={(event) => setComponentPlacementDistanceMm(event.target.value)}
+                            style={{
+                                width: '100%',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                color: '#f8fafc',
+                                padding: '4px 6px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
                             }}
                         />
                     </div>
