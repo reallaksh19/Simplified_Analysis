@@ -1,6 +1,24 @@
 import { DEFAULT_COMPONENT_MASTER_ROWS, COMPONENT_SOURCE_STATUS, COMPONENT_TYPES } from '../../data/componentMasterDb/defaultComponentMasterDb.js';
+import { resolveComponentDimensionFromPackage, PIPE_DATA_SOURCE_ID } from './pipeDataComponentDimensions.js';
 
 export const COMPONENT_DATA_SCHEMA_VERSION = 'component-dimension-resolution-v1';
+
+// Optional provider mirroring resolveEngineeringData's source switch; the app
+// store registers it so engineeringDefaults.pipeDataSource selects the source
+// without import cycles. Default (null) keeps the internal master rows.
+let _componentDataSourceProvider = null;
+
+export function setComponentDataSourceProvider(provider) {
+  _componentDataSourceProvider = typeof provider === 'function' ? provider : null;
+}
+
+function packageSourceActive() {
+  try {
+    return _componentDataSourceProvider ? _componentDataSourceProvider() === PIPE_DATA_SOURCE_ID : false;
+  } catch {
+    return false;
+  }
+}
 
 export const COMPONENT_DATA_STATUS = Object.freeze({
   PASSED: 'PASSED',
@@ -18,6 +36,11 @@ function mapSourceStatus(sourceStatus) {
 }
 
 export function resolveComponentDimension(query = {}, rows = DEFAULT_COMPONENT_MASTER_ROWS) {
+  if (packageSourceActive()) {
+    const external = resolveComponentDimensionFromPackage(query);
+    if (external.isQualified) return external;
+  }
+
   const candidates = rows.filter(row => {
     if (query.componentType && row.componentType !== query.componentType) return false;
     if (query.nps !== undefined && query.nps !== null && row.nps !== undefined && Math.abs(row.nps - query.nps) > 0.01) return false;

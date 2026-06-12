@@ -1,5 +1,23 @@
 import { resolvePipeProperty } from '../../data/pipeProperties.js';
 import { resolveMaterial } from '../../data/materialProperties.js';
+import { resolvePipeSectionFromPackage, PIPE_DATA_SOURCE_ID } from './pipeDataComponentSource.js';
+
+// Optional provider so the app store can expose engineeringDefaults.pipeDataSource
+// without creating an import cycle. Default (null) keeps the internal table path.
+let _pipeDataSourceProvider = null;
+
+export function setPipeDataSourceProvider(provider) {
+  _pipeDataSourceProvider = typeof provider === 'function' ? provider : null;
+}
+
+function activePipeDataSource(override) {
+  if (override) return override;
+  try {
+    return _pipeDataSourceProvider ? _pipeDataSourceProvider() : null;
+  } catch {
+    return null;
+  }
+}
 
 export const DATA_STATUS = Object.freeze({
   PASSED: 'PASSED',
@@ -47,7 +65,7 @@ function normalizePipeValue(value = {}) {
  * @param {Object} params - { nps, schedule }
  * @returns {Object} { status, isQualified, source, value, diagnostics }
  */
-export function resolvePipeSection({ nps, schedule } = {}) {
+export function resolvePipeSection({ nps, schedule, pipeDataSource } = {}) {
   if (!Number.isFinite(nps) || !schedule) {
     return {
       status: DATA_STATUS.MISSING_DATA,
@@ -64,6 +82,13 @@ export function resolvePipeSection({ nps, schedule } = {}) {
     };
   }
 
+  let fallbackDiagnostics = [];
+  if (activePipeDataSource(pipeDataSource) === PIPE_DATA_SOURCE_ID) {
+    const external = resolvePipeSectionFromPackage({ nps, schedule });
+    if (external.isQualified) return external;
+    fallbackDiagnostics = external.diagnostics || [];
+  }
+
   const result = resolvePipeProperty({ nps, schedule });
 
   return {
@@ -71,7 +96,7 @@ export function resolvePipeSection({ nps, schedule } = {}) {
     isQualified: result.isQualified,
     source: result.source || 'Project screening master DB / ASME B36.10M reference required before final issue',
     value: result.value ? normalizePipeValue(result.value) : null,
-    diagnostics: result.diagnostics || []
+    diagnostics: [...fallbackDiagnostics, ...(result.diagnostics || [])]
   };
 }
 

@@ -255,3 +255,14 @@ export const useAppStore = create((set, get) => ({
   })),
   clearReportHistory: () => set({ reportHistory: [] }),
 }));
+
+// Register pipe-component-data source providers so the resolution layer honors
+// engineeringDefaults.pipeDataSource without import cycles (default stays the
+// internal screening DB; switch via setEngineeringDefault('pipeDataSource',
+// 'pipe-component-data')).
+import { setPipeDataSourceProvider } from '../core/engineering-data/resolveEngineeringData.js';
+import { setComponentDataSourceProvider } from '../core/component-data/resolveComponentDimensions.js';
+
+const readPipeDataSource = () => useAppStore.getState().engineeringDefaults?.pipeDataSource;
+setPipeDataSourceProvider(readPipeDataSource);
+setComponentDataSourceProvider(readPipeDataSource);
