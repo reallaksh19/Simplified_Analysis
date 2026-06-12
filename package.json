@@ -11,6 +11,7 @@
     "syntax": "node scripts/syntax-check.mjs",
     "syntax:strict": "node scripts/syntax-check.mjs --strict",
     "test": "node scripts/smoke-check.mjs",
+    "check:pcd": "node scripts/pcd-vendor-check.mjs && node scripts/pcd-integration-check.mjs",
     "check": "npm run check:full",
     "check:package-json": "node scripts/check-package-json-duplicates.mjs",
     "check:imports": "node scripts/import-check.mjs",
