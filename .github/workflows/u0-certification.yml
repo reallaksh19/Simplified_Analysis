@@ -1,0 +1,42 @@
+name: Phase U0 Baseline Certification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, phase-u0-baseline-certification]
+  workflow_dispatch:
+
+jobs:
+  u0-certification:
+    name: U0 baseline checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run full repository checks
+        run: npm run check:full
+
+      - name: Run QA checks
+        run: npm run check:qa
+
+      - name: Run U0 benchmark baseline guard
+        run: npm run check:u0
+
+      - name: Build production bundle
+        run: npm run build
