@@ -349,63 +349,63 @@
     "unreadable": [],
     "skippedLegacy": [
       {
-        "file": "benchmarks/fixtures/2d/cantilever.json",
+        "file": "benchmarks\\fixtures\\2d\\cantilever.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/2d/simple_span.json",
+        "file": "benchmarks\\fixtures\\2d\\simple_span.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/3d/basic_gc.json",
+        "file": "benchmarks\\fixtures\\3d\\basic_gc.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/3d/edge_all_elbow.json",
+        "file": "benchmarks\\fixtures\\3d\\edge_all_elbow.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/3d/edge_sif_off.json",
+        "file": "benchmarks\\fixtures\\3d\\edge_sif_off.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/3d/edge_single_anchor.json",
+        "file": "benchmarks\\fixtures\\3d\\edge_single_anchor.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/3d/edge_zero_perpendicular_leg.json",
+        "file": "benchmarks\\fixtures\\3d\\edge_zero_perpendicular_leg.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/pcfx-roundtrip/bend.pcfx.json",
+        "file": "benchmarks\\fixtures\\pcfx-roundtrip\\bend.pcfx.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/pcfx-roundtrip/missing-component.pcfx.json",
+        "file": "benchmarks\\fixtures\\pcfx-roundtrip\\missing-component.pcfx.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/pcfx-roundtrip/olet.pcfx.json",
+        "file": "benchmarks\\fixtures\\pcfx-roundtrip\\olet.pcfx.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/pcfx-roundtrip/tee.pcfx.json",
+        "file": "benchmarks\\fixtures\\pcfx-roundtrip\\tee.pcfx.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/piperack/case1.json",
+        "file": "benchmarks\\fixtures\\piperack\\case1.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/piperack/case2.json",
+        "file": "benchmarks\\fixtures\\piperack\\case2.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/piperack/case3.json",
+        "file": "benchmarks\\fixtures\\piperack\\case3.json",
         "reason": "not engineering-benchmark-v2"
       },
       {
-        "file": "benchmarks/fixtures/reporting/sample-report.json",
+        "file": "benchmarks\\fixtures\\reporting\\sample-report.json",
         "reason": "not engineering-benchmark-v2"
       }
     ]

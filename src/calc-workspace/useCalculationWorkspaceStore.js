@@ -9,6 +9,7 @@
 
 import { create } from 'zustand';
 import { DEFAULT_SUPPORT_LOAD_PROFILE, buildSupportLoadModel, normalizeSupportLoadProfile } from './supportLoadEngine.js';
+import { buildSupportLoadDistribution } from './supportLoadDistribution.js';
 import {
   buildWorkspaceHierarchy,
   normalizeCalculationWorkspacePackage,
@@ -28,6 +29,7 @@ const initialState = {
     labels: false,
   },
   supportLoad: null,
+  supportLoadDistribution: null,
   supportLoadProfile: DEFAULT_SUPPORT_LOAD_PROFILE,
   lastError: '',
   lastImportSource: '',
@@ -55,6 +57,7 @@ export const useCalculationWorkspaceStore = create((set, get) => ({
         selectedObjectId: selected?.id || '',
         isolatedObjectIds: [],
         supportLoad,
+        supportLoadDistribution: buildSupportLoadDistribution(workspace, supportLoad, supportLoadProfile),
         supportLoadProfile,
         lastError: '',
         lastImportSource: importSource,
@@ -90,28 +93,40 @@ export const useCalculationWorkspaceStore = create((set, get) => ({
   rebuildSupportLoads: () => set((state) => {
     if (!state.workspace) return {};
     const supportLoadProfile = normalizeSupportLoadProfile(state.supportLoadProfile);
+    const supportLoad = buildSupportLoadModel(state.workspace, new Date().toISOString(), supportLoadProfile);
     return {
       supportLoadProfile,
-      supportLoad: buildSupportLoadModel(state.workspace, new Date().toISOString(), supportLoadProfile),
+      supportLoad,
+      supportLoadDistribution: buildSupportLoadDistribution(state.workspace, supportLoad, supportLoadProfile),
     };
   }),
 
   setSupportLoadProfileValue: (field, value) => set((state) => {
     const supportLoadProfile = normalizeSupportLoadProfile({ ...state.supportLoadProfile, [field]: value });
+    const supportLoad = state.workspace
+      ? buildSupportLoadModel(state.workspace, new Date().toISOString(), supportLoadProfile)
+      : state.supportLoad;
     return {
       supportLoadProfile,
-      supportLoad: state.workspace
-        ? buildSupportLoadModel(state.workspace, new Date().toISOString(), supportLoadProfile)
-        : state.supportLoad,
+      supportLoad,
+      supportLoadDistribution: state.workspace
+        ? buildSupportLoadDistribution(state.workspace, supportLoad, supportLoadProfile)
+        : state.supportLoadDistribution,
     };
   }),
 
-  resetSupportLoadProfile: () => set((state) => ({
-    supportLoadProfile: DEFAULT_SUPPORT_LOAD_PROFILE,
-    supportLoad: state.workspace
+  resetSupportLoadProfile: () => set((state) => {
+    const supportLoad = state.workspace
       ? buildSupportLoadModel(state.workspace, new Date().toISOString(), DEFAULT_SUPPORT_LOAD_PROFILE)
-      : state.supportLoad,
-  })),
+      : state.supportLoad;
+    return {
+      supportLoadProfile: DEFAULT_SUPPORT_LOAD_PROFILE,
+      supportLoad,
+      supportLoadDistribution: state.workspace
+        ? buildSupportLoadDistribution(state.workspace, supportLoad, DEFAULT_SUPPORT_LOAD_PROFILE)
+        : state.supportLoadDistribution,
+    };
+  }),
 
   setHudPosition: (x, y) => set((state) => ({
     hud: { ...state.hud, x: Number(x) || 0, y: Number(y) || 0 },

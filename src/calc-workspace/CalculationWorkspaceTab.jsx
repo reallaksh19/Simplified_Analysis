@@ -18,6 +18,7 @@ import WorkspaceLoadHud from './WorkspaceLoadHud.jsx';
 import WorkspacePropertyPanel from './WorkspacePropertyPanel.jsx';
 import { useCalculationWorkspaceStore } from './useCalculationWorkspaceStore.js';
 import { PENDING_WORKSPACE_PACKAGE_STORAGE_KEY } from './workspaceModel.js';
+import { buildSupportLoadStageTree } from './supportLoadDistribution.js';
 import './CalculationWorkspace.css';
 
 const WORKSPACE_VIEWS = Object.freeze([
@@ -33,11 +34,13 @@ export default function CalculationWorkspaceTab() {
   const lastError = useCalculationWorkspaceStore((state) => state.lastError);
   const lastImportSource = useCalculationWorkspaceStore((state) => state.lastImportSource);
   const supportLoad = useCalculationWorkspaceStore((state) => state.supportLoad);
+  const supportLoadDistribution = useCalculationWorkspaceStore((state) => state.supportLoadDistribution);
   const importWorkspacePackage = useCalculationWorkspaceStore((state) => state.importWorkspacePackage);
   const clearWorkspace = useCalculationWorkspaceStore((state) => state.clearWorkspace);
   const rebuildSupportLoads = useCalculationWorkspaceStore((state) => state.rebuildSupportLoads);
   const [message, setMessage] = useState('Import an enriched RVM workspace package exported from 3D Viewer.');
   const [activeWorkspaceView, setActiveWorkspaceView] = useState('geometry');
+  const [bottomCollapsed, setBottomCollapsed] = useState(true);
 
   async function handleFileChange(event) {
     const file = event.target.files?.[0] || null;
@@ -69,7 +72,17 @@ export default function CalculationWorkspaceTab() {
   function exportSupportLoadJson() {
     if (!supportLoad) return;
     const sourceFile = workspace?.packageMeta?.source?.sourceFileName || 'workspace';
-    downloadJson(`${safeFileName(sourceFile)}_support_load_results.json`, supportLoad);
+    downloadJson(`${safeFileName(sourceFile)}_support_load_results.json`, {
+      ...supportLoad,
+      supportLoadDistribution: supportLoadDistribution || null,
+    });
+  }
+
+  function exportSupportLoadStageJson() {
+    if (!workspace || !supportLoadDistribution) return;
+    const sourceFile = workspace?.packageMeta?.source?.sourceFileName || 'workspace';
+    const stageTree = buildSupportLoadStageTree(workspace, supportLoadDistribution, sourceFile);
+    downloadJson(`${safeFileName(sourceFile)}_support_loads_stage.json`, stageTree);
   }
 
   function exportWorkspaceJson() {
@@ -84,54 +97,67 @@ export default function CalculationWorkspaceTab() {
   return (
     <div className="cw-root">
       <header className="cw-header">
-        <div>
-          <h1>RVM Workspace</h1>
-          <p>Inspect enriched geometry and run support-load calculations from real imported fields.</p>
+        <div className="cw-header-brand">
+          <h1 title="Inspect enriched geometry and run support-load calculations from real imported fields.">RVM Workspace</h1>
+          <nav className="cw-mode-tabs" aria-label="Workspace views">
+            {WORKSPACE_VIEWS.map((view) => (
+              <button
+                type="button"
+                key={view.id}
+                className={activeWorkspaceView === view.id ? 'is-active' : ''}
+                onClick={() => setActiveWorkspaceView(view.id)}
+              >
+                {view.label}
+              </button>
+            ))}
+          </nav>
         </div>
         <div className="cw-actions">
-          <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={15} /> Import</button>
-          <button type="button" onClick={importPendingPackage}><Inbox size={15} /> Pending</button>
-          <button type="button" onClick={rebuildSupportLoads} disabled={!workspace}><RefreshCw size={15} /> Calc</button>
-          <button type="button" onClick={exportSupportLoadJson} disabled={!supportLoad}><Download size={15} /> Load JSON</button>
-          <button type="button" onClick={exportWorkspaceJson} disabled={!workspace}><Download size={15} /> Workspace JSON</button>
-          <button type="button" onClick={clearWorkspace}><Trash2 size={15} /> Clear</button>
+          <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={14} /> Import</button>
+          <button type="button" onClick={importPendingPackage}><Inbox size={14} /> Pending</button>
+          <button type="button" onClick={rebuildSupportLoads} disabled={!workspace}><RefreshCw size={14} /> Calc</button>
+          <button type="button" onClick={exportSupportLoadJson} disabled={!supportLoad}><Download size={14} /> Load JSON</button>
+          <button type="button" onClick={exportSupportLoadStageJson} disabled={!supportLoadDistribution} title="Export staggedJson with per-support load markers, viewable in the 3D JSON viewer"><Download size={14} /> Stage JSON</button>
+          <button type="button" onClick={exportWorkspaceJson} disabled={!workspace}><Download size={14} /> Workspace JSON</button>
+          <button type="button" onClick={clearWorkspace}><Trash2 size={14} /> Clear</button>
           <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleFileChange} />
         </div>
       </header>
-      <section className="cw-statusbar">
-        <span className={`cw-status status-${status}`}>{status}</span>
-        <span>{statusMessage}</span>
-        {lastImportSource && <em>{lastImportSource}</em>}
+      <section className="cw-sub-header">
+        <div className="cw-statusbar-compact">
+          <span className={`cw-status status-${status}`}>{status}</span>
+          <span className="cw-status-msg" title={statusMessage}>{statusMessage} {lastImportSource && `(${lastImportSource})`}</span>
+        </div>
+        {workspace && (
+          <div className="cw-summary-compact">
+            {metric('Obj', summary.objects)}
+            {metric('Pipes', summary.pipes)}
+            {metric('Supp', summary.supports)}
+            {metric('Br', summary.branches)}
+            {metric('Res', summary.resolved)}
+            {metric('Miss', summary.missing)}
+            {metric('Calc', supportLoad?.summary?.calculated)}
+            {metric('Blk', supportLoad?.summary?.blocked)}
+          </div>
+        )}
       </section>
-      <nav className="cw-mode-tabs" aria-label="Workspace views">
-        {WORKSPACE_VIEWS.map((view) => (
-          <button
-            type="button"
-            key={view.id}
-            className={activeWorkspaceView === view.id ? 'is-active' : ''}
-            onClick={() => setActiveWorkspaceView(view.id)}
-          >
-            {view.label}
-          </button>
-        ))}
-      </nav>
-      {workspace && (
-        <section className="cw-summary">
-          {metric('Objects', summary.objects)}
-          {metric('Pipes', summary.pipes)}
-          {metric('Supports', summary.supports)}
-          {metric('Branches', summary.branches)}
-          {metric('Resolved', summary.resolved)}
-          {metric('Missing', summary.missing)}
-          {metric('Load Calculated', supportLoad?.summary?.calculated)}
-          {metric('Load Blocked', supportLoad?.summary?.blocked)}
-        </section>
-      )}
       <main className={`cw-main ${isLoadView ? 'cw-main-load' : ''}`}>
         <WorkspaceHierarchyPanel />
-        <section className={`cw-center ${isLoadView ? 'cw-center-load' : ''}`}>
+        <section className={`cw-center ${isLoadView ? 'cw-center-load' : ''} ${bottomCollapsed ? 'cw-bottom-collapsed' : ''}`}>
           <WorkspaceCanvas />
-          {isLoadView ? <WorkspaceLoadCalculationPanel /> : <WorkspaceGeometryTable />}
+          <div className="cw-bottom-panel-container">
+            <div className="cw-bottom-panel-header" onClick={() => setBottomCollapsed(!bottomCollapsed)}>
+              <span className="cw-bottom-panel-title">{isLoadView ? 'Load Calculation Results' : 'Geometry Elements'}</span>
+              <button type="button" className="cw-bottom-panel-toggle">
+                {bottomCollapsed ? 'Expand ▲' : 'Collapse ▼'}
+              </button>
+            </div>
+            {!bottomCollapsed && (
+              <div className="cw-bottom-panel-content">
+                {isLoadView ? <WorkspaceLoadCalculationPanel /> : <WorkspaceGeometryTable />}
+              </div>
+            )}
+          </div>
           <WorkspaceLoadHud />
         </section>
         <WorkspacePropertyPanel />

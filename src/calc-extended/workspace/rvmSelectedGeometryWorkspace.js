@@ -16,11 +16,58 @@ export function normalizeRvmSelectedGeometryWorkspacePackage(packageJson, import
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new TypeError('RVM workspace package must be a JSON object.');
   }
-  if (packageJson.schema !== RVM_SELECTED_GEOMETRY_WORKSPACE_PACKAGE_SCHEMA) {
+
+  let geometry;
+  let source;
+  let sourceSchema = packageJson.schema;
+
+  if (packageJson.schema === RVM_SELECTED_GEOMETRY_WORKSPACE_PACKAGE_SCHEMA) {
+    geometry = objectValue(packageJson.geometry, 'geometry');
+    source = objectValue(packageJson.source, 'source');
+  } else if (packageJson.schema === 'inputxml-managed-stage/v1' || Array.isArray(packageJson.selected)) {
+    sourceSchema = packageJson.schema || 'json-viewer-selection/v1';
+    source = packageJson.source ? { sourceFileName: packageJson.source } : {};
+    
+    // Adapt selected primitives format
+    const items = Array.isArray(packageJson.selected) 
+      ? packageJson.selected.map(s => s?.item).filter(Boolean)
+      : Array.isArray(packageJson.objects) 
+        ? packageJson.objects 
+        : [];
+        
+    const objects = [];
+    const supports = [];
+    
+    items.forEach(item => {
+      const type = stringValue(item?.type || item?.attributes?.TYPE || item?.sourceAttributes?.TYPE || 'OBJECT');
+      const adaptedItem = { ...item, type };
+      
+      if (item?.nativeParams?.startPoint) {
+        adaptedItem.apos = item.nativeParams.startPoint;
+      }
+      if (item?.nativeParams?.endPoint) {
+        adaptedItem.lpos = item.nativeParams.endPoint;
+      }
+      if (item?.nativeParams?.center) {
+        adaptedItem.center = item.nativeParams.center;
+      }
+
+      if (isSupportLikeType(type)) {
+        supports.push(adaptedItem);
+      } else {
+        objects.push(adaptedItem);
+      }
+    });
+    
+    geometry = {
+      objects,
+      supports,
+      branches: []
+    };
+  } else {
     throw new Error(`Unsupported RVM workspace schema: ${String(packageJson.schema || 'missing')}.`);
   }
-  const geometry = objectValue(packageJson.geometry, 'geometry');
-  const source = objectValue(packageJson.source, 'source');
+
   const objects = arrayValue(geometry.objects, 'geometry.objects').map(clonePlain);
   const supports = arrayValue(geometry.supports, 'geometry.supports').map(clonePlain);
   const branches = arrayValue(geometry.branches, 'geometry.branches').map(clonePlain);

@@ -20,16 +20,70 @@ export function normalizeCalculationWorkspacePackage(packageJson, importSource, 
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new TypeError('Calculation Workspace import must be a JSON object.');
   }
-  if (packageJson.schema !== RVM_SELECTED_GEOMETRY_WORKSPACE_PACKAGE_SCHEMA) {
+  
+  let geometry;
+  let sourceSchema = packageJson.schema;
+
+  if (packageJson.schema === RVM_SELECTED_GEOMETRY_WORKSPACE_PACKAGE_SCHEMA) {
+    geometry = objectValue(packageJson.geometry, 'geometry');
+  } else if (packageJson.schema === 'inputxml-managed-stage/v1' || Array.isArray(packageJson.selected)) {
+    sourceSchema = packageJson.schema || 'json-viewer-selection/v1';
+    
+    // Adapt selected primitives format
+    const items = Array.isArray(packageJson.selected) 
+      ? packageJson.selected.map(s => s?.item).filter(Boolean)
+      : Array.isArray(packageJson.objects) 
+        ? packageJson.objects 
+        : [];
+        
+    const objects = [];
+    const supports = [];
+    
+    items.forEach(item => {
+      const type = adaptedItemType(item);
+      const adaptedItem = { ...item, type };
+
+      // Stage JSON viewer enrichment ("Populate attributes") arrives as a flat
+      // enrichedAttributes record; translate it into the attributes.enrichment
+      // shape the support-load engine consumes.
+      const enrichment = enrichmentFromEnrichedAttributes(item);
+      if (enrichment) {
+        adaptedItem.attributes = { ...(item.attributes || {}), enrichment };
+      }
+      
+      // Plumb nativeParams start/end to apos/lpos if available
+      if (item?.nativeParams?.startPoint) {
+        adaptedItem.apos = item.nativeParams.startPoint;
+      }
+      if (item?.nativeParams?.endPoint) {
+        adaptedItem.lpos = item.nativeParams.endPoint;
+      }
+      if (item?.nativeParams?.center) {
+        adaptedItem.center = item.nativeParams.center;
+      }
+
+      if (isSupportLikeType(type)) {
+        supports.push(adaptedItem);
+      } else {
+        objects.push(adaptedItem);
+      }
+    });
+    
+    geometry = {
+      objects,
+      supports,
+      branches: []
+    };
+  } else {
     throw unsupportedPackageError(packageJson);
   }
-  const geometry = objectValue(packageJson.geometry, 'geometry');
+
   const objects = arrayValue(geometry.objects, 'geometry.objects').map(clonePlain);
   const supports = arrayValue(geometry.supports, 'geometry.supports').map(clonePlain);
   const branches = arrayValue(geometry.branches, 'geometry.branches').map(clonePlain);
   const workspace = {
     schema: CALCULATION_WORKSPACE_SCHEMA,
-    sourcePackageSchema: packageJson.schema,
+    sourcePackageSchema: sourceSchema,
     importSource: stringValue(importSource),
     importedAt: stringValue(importedAt),
     packageMeta: {
@@ -46,6 +100,72 @@ export function normalizeCalculationWorkspacePackage(packageJson, importSource, 
     enrichment: clonePlain(packageJson.enrichment || {}),
   };
   return freezeDeep({ ...workspace, summary: summarizeWorkspace(workspace) });
+}
+
+// Stage viewer schematic primitives carry their component identity in
+// native.kind ('att-derived-<role>') / nativeParams.role rather than a type.
+const NATIVE_ROLE_TYPES = Object.freeze({
+  segment: 'PIPE',
+  supportshoe: 'SUPPORT',
+  valvebody: 'VALVE',
+  leftseat: 'VALVE',
+  rightseat: 'VALVE',
+  leftendflange: 'VALVE',
+  rightendflange: 'VALVE',
+  actuator: 'VALVE',
+  weldneckhub: 'FLANGE',
+  raisedfacedisk: 'FLANGE',
+  blindflangedisk: 'FLANGE',
+  reducercone: 'REDUCER',
+  gasketdisk: 'GASKET',
+});
+
+function adaptedItemType(item) {
+  const direct = stringValue(item?.type || item?.kind || item?.attributes?.TYPE || item?.sourceAttributes?.TYPE);
+  if (direct) return direct;
+  const role = stringValue(item?.nativeParams?.role || stringValue(item?.native?.kind).replace(/^att-derived-/, '')).toLowerCase();
+  return NATIVE_ROLE_TYPES[role] || 'OBJECT';
+}
+
+function enrichmentFromEnrichedAttributes(item) {
+  const e = item?.enrichedAttributes;
+  if (!e || typeof e !== 'object') return null;
+  if (item?.attributes?.enrichment && typeof item.attributes.enrichment === 'object') return null;
+  return {
+    schema: 'stage-json-enriched-attributes-adapter/v1',
+    lineList: {
+      lineNo: stringValue(e.lineNo),
+      lineKey: stringValue(e.lineNo),
+      p1: e.designPressure ?? e.designPressureMpa ?? '',
+      t1: e.designTemperatureC ?? '',
+      t2: e.operatingTemperatureC ?? '',
+      t3: e.minimumTemperatureC ?? '',
+      density: e.fluidDensityKgM3 ?? '',
+      fluidDensityKgM3: e.fluidDensityKgM3 ?? null,
+      insulationThicknessMm: e.insulationThicknessMm ?? null,
+      phase: stringValue(e.fluidPhase),
+      nps: e.nominalBoreMm ?? null,
+      pipeOdMm: e.pipeOdMm ?? null,
+    },
+    pipingClass: {
+      className: stringValue(e.pipingClass),
+      rating: stringValue(e.pressureRating),
+      schedule: stringValue(e.schedule),
+      wallThicknessMm: e.wallThicknessMm ?? null,
+      corrosionAllowanceMm: e.corrosionAllowanceMm ?? null,
+      materialName: stringValue(e.material),
+      pipeOdMm: e.pipeOdMm ?? null,
+    },
+    material: {
+      materialName: stringValue(e.material),
+      materialCode: stringValue(e.materialCode),
+    },
+    weight: {
+      componentWeightKg: e.componentWeightKg ?? null,
+      bestWeightKg: e.componentWeightKg ?? null,
+      unitPipeWeightKgPerM: e.pipeWeightKgPerM ?? null,
+    },
+  };
 }
 
 function unsupportedPackageError(packageJson) {

@@ -12,7 +12,7 @@ import { resultRows } from './supportLoadEngine.js';
 import { useCalculationWorkspaceStore } from './useCalculationWorkspaceStore.js';
 import './WorkspaceLoadCalculationPanel.css';
 
-const PANEL_TABS = Object.freeze(['Preview', 'Factors', 'Equations', 'Logs']);
+const PANEL_TABS = Object.freeze(['Preview', 'Supports', 'Factors', 'Equations', 'Logs']);
 const FACTOR_GROUPS = Object.freeze([
   {
     title: 'Vertical',
@@ -56,6 +56,7 @@ const FACTOR_GROUPS = Object.freeze([
 export default function WorkspaceLoadCalculationPanel() {
   const workspace = useCalculationWorkspaceStore((state) => state.workspace);
   const supportLoad = useCalculationWorkspaceStore((state) => state.supportLoad);
+  const supportLoadDistribution = useCalculationWorkspaceStore((state) => state.supportLoadDistribution);
   const supportLoadProfile = useCalculationWorkspaceStore((state) => state.supportLoadProfile);
   const selectedObjectId = useCalculationWorkspaceStore((state) => state.selectedObjectId);
   const setSupportLoadProfileValue = useCalculationWorkspaceStore((state) => state.setSupportLoadProfileValue);
@@ -102,6 +103,7 @@ export default function WorkspaceLoadCalculationPanel() {
           selectObject={selectObject}
         />
       )}
+      {activePanel === 'Supports' && <SupportsPanel distribution={supportLoadDistribution} />}
       {activePanel === 'Factors' && <FactorsPanel profile={supportLoadProfile} setProfileValue={setSupportLoadProfileValue} />}
       {activePanel === 'Equations' && <EquationsPanel supportLoad={supportLoad} />}
       {activePanel === 'Logs' && <LogsPanel supportLoad={supportLoad} />}
@@ -135,6 +137,60 @@ function PreviewPanel({ rows, selectedObjectId, selectedRow, selectObject }) {
       <section className="cw-load-card cw-load-table-card">
         <h3>Result Rows</h3>
         <ResultTable rows={rows} selectedObjectId={selectedObjectId} selectObject={selectObject} />
+      </section>
+    </div>
+  );
+}
+
+function SupportsPanel({ distribution }) {
+  const supports = Array.isArray(distribution?.supports) ? distribution.supports : [];
+  const totals = distribution?.totals || {};
+  return (
+    <div className="cw-load-grid">
+      <section className="cw-load-card">
+        <h3>Distribution Summary</h3>
+        <div className="cw-load-kv">
+          {kv('Method', distribution?.method)}
+          {kv('Weighted elements', totals.elements)}
+          {kv('Supports', totals.supports)}
+          {kv('Total weight OPE kg', totals.totalWeightOpeKg)}
+          {kv('Distributed OPE kg', totals.distributedWeightOpeKg)}
+          {kv('Unsupported OPE kg', totals.unsupportedWeightOpeKg)}
+          {kv('Total vertical OPE N', totals.totalVerticalOpeN)}
+          {kv('COG', totals.cog ? `${totals.cog.x}, ${totals.cog.y}, ${totals.cog.z}` : null)}
+        </div>
+      </section>
+      <section className="cw-load-card cw-load-table-card">
+        <h3>Vertical Load per Support</h3>
+        {!supports.length && <div className="cw-load-empty">Import geometry with supports and run Calc to distribute vertical loads.</div>}
+        {supports.length > 0 && (
+          <div className="cw-load-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Support</th>
+                <th>Type</th>
+                <th>OPE kg</th>
+                <th>OPE N</th>
+                <th>HYD N</th>
+                <th>Elements</th>
+              </tr>
+            </thead>
+            <tbody>
+              {supports.map((row) => (
+                <tr key={row.supportId}>
+                  <td title={row.supportId}>{row.name}</td>
+                  <td>{row.supportType}</td>
+                  <td>{dash(row.verticalLoadOpeKg)}</td>
+                  <td>{dash(row.verticalLoadOpeN)}</td>
+                  <td>{dash(row.verticalLoadHydN)}</td>
+                  <td>{row.contributionCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        )}
       </section>
     </div>
   );
