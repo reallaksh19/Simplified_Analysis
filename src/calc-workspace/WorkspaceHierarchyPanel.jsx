@@ -57,20 +57,51 @@ export default function WorkspaceHierarchyPanel() {
   );
 }
 
-function BranchNode({ branch, rowById, selectedObjectId, selectObject, filterText }) {
-  const [open, setOpen] = useState(true);
-  const branchRows = branch.objectIds.map((id) => rowById.get(id)).filter(Boolean);
+function BranchNode({ branch, rowById, selectedObjectId, selectObject, filterText, level = 0 }) {
+  const [open, setOpen] = useState(level < 1 || Boolean(filterText));
+  
+  // A branch is "selected" if its exact ID is the selectedObjectId (for folders)
+  const isSelected = branch.id === selectedObjectId;
+  const isBranchSelected = branch.objectIds.includes(selectedObjectId);
+  
+  const branchRows = (branch.directObjectIds || []).map((id) => rowById.get(id)).filter(Boolean);
   const visibleRows = branchRows.filter((row) => matchesFilter(branch, row, filterText));
-  if (filterText && !visibleRows.length && !String(branch.label).toLowerCase().includes(filterText)) return null;
+  
+  const hasVisibleChildren = (branch.children || []).some(child => 
+    !filterText || child.objectIds.some(id => matchesFilter(child, rowById.get(id), filterText)) || child.label.toLowerCase().includes(filterText)
+  );
+
+  if (filterText && !visibleRows.length && !hasVisibleChildren && !String(branch.label).toLowerCase().includes(filterText)) return null;
   return (
-    <div className="cw-tree-branch">
-      <button type="button" className="cw-tree-branch-head" onClick={() => setOpen(!open)}>
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+    <div className="cw-tree-branch" style={{ marginLeft: `${level > 0 ? 12 : 0}px` }}>
+      <button 
+        type="button" 
+        className={`cw-tree-branch-head ${isSelected ? 'is-selected' : isBranchSelected ? 'is-active-path' : ''}`} 
+        onClick={() => {
+          selectObject(branch.id);
+          if (!open) setOpen(true);
+        }}
+        onDoubleClick={() => setOpen(!open)}
+      >
+        <span onClick={(e) => { e.stopPropagation(); setOpen(!open); }} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px' }}>
+          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </span>
         <strong>{branch.label}</strong>
         <em>{branch.objectCount}</em>
       </button>
       {open && (
         <div className="cw-tree-children">
+          {(branch.children || []).map(child => (
+            <BranchNode
+              key={child.id}
+              branch={child}
+              rowById={rowById}
+              selectedObjectId={selectedObjectId}
+              selectObject={selectObject}
+              filterText={filterText}
+              level={level + 1}
+            />
+          ))}
           {visibleRows.map((row) => (
             <button
               type="button"
@@ -78,6 +109,7 @@ function BranchNode({ branch, rowById, selectedObjectId, selectObject, filterTex
               className={row.id === selectedObjectId ? 'cw-tree-object is-selected' : 'cw-tree-object'}
               onClick={() => selectObject(row.id)}
               title={row.sourcePath || row.name}
+              style={{ paddingLeft: '24px' }}
             >
               <span className={`cw-status-dot status-${row.status}`} />
               <span>{row.name || row.id}</span>

@@ -23,8 +23,9 @@ export const SUPPORT_LOAD_FORMULA_PROFILE_ID = 'ACCESS_TEMP_WALL_WEIGHTED_V1';
 
 export const DEFAULT_SUPPORT_LOAD_PROFILE = Object.freeze({
   profileId: SUPPORT_LOAD_FORMULA_PROFILE_ID,
-  gravityFactor: 10,
-  verticalLoadFactor: 1.1,
+  configSource: 'visible-editable-config',
+  gravityFactor: 9.80665,
+  verticalLoadFactor: 1,
   roundMajor: 100,
   roundStep: 50,
   roundMode: 'up',
@@ -65,8 +66,8 @@ const SUPPORT_LOAD_PROFILE_NUMERIC_KEYS = Object.freeze([
 ]);
 
 export const SUPPORT_LOAD_FORMULA_TEXT = [
-  'OPE_V_A = ((FluidWt_OPE + UnitPipeWt) * AutoSpan * 10 * 1.1) / 1000',
-  'OPE_V_DEP = ((FluidWt_OPE + UnitPipeWt) * DEPSpan * 10 * 1.1) / 1000',
+  'OPE_V = (PipeWt + FluidWt_OPE + InsulationWt) * SpanM * visibleGravity * visibleLoadFactor + ComponentKg * visibleGravity * visibleLoadFactor',
+  'HYD uses explicit HYD density/weight only. HYD never copies OPE.',
   'Guide = max(GetRoundedNum(0.1 * 0.3 * OPE_V * (Wall / 6.3) * (TempfnC(T1) / 100) / 1.23), 0.3 * OPE_V)',
   'LineStop = GetRoundedNum(1000 * 0.0209 * ((3.14 / 32) * (Dia^4 - (Dia - 2*Wall)^4) / Dia)^0.5079 * (TempfnC(T1) / 100) / 1.23)',
   '',
@@ -176,19 +177,17 @@ export function buildSupportLoadInput(pipe, profileLike) {
   // Total concentrated lump weight for this element (prefer rigidWeightKg, fall back to componentWeightKg)
   const lumpWeightKg = firstNumber(rigidWeightKg, componentWeightKg);
 
-  // --- Insulation weight ---
-  // insulationThicknessMm from line-list enrichment; insulation density assumed
-  // 200 kg/m³ (typical mineral wool / calcium silicate) unless overridden in
-  // sourceAttributes.  Annular ring cross-section: π/4*(OD_ins²−OD²)×density.
+  // Insulation uses explicit thickness and density only. Missing data blocks
+  // the affected load case; no density default is applied.
   const insulationThicknessMm = firstNumber(
     lineList.insulationThicknessMm,
     pipe?.insulationThicknessMm,
     fieldValue(sourceAttributes, ['INSULATION_THICKNESS_MM', 'INSUL_THICK_MM', 'INSUL_THICK']),
   );
   const insulationDensityKgM3 = firstNumber(
+    lineList.insulationDensityKgM3,
     pipe?.insulationDensityKgM3,
     fieldValue(sourceAttributes, ['INSULATION_DENSITY_KG_M3', 'INSUL_DENSITY']),
-    200, // mineral wool / calcium silicate default
   );
   const insulationWtKgPerM = deriveInsulationWeight(pipeOdMm, insulationThicknessMm, insulationDensityKgM3);
 
@@ -196,6 +195,7 @@ export function buildSupportLoadInput(pipe, profileLike) {
     schema: SUPPORT_LOAD_INPUT_SCHEMA,
     sourceObjectId: stringValue(pipe?.id),
     identity: {
+      componentType: stringValue(pipe?.type || pipe?.kind || sourceAttributes.TYPE).toUpperCase(),
       lineNo: stringValue(lineList.lineNo || sourceAttributes.LINE_NO || sourceAttributes.LINENO),
       branchKey: stringValue(lineList.lineKey || lineList.branchKey || pipe?.sourcePath),
       nps: firstNumber(lineList.nps, pipe?.nps, fieldValue(sourceAttributes, ['NPS', 'NS', 'NOMINAL_SIZE', 'PIPE_SIZE'])),
@@ -213,7 +213,9 @@ export function buildSupportLoadInput(pipe, profileLike) {
       componentWeightKg,
       lumpWeightKg,
       insulationThicknessMm,
+      insulationDensityKgM3,
       insulationWtKgPerM,
+      componentWeightRequired: componentWeightRequired(pipe),
     },
     process: {
       tempExpC1: firstNumber(lineList.temp1C, lineList.t1, sourceAttributes.TEMP_EXP_C1, sourceAttributes.TEMP_C1, sourceAttributes.T1),
@@ -240,14 +242,14 @@ export function calculateSupportLoads(input, evaluatedAt, profileLike) {
   }
   const profile = normalizeSupportLoadProfile(profileLike || input.formulaProfile);
   // Total distributed weight per metre includes pipe + fluid + insulation
-  const insulWtOpe = input.pipePhysical.insulationWtKgPerM ?? 0;
-  const insulWtHyd = input.pipePhysical.insulationWtKgPerM ?? 0;
+  const insulWtOpe = input.pipePhysical.insulationWtKgPerM;
+  const insulWtHyd = input.pipePhysical.insulationWtKgPerM;
   const pipeWt = input.pipePhysical.unitPipeWtKgPerM;
   const vertical = {
-    opeVA: verticalLoad(pipeWt, input.process.fluidWtOpeKgPerM, insulWtOpe, input.spans.autoSpanMm, input.pipePhysical.lumpWeightKg, profile),
-    hydVA: verticalLoad(pipeWt, input.process.fluidWtHydKgPerM, insulWtHyd, input.spans.autoSpanMm, input.pipePhysical.lumpWeightKg, profile),
-    opeVDep: verticalLoad(pipeWt, input.process.fluidWtOpeKgPerM, insulWtOpe, input.spans.depSpanMm, input.pipePhysical.lumpWeightKg, profile),
-    hydVDep: verticalLoad(pipeWt, input.process.fluidWtHydKgPerM, insulWtHyd, input.spans.depSpanMm, input.pipePhysical.lumpWeightKg, profile),
+    opeVA: verticalLoad(pipeWt, input.process.fluidWtOpeKgPerM, insulWtOpe, input.spans.autoSpanMm, input.pipePhysical.lumpWeightKg, input.pipePhysical.componentWeightRequired, profile),
+    hydVA: verticalLoad(pipeWt, input.process.fluidWtHydKgPerM, insulWtHyd, input.spans.autoSpanMm, input.pipePhysical.lumpWeightKg, input.pipePhysical.componentWeightRequired, profile),
+    opeVDep: verticalLoad(pipeWt, input.process.fluidWtOpeKgPerM, insulWtOpe, input.spans.depSpanMm, input.pipePhysical.lumpWeightKg, input.pipePhysical.componentWeightRequired, profile),
+    hydVDep: verticalLoad(pipeWt, input.process.fluidWtHydKgPerM, insulWtHyd, input.spans.depSpanMm, input.pipePhysical.lumpWeightKg, input.pipePhysical.componentWeightRequired, profile),
   };
   const guideA = guideLoad(vertical.opeVA, input, profile);
   const guideDep = guideLoad(vertical.opeVDep, input, profile);
@@ -315,8 +317,10 @@ export function resultRows(supportLoadModel) {
 
 function supportLoadReadiness(input) {
   const hasOpeSpan = input.spans.autoSpanMm !== null || input.spans.depSpanMm !== null;
-  const readyOpe = input.pipePhysical.unitPipeWtKgPerM !== null && input.process.fluidWtOpeKgPerM !== null && hasOpeSpan;
-  const readyHyd = input.pipePhysical.unitPipeWtKgPerM !== null && input.process.fluidWtHydKgPerM !== null && hasOpeSpan;
+  const insulationReady = input.pipePhysical.insulationWtKgPerM !== null;
+  const componentReady = input.pipePhysical.componentWeightRequired !== true || input.pipePhysical.lumpWeightKg !== null;
+  const readyOpe = input.pipePhysical.unitPipeWtKgPerM !== null && input.process.fluidWtOpeKgPerM !== null && insulationReady && componentReady && hasOpeSpan;
+  const readyHyd = input.pipePhysical.unitPipeWtKgPerM !== null && input.process.fluidWtHydKgPerM !== null && insulationReady && componentReady && hasOpeSpan;
   const readyGuide = readyOpe && input.pipePhysical.wallThicknessMm !== null && input.process.tempExpC1 !== null;
   const readyLineStop = input.identity.pipeOdMm !== null && input.pipePhysical.wallThicknessMm !== null && input.process.tempExpC1 !== null;
   const required = [
@@ -326,6 +330,8 @@ function supportLoadReadiness(input) {
     ['process.tempExpC1', input.process.tempExpC1 !== null],
     ['process.fluidWtOpeKgPerM', input.process.fluidWtOpeKgPerM !== null],
     ['process.fluidWtHydKgPerM', input.process.fluidWtHydKgPerM !== null],
+    ['pipePhysical.insulationWtKgPerM', insulationReady],
+    ['pipePhysical.lumpWeightKg', componentReady],
     ['spans.autoSpanMm or spans.depSpanMm', hasOpeSpan],
   ];
   return freezeDeep({
@@ -383,14 +389,14 @@ function deriveInsulationWeight(pipeOdMm, insulationThicknessMm, insulationDensi
   return round3(Math.PI / 4 * (odIns ** 2 - pipeOdMm ** 2) * 1e-6 * insulationDensityKgM3);
 }
 
-function verticalLoad(pipeWt, fluidWt, insulWt, spanMm, lumpKg, profile) {
-  if (pipeWt === null || fluidWt === null || spanMm === null) return null;
-  const ins = insulWt ?? 0;
-  const lump = lumpKg ?? 0;
+function verticalLoad(pipeWt, fluidWt, insulWt, spanMm, lumpKg, lumpRequired, profile) {
+  if (pipeWt === null || fluidWt === null || insulWt === null || spanMm === null) return null;
+  if (lumpRequired === true && lumpKg === null) return null;
+  const lump = lumpKg === null ? 0 : lumpKg;
   // Distributed contribution: (pipeWt + fluidWt + insulWt) × span × g × LF
   // Lump weight contribution: lump × g × LF (lump-sum component weight)
-  const distributed = (pipeWt + fluidWt + ins) * spanMm * profile.gravityFactor * profile.verticalLoadFactor / 1000;
-  const concentrated = lump * profile.gravityFactor * profile.verticalLoadFactor / 1000;
+  const distributed = (pipeWt + fluidWt + insulWt) * spanMm * profile.gravityFactor * profile.verticalLoadFactor / 1000;
+  const concentrated = lump * profile.gravityFactor * profile.verticalLoadFactor;
   return round1(distributed + concentrated);
 }
 
@@ -424,9 +430,10 @@ function lineStopLoad(input, profile) {
 
 function getRoundedNum(value, major, step, mode) {
   const numeric = numberMaybe(value);
-  const roundStep = numberMaybe(step) || numberMaybe(major) || 50;
-  if (numeric === null) return null;
-  if (stringValue(mode).toLowerCase() !== 'up') return Math.round(numeric / roundStep) * roundStep;
+  const roundStep = firstNumber(step, major);
+  if (numeric === null || roundStep === null) return null;
+  if (mode === 'down') return Math.floor(numeric / roundStep) * roundStep;
+  if (mode === 'nearest') return Math.round(numeric / roundStep) * roundStep;
   return Math.ceil(numeric / roundStep) * roundStep;
 }
 
@@ -493,22 +500,28 @@ function blockedResult(input, missing, evaluatedAt) {
     guide: {},
     lineStop: {},
     status: { calculated: false, blocked: true, missing },
-    formulaProfile: clonePlain(DEFAULT_SUPPORT_LOAD_PROFILE),
+    formulaProfile: null,
   });
 }
 
 export function normalizeSupportLoadProfile(profileLike) {
-  const source = profileLike && typeof profileLike === 'object' ? profileLike : {};
+  if (!profileLike || typeof profileLike !== 'object' || Array.isArray(profileLike)) {
+    throw new TypeError('Support-load profile must come from visible editable configuration.');
+  }
+  const source = profileLike;
   const numericProfile = Object.fromEntries(
-    SUPPORT_LOAD_PROFILE_NUMERIC_KEYS.map((key) => [key, positiveNumber(source[key], DEFAULT_SUPPORT_LOAD_PROFILE[key])]),
+    SUPPORT_LOAD_PROFILE_NUMERIC_KEYS.map((key) => [key, positiveNumber(source[key], key)]),
   );
   const lineStopIdExpression = stringValue(source.lineStopIdExpression);
+  if (!['D_MINUS_WT', 'D_MINUS_2WT'].includes(lineStopIdExpression)) throw new TypeError('Visible support-load profile lineStopIdExpression is invalid.');
+  const roundMode = stringValue(source.roundMode);
+  if (!['up', 'nearest', 'down'].includes(roundMode)) throw new TypeError('Visible support-load profile roundMode is invalid.');
   return freezeDeep({
-    ...DEFAULT_SUPPORT_LOAD_PROFILE,
+    profileId: SUPPORT_LOAD_FORMULA_PROFILE_ID,
+    configSource: stringValue(source.configSource || 'visible-editable-config'),
     ...numericProfile,
-    lineStopIdExpression: lineStopIdExpression === 'D_MINUS_2WT'
-      ? lineStopIdExpression
-      : DEFAULT_SUPPORT_LOAD_PROFILE.lineStopIdExpression,
+    roundMode,
+    lineStopIdExpression,
   });
 }
 
@@ -525,9 +538,15 @@ function buildCalculationLogs(pipeInputs, resultsByPipeId, blockedResults) {
   return freezeDeep(rows);
 }
 
-function positiveNumber(value, fallback) {
+function positiveNumber(value, field) {
   const parsed = numberMaybe(value);
-  return parsed !== null && parsed > 0 ? parsed : fallback;
+  if (parsed !== null && parsed > 0) return parsed;
+  throw new TypeError(`Visible support-load profile field ${field} must be a positive number.`);
+}
+
+function componentWeightRequired(pipe) {
+  const type = stringValue(pipe?.type || pipe?.kind || pipe?.sourceAttributes?.TYPE).toUpperCase();
+  return type !== '' && type !== 'PIPE';
 }
 
 function firstNumber(...values) {

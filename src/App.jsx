@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppStore } from './store/appStore';
 import { TopNav } from './components/TopNav';
 import { DataTableTab } from './components/DataTableTab';
-import CalculationWorkspaceTab from './calc-workspace/CalculationWorkspaceTab';
+import { CalculationWorkspaceTab } from './calc-workspace/CalculationWorkspaceTab';
 import WorkspaceHandoffBridge from './calc-workspace/WorkspaceHandoffBridge';
 import { CalcExtendedTab } from './calc-extended/components/CalcExtendedTab';
 import { Viewer3DTab } from './components/Viewer3DTab';
@@ -30,7 +30,7 @@ function App() {
       <WorkspaceHandoffBridge />
 
       {activeTab === 'home' && <ErrorBoundary><Viewer3DTab /></ErrorBoundary>}
-      {activeTab === 'workspace' && <ErrorBoundary><CalculationWorkspaceTab /></ErrorBoundary>}
+      {(activeTab === 'workspace' || activeTab === 'load-calc') && <ErrorBoundary><CalculationWorkspaceTab /></ErrorBoundary>}
       {activeTab === 'pcf' && <DataTableTab />}
       {activeTab === 'sketcher' && <ErrorBoundary><SketcherTab /></ErrorBoundary>}
       {activeTab === 'simpAnalysis' && <ErrorBoundary><CalcExtendedTab /></ErrorBoundary>}

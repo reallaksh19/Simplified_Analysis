@@ -11,6 +11,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Grid, Html, OrbitControls, PerspectiveCamera, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import * as THREE from 'three';
+import { Maximize, Focus, Eye, EyeOff, Box, ArrowDown, ArrowRight, ArrowLeft, MousePointer2, Move, ZoomIn, Rotate3d } from 'lucide-react';
 import { useCalculationWorkspaceStore } from './useCalculationWorkspaceStore.js';
 import { renderableWorkspaceObjects } from './workspaceModel.js';
 
@@ -30,9 +31,29 @@ export default function WorkspaceCanvas() {
   const isolatedObjectIds = useCalculationWorkspaceStore((state) => state.isolatedObjectIds);
   const isolateSelected = useCalculationWorkspaceStore((state) => state.isolateSelected);
   const showAllObjects = useCalculationWorkspaceStore((state) => state.showAllObjects);
+  const hierarchy = useCalculationWorkspaceStore((state) => state.hierarchy);
   const [viewMode, setViewMode] = useState('iso');
   const [fitVersion, setFitVersion] = useState(0);
   const model = useMemo(() => renderableWorkspaceObjects(workspace), [workspace]);
+  
+  const selectedObjectIds = useMemo(() => {
+    if (!selectedObjectId) return new Set();
+    let ids = new Set([selectedObjectId]);
+    const findBranch = (branches, id) => {
+      for (const b of branches) {
+        if (b.id === id) return b;
+        if (b.children) {
+          const found = findBranch(b.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const branch = findBranch(hierarchy, selectedObjectId);
+    if (branch) ids = new Set(branch.objectIds);
+    return ids;
+  }, [selectedObjectId, hierarchy]);
+
   const visibleIds = new Set(isolatedObjectIds || []);
   const visibleObjects = model.objects.filter((object) => {
     if (visibleIds.size && !visibleIds.has(object.id)) return false;
@@ -43,24 +64,34 @@ export default function WorkspaceCanvas() {
 
   return (
     <div className="cw-canvas-shell">
-      <div className="cw-canvas-toolbar">
-        <button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit All</button>
-        <button type="button" onClick={() => { setViewMode('selected'); setFitVersion((value) => value + 1); }}>Fit Selected</button>
-        <button type="button" onClick={() => setViewMode('top')}>Top</button>
-        <button type="button" onClick={() => setViewMode('front')}>Front</button>
-        <button type="button" onClick={() => setViewMode('side')}>Side</button>
-        <button type="button" onClick={() => setViewMode('iso')}>ISO</button>
-        <button type="button" onClick={isolateSelected} disabled={!selectedObjectId}>Isolate</button>
-        <button type="button" onClick={showAllObjects}>Show All</button>
-        <label><input type="checkbox" checked={layerVisibility.supports} onChange={(event) => setLayerVisibility('supports', event.target.checked)} /> Supports</label>
-        <label><input type="checkbox" checked={layerVisibility.labels} onChange={(event) => setLayerVisibility('labels', event.target.checked)} /> Labels</label>
+      <div className="cw-canvas-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'absolute', left: '16px', top: '16px', zIndex: 10, background: 'rgba(15,23,42,0.7)', padding: '6px', borderRadius: '8px', border: '1px solid #334155', backdropFilter: 'blur(4px)' }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button type="button" className="cw-icon-btn" title="Select (Click object)" style={{ background: '#3b82f6', color: '#fff' }}><MousePointer2 size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Orbit (Left Click + Drag)"><Rotate3d size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Pan (Right Click + Drag)"><Move size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Zoom (Scroll)"><ZoomIn size={16} /></button>
+        </div>
+        <div style={{ height: '1px', background: '#334155', margin: '4px 0' }}></div>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button type="button" className="cw-icon-btn" title="Fit All" onClick={() => setFitVersion((value) => value + 1)}><Maximize size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Fit Selected" onClick={() => { setViewMode('selected'); setFitVersion((value) => value + 1); }}><Focus size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Isolate Selected" onClick={isolateSelected} disabled={!selectedObjectId}><EyeOff size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Show All" onClick={showAllObjects}><Eye size={16} /></button>
+        </div>
+        <div style={{ height: '1px', background: '#334155', margin: '4px 0' }}></div>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button type="button" className="cw-icon-btn" title="ISO View" onClick={() => setViewMode('iso')}><Box size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Top View" onClick={() => setViewMode('top')}><ArrowDown size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Front View" onClick={() => setViewMode('front')}><ArrowRight size={16} /></button>
+          <button type="button" className="cw-icon-btn" title="Side View" onClick={() => setViewMode('side')}><ArrowLeft size={16} /></button>
+        </div>
       </div>
       <Canvas className="cw-canvas" onPointerMissed={() => selectObject('')}>
         <PerspectiveCamera makeDefault position={[120, 90, 120]} fov={48} />
         <CameraController
           bounds={model.bounds}
           objects={visibleObjects}
-          selectedObjectId={selectedObjectId}
+          selectedObjectIds={selectedObjectIds}
           viewMode={viewMode}
           fitVersion={fitVersion}
         />
@@ -77,7 +108,7 @@ export default function WorkspaceCanvas() {
                 key={object.id}
                 primitive={object}
                 bounds={model.bounds}
-                selected={object.id === selectedObjectId}
+                selected={selectedObjectIds.has(object.id)}
                 labels={layerVisibility.labels}
                 centerlines={layerVisibility.centerlines}
                 onSelect={selectObject}
@@ -91,7 +122,7 @@ export default function WorkspaceCanvas() {
   );
 }
 
-function CameraController({ bounds, objects, selectedObjectId, viewMode, fitVersion }) {
+function CameraController({ bounds, objects, selectedObjectIds, viewMode, fitVersion }) {
   const { camera } = useThree();
   const controlsRef = useRef(null);
   const previousFit = useRef(-1);
@@ -99,9 +130,9 @@ function CameraController({ bounds, objects, selectedObjectId, viewMode, fitVers
   useEffect(() => {
     if (!controlsRef.current || previousFit.current === fitVersion) return;
     previousFit.current = fitVersion;
-    const targetBounds = selectedBounds(objects, selectedObjectId) || bounds;
+    const targetBounds = selectedBounds(objects, selectedObjectIds) || bounds;
     moveCamera(camera, controlsRef.current, bounds, targetBounds, viewMode);
-  }, [bounds, camera, fitVersion, objects, selectedObjectId, viewMode]);
+  }, [bounds, camera, fitVersion, objects, selectedObjectIds, viewMode]);
 
   useEffect(() => {
     if (!controlsRef.current) return;
@@ -166,18 +197,20 @@ function Line({ start, end, selected }) {
 
 function Label({ text }) {
   return (
-    <Html distanceFactor={14} center>
-      <span className="cw-canvas-label">{text}</span>
+    <Html distanceFactor={14} center style={{ pointerEvents: 'none' }} zIndexRange={[100, 0]}>
+      <span className="cw-canvas-label" style={{ background: 'rgba(15,23,42,0.8)', color: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', whiteSpace: 'nowrap', border: '1px solid #334155' }}>
+        {text}
+      </span>
     </Html>
   );
 }
 
 function primitiveColor(primitive) {
   if (primitive.status === 'conflict') return '#ef4444';
-  if (primitive.status === 'review' || primitive.status === 'partial') return '#f59e0b';
+  if (primitive.status === 'review') return '#f59e0b';
   if (primitive.status === 'resolved') return '#22c55e';
   if (primitive.isSupport) return '#2dd4bf';
-  return '#60a5fa';
+  return '#3b82f6';
 }
 
 function scenePoint(point, bounds) {
@@ -195,12 +228,14 @@ function scaleForBounds(bounds) {
   return 160 / Math.max(size.x, size.y, size.z, 1);
 }
 
-function selectedBounds(objects, selectedObjectId) {
-  const selected = objects.find((object) => object.id === selectedObjectId);
-  if (!selected) return null;
-  const points = [selected.start, selected.end, selected.center].filter(Boolean);
-  const current = { center: selected.center, size: { x: 1, y: 1, z: 1 }, radius: 1 };
-  if (points.length < 2) return current;
+function selectedBounds(objects, selectedObjectIds) {
+  if (!selectedObjectIds || selectedObjectIds.size === 0) return null;
+  const selectedObjects = objects.filter((object) => selectedObjectIds.has(object.id));
+  if (selectedObjects.length === 0) return null;
+  const points = selectedObjects.flatMap((selected) => [selected.start, selected.end, selected.center].filter(Boolean));
+  if (points.length < 2) {
+    return { center: points[0] || { x: 0, y: 0, z: 0 }, size: { x: 1, y: 1, z: 1 }, radius: 1 };
+  }
   return boundsFromPoints(points);
 }
 

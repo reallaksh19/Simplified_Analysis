@@ -12,11 +12,16 @@ export const RVM_SELECTED_GEOMETRY_WORKSPACE_PACKAGE_SCHEMA = 'rvm-selected-geom
 export const RVM_SELECTED_GEOMETRY_POST_MESSAGE_TYPE = 'rvm-selected-geometry-workspace-package';
 export const PENDING_WORKSPACE_PACKAGE_STORAGE_KEY = 'rvmSelectedGeometryWorkspacePackage.pending';
 
-const PIPE_TYPES = new Set(['PIPE', 'BEND', 'ELBOW', 'ELBO', 'TEE', 'FLAN', 'FLANGE', 'VALV', 'VALVE', 'REDU', 'REDUCER']);
+const PIPE_TYPES = new Set(['PIPE', 'BEND', 'ELBOW', 'ELBO', 'TEE', 'FLAN', 'FLANGE', 'VALV', 'VALVE', 'REDU', 'REDUCER', 'GASK', 'GASKET', 'INST', 'INSTRUMENT', 'OLET']);
 const SUPPORT_TYPES = new Set(['ATTA', 'SUPPORT', 'REST', 'GUIDE', 'LINESTOP', 'LINE_STOP', 'LIMIT', 'LIM', 'ANCHOR', 'SPRING']);
 const MAX_PROPERTY_ROWS = 800;
 
-export function normalizeCalculationWorkspacePackage(packageJson, importSource, importedAt) {
+export function normalizeCalculationWorkspacePackage(rawPackageJson, importSource, importedAt) {
+  let packageJson = rawPackageJson;
+  if (Array.isArray(packageJson)) {
+    packageJson = { schema: 'inputxml-managed-stage/v1', objects: packageJson };
+  }
+  
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new TypeError('Calculation Workspace import must be a JSON object.');
   }
@@ -30,18 +35,34 @@ export function normalizeCalculationWorkspacePackage(packageJson, importSource, 
     sourceSchema = packageJson.schema || 'json-viewer-selection/v1';
     
     // Adapt selected primitives format
-    const items = Array.isArray(packageJson.selected) 
+    const rawItems = Array.isArray(packageJson.selected) 
       ? packageJson.selected.map(s => s?.item).filter(Boolean)
       : Array.isArray(packageJson.objects) 
         ? packageJson.objects 
         : [];
+        
+    const items = [];
+    function flatten(nodes) {
+      if (!Array.isArray(nodes)) return;
+      for (const node of nodes) {
+        if (!node || typeof node !== 'object') continue;
+        items.push(node);
+        if (Array.isArray(node.children)) flatten(node.children);
+      }
+    }
+    flatten(rawItems);
         
     const objects = [];
     const supports = [];
     
     items.forEach(item => {
       const type = adaptedItemType(item);
-      const adaptedItem = { ...item, type };
+      const adaptedItem = {
+        ...item,
+        id: stringValue(item?.sourceId || item?.id),
+        type,
+        diagnostics: inheritedDiagnostics(item),
+      };
 
       // Stage JSON viewer enrichment ("Populate attributes") arrives as a flat
       // enrichedAttributes record; translate it into the attributes.enrichment
@@ -135,14 +156,19 @@ function enrichmentFromEnrichedAttributes(item) {
     schema: 'stage-json-enriched-attributes-adapter/v1',
     lineList: {
       lineNo: stringValue(e.lineNo),
-      lineKey: stringValue(e.lineNo),
+      lineKey: stringValue(e.lineKey || e.lineNo),
       p1: e.designPressure ?? e.designPressureMpa ?? '',
       t1: e.designTemperatureC ?? '',
       t2: e.operatingTemperatureC ?? '',
       t3: e.minimumTemperatureC ?? '',
-      density: e.fluidDensityKgM3 ?? '',
-      fluidDensityKgM3: e.fluidDensityKgM3 ?? null,
+      density: e.fluidDensityOpeKgM3 ?? e.fluidDensityKgM3 ?? '',
+      fluidDensityKgM3: e.fluidDensityOpeKgM3 ?? e.fluidDensityKgM3 ?? null,
+      fluidDensityOpeKgM3: e.fluidDensityOpeKgM3 ?? e.fluidDensityKgM3 ?? null,
+      fluidDensityHydKgM3: e.fluidDensityHydKgM3 ?? null,
+      fluidWeightOpeKgPerM: e.fluidWeightOpeKgPerM ?? null,
+      fluidWeightHydKgPerM: e.fluidWeightHydKgPerM ?? null,
       insulationThicknessMm: e.insulationThicknessMm ?? null,
+      insulationDensityKgM3: e.insulationDensityKgM3 ?? null,
       phase: stringValue(e.fluidPhase),
       nps: e.nominalBoreMm ?? null,
       pipeOdMm: e.pipeOdMm ?? null,
@@ -159,13 +185,32 @@ function enrichmentFromEnrichedAttributes(item) {
     material: {
       materialName: stringValue(e.material),
       materialCode: stringValue(e.materialCode),
+      materialDensityKgM3: e.materialDensityKgM3 ?? null,
     },
     weight: {
       componentWeightKg: e.componentWeightKg ?? null,
       bestWeightKg: e.componentWeightKg ?? null,
       unitPipeWeightKgPerM: e.pipeWeightKgPerM ?? null,
+      insulationWeightKgPerM: e.insulationWeightKgPerM ?? null,
+    },
+    audit: {
+      status: stringValue(e.status),
+      needsReview: e.needsReview === true,
+      missing: Array.isArray(e.missing) ? [...e.missing] : [],
+      conflicts: Array.isArray(e.conflicts) ? [...e.conflicts] : [],
+      sources: clonePlain(e.sources || {}),
+      trace: clonePlain(e.trace || {}),
+      diagnostics: clonePlain(e.diagnostics || []),
     },
   };
+}
+
+function inheritedDiagnostics(item) {
+  const rows = [
+    ...(Array.isArray(item?.diagnostics) ? item.diagnostics : []),
+    ...(Array.isArray(item?.enrichedAttributes?.diagnostics) ? item.enrichedAttributes.diagnostics : []),
+  ];
+  return [...new Map(rows.map((row) => [row?.id || JSON.stringify(row), clonePlain(row)])).values()];
 }
 
 function unsupportedPackageError(packageJson) {
@@ -220,31 +265,84 @@ export function selectedWorkspaceObject(workspace, selectedObjectId) {
 export function buildWorkspaceHierarchy(workspace) {
   const objects = workspaceObjects(workspace);
   const byId = new Map(objects.map((object) => [stringValue(object?.id), object]));
-  const used = new Set();
-  const branches = workspaceBranches(workspace).map((branch) => {
-    const objectIds = Array.isArray(branch?.objectIds) ? branch.objectIds.map(stringValue).filter(Boolean) : [];
-    objectIds.forEach((id) => used.add(id));
-    return freezeDeep({
-      id: stringValue(branch?.id || branch?.lineNo || 'branch'),
-      label: stringValue(branch?.lineNo || branch?.id || 'Branch'),
-      objectIds,
-      objectCount: objectIds.length,
-      pipeCount: numberValue(branch?.pipeCount) || objectIds.filter((id) => isPipeLikeType(byId.get(id)?.type)).length,
-      supportCount: numberValue(branch?.supportCount) || objectIds.filter((id) => isSupportLikeType(byId.get(id)?.type)).length,
-    });
+  
+  const root = { id: 'root', label: 'Dataset', children: new Map(), objectIds: [], directObjectIds: [], pipeCount: 0, supportCount: 0 };
+  const unassigned = [];
+
+  objects.forEach((object) => {
+    const row = {
+      id: stringValue(object?.id),
+      name: stringValue(object?.name || object?.sourceAttributes?.NAME),
+      sourcePath: stringValue(object?.sourcePath)
+    };
+    
+    // Fallback if no sourcePath
+    if (!row.sourcePath) {
+      unassigned.push(object);
+      return;
+    }
+
+    const path = row.sourcePath;
+    const parts = path.split('/').filter(Boolean);
+    
+    let current = root;
+    let currentPath = '';
+    
+    // Create folders for everything except the last part (the leaf)
+    if (parts.length > 1) {
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentPath += '/' + parts[i];
+        if (!current.children.has(currentPath)) {
+          current.children.set(currentPath, {
+            id: currentPath,
+            label: parts[i],
+            children: new Map(),
+            objectIds: [],
+            directObjectIds: [],
+            pipeCount: 0,
+            supportCount: 0
+          });
+        }
+        current = current.children.get(currentPath);
+        current.objectIds.push(row.id);
+        if (isPipeLikeType(object?.type)) current.pipeCount++;
+        if (isSupportLikeType(object?.type)) current.supportCount++;
+      }
+    }
+    
+    current.objectIds.push(row.id);
+    current.directObjectIds.push(row.id);
+    if (isPipeLikeType(object?.type)) current.pipeCount++;
+    if (isSupportLikeType(object?.type)) current.supportCount++;
   });
-  const unassigned = objects.filter((object) => !used.has(stringValue(object?.id)));
-  if (unassigned.length) {
-    branches.push(freezeDeep({
-      id: 'branch:unassigned',
+
+  if (unassigned.length > 0) {
+    const unassignedId = 'branch:unassigned';
+    root.children.set(unassignedId, {
+      id: unassignedId,
       label: 'Unassigned',
-      objectIds: unassigned.map((object) => stringValue(object?.id)).filter(Boolean),
-      objectCount: unassigned.length,
-      pipeCount: unassigned.filter((object) => isPipeLikeType(object?.type)).length,
-      supportCount: unassigned.filter((object) => isSupportLikeType(object?.type)).length,
-    }));
+      children: new Map(),
+      objectIds: unassigned.map((obj) => stringValue(obj?.id)).filter(Boolean),
+      directObjectIds: unassigned.map((obj) => stringValue(obj?.id)).filter(Boolean),
+      pipeCount: unassigned.filter((obj) => isPipeLikeType(obj?.type)).length,
+      supportCount: unassigned.filter((obj) => isSupportLikeType(obj?.type)).length,
+    });
   }
-  return freezeDeep(branches);
+
+  function mapToArray(node) {
+    return freezeDeep({
+      id: node.id,
+      label: node.label,
+      objectIds: node.objectIds,
+      directObjectIds: node.directObjectIds,
+      objectCount: node.objectIds.length,
+      pipeCount: node.pipeCount,
+      supportCount: node.supportCount,
+      children: Array.from(node.children.values()).map(mapToArray).sort((a, b) => a.label.localeCompare(b.label))
+    });
+  }
+
+  return mapToArray(root).children;
 }
 
 export function workspaceObjectRows(workspace, limit) {
@@ -303,7 +401,7 @@ export function renderableWorkspaceObjects(workspace) {
 }
 
 export function readObjectEndpoints(object) {
-  const attrs = object?.sourceAttributes || {};
+  const attrs = { ...(object?.attributes || {}), ...(object?.sourceAttributes || {}) };
   const start = readPoint(object?.apos) || readPoint(attrs.APOS) || readPointFromFields(attrs, 'APOS');
   let end = readPoint(object?.lpos) || readPoint(attrs.LPOS) || readPointFromFields(attrs, 'LPOS');
   const delta = readDelta(object?.delta) || readDeltaFromFields(attrs);

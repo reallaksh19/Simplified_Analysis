@@ -13,20 +13,16 @@ import { Download, Inbox, RefreshCw, Trash2, Upload } from 'lucide-react';
 import WorkspaceCanvas from './WorkspaceCanvas.jsx';
 import WorkspaceGeometryTable from './WorkspaceGeometryTable.jsx';
 import WorkspaceHierarchyPanel from './WorkspaceHierarchyPanel.jsx';
-import WorkspaceLoadCalculationPanel from './WorkspaceLoadCalculationPanel.jsx';
+import { EngineeringLoadCalculationPanel } from './EngineeringLoadCalculationPanel.jsx';
 import WorkspaceLoadHud from './WorkspaceLoadHud.jsx';
 import WorkspacePropertyPanel from './WorkspacePropertyPanel.jsx';
 import { useCalculationWorkspaceStore } from './useCalculationWorkspaceStore.js';
 import { PENDING_WORKSPACE_PACKAGE_STORAGE_KEY } from './workspaceModel.js';
 import { buildSupportLoadStageTree } from './supportLoadDistribution.js';
+import { useAppStore } from '../store/appStore.js';
 import './CalculationWorkspace.css';
 
-const WORKSPACE_VIEWS = Object.freeze([
-  { id: 'geometry', label: 'Geometry Review' },
-  { id: 'loads', label: 'Load Calculation' },
-]);
-
-export default function CalculationWorkspaceTab() {
+export function CalculationWorkspaceTab() {
   const fileInputRef = useRef(null);
   const workspace = useCalculationWorkspaceStore((state) => state.workspace);
   const summary = workspace?.summary || {};
@@ -38,8 +34,8 @@ export default function CalculationWorkspaceTab() {
   const importWorkspacePackage = useCalculationWorkspaceStore((state) => state.importWorkspacePackage);
   const clearWorkspace = useCalculationWorkspaceStore((state) => state.clearWorkspace);
   const rebuildSupportLoads = useCalculationWorkspaceStore((state) => state.rebuildSupportLoads);
+  const activeTab = useAppStore((state) => state.activeTab);
   const [message, setMessage] = useState('Import an enriched RVM workspace package exported from 3D Viewer.');
-  const [activeWorkspaceView, setActiveWorkspaceView] = useState('geometry');
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
 
   async function handleFileChange(event) {
@@ -92,25 +88,13 @@ export default function CalculationWorkspaceTab() {
   }
 
   const statusMessage = lastError || message;
-  const isLoadView = activeWorkspaceView === 'loads';
+  const isLoadView = activeTab === 'load-calc';
 
   return (
     <div className="cw-root">
       <header className="cw-header">
         <div className="cw-header-brand">
           <h1 title="Inspect enriched geometry and run support-load calculations from real imported fields.">RVM Workspace</h1>
-          <nav className="cw-mode-tabs" aria-label="Workspace views">
-            {WORKSPACE_VIEWS.map((view) => (
-              <button
-                type="button"
-                key={view.id}
-                className={activeWorkspaceView === view.id ? 'is-active' : ''}
-                onClick={() => setActiveWorkspaceView(view.id)}
-              >
-                {view.label}
-              </button>
-            ))}
-          </nav>
         </div>
         <div className="cw-actions">
           <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={14} /> Import</button>
@@ -154,7 +138,7 @@ export default function CalculationWorkspaceTab() {
             </div>
             {!bottomCollapsed && (
               <div className="cw-bottom-panel-content">
-                {isLoadView ? <WorkspaceLoadCalculationPanel /> : <WorkspaceGeometryTable />}
+                {isLoadView ? <EngineeringLoadCalculationPanel /> : <WorkspaceGeometryTable />}
               </div>
             )}
           </div>

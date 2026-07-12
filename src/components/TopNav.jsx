@@ -8,6 +8,7 @@ export const TopNav = () => {
   const navItems = [
     { id: 'home', name: 'Home', title: '3D Viewer home', icon: Home },
     { id: 'workspace', name: 'Workspace', title: 'Independent RVM workspace', icon: Box },
+    { id: 'load-calc', name: 'Load Calc', title: 'Engineering Load Calculation', icon: Activity },
     { id: 'pcf', name: 'PCF', title: 'PCF Import', icon: Table },
     { id: 'sketcher', name: 'Sketcher', title: 'Geometry / Sketcher', icon: PenTool },
     { id: '3d-analysis', name: '3D Calc', title: '3D Simplified Calculation', icon: Layers },
