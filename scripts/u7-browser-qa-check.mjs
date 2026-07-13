@@ -14,6 +14,7 @@ const requiredE2EFiles = [
   'e2e/phase4-viewport-picking.spec.js',
   'e2e/phase5-analysis-capabilities.spec.js',
   'e2e/phase6-analysis-sessions.spec.js',
+  'e2e/phase7-analysis-ledger.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -105,6 +106,17 @@ checkSpecContracts('e2e/phase6-analysis-sessions.spec.js', [
   'connectedLineSegments',
   'getAnalysisSession',
   'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/phase7-analysis-ledger.spec.js', [
+  'analysis-ledger-entry-1',
+  'analysis-ledger-entry-2',
+  'analysis-comparison-summary',
+  'Export JSON',
+  'Export CSV',
+  'Export Markdown',
+  'getAnalysisLedger',
+  'analysis:ledgerChanged',
 ]);
 
 console.log();
