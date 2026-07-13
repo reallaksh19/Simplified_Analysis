@@ -37,7 +37,7 @@ export function triggerAnalysisDownload(documentRef, artifact) {
   documentRef.body.append(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  queueMicrotask(() => URL.revokeObjectURL(url));
 }
 
 function formatDescriptor(format, report) {
