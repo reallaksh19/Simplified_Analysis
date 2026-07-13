@@ -122,7 +122,7 @@ test('failed reviewed execution archives and history clears only at explicit dat
   expect(clearedHistory.entries).toHaveLength(0);
   expect(clearedHistory.datasetId).toBe('PHASE7-FAILED');
 
-  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.locator('[data-action="clear-dataset"]').click();
   const clearedDataset = await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger());
   expect(clearedDataset.entries).toHaveLength(0);
   expect(clearedDataset.datasetId).toBe('');
