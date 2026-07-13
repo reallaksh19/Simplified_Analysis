@@ -49,6 +49,9 @@ jobs:
       - name: Certify Phase 7 analysis ledger contracts
         run: npm run check:phase7-workspace:static
 
+      - name: Certify Phase 8 engineering geometry contracts
+        run: npm run check:phase8-workspace:static
+
       - name: Run full repository checks
         run: npm run check:full
 

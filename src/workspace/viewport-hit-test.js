@@ -5,7 +5,7 @@ export function buildCanvasProjection(model, width, height, padding = DEFAULT_PA
   const safeWidth = Math.max(Number(width) || 0, 1);
   const safeHeight = Math.max(Number(height) || 0, 1);
   const projected = model.items
-    .flatMap((item) => [item.start, item.end, item.center])
+    .flatMap(itemPoints)
     .filter(Boolean)
     .map(projectViewportPoint);
 
@@ -45,10 +45,7 @@ export function pickViewportItem(
   let bestDistance = Number.POSITIVE_INFINITY;
 
   model.items.forEach((item) => {
-    const distance = item.kind === 'segment'
-      ? distanceToSegment(screenPoint, projection(item.start), projection(item.end))
-      : distanceBetween(screenPoint, projection(item.center));
-
+    const distance = distanceToItem(item, screenPoint, projection);
     if (distance <= tolerance && distance < bestDistance) {
       bestDistance = distance;
       bestEntityId = item.entityId;
@@ -65,14 +62,49 @@ export function projectViewportPoint(point) {
   };
 }
 
+function distanceToItem(item, screenPoint, projection) {
+  const segments = itemSegments(item);
+  if (segments.length) {
+    return Math.min(...segments.map(([start, end]) => (
+      distanceToSegment(screenPoint, projection(start), projection(end))
+    )));
+  }
+  return item.center ? distanceBetween(screenPoint, projection(item.center)) : Number.POSITIVE_INFINITY;
+}
+
+function itemSegments(item) {
+  const segments = [];
+  if (Array.isArray(item.path) && item.path.length > 1) {
+    for (let index = 1; index < item.path.length; index += 1) {
+      segments.push([item.path[index - 1], item.path[index]]);
+    }
+  }
+  if (Array.isArray(item.legs)) {
+    item.legs.forEach((leg) => {
+      if (leg?.start && leg?.end) segments.push([leg.start, leg.end]);
+    });
+  }
+  if (!segments.length && item.start && item.end) segments.push([item.start, item.end]);
+  return segments;
+}
+
+function itemPoints(item) {
+  const points = [item.start, item.end, item.center];
+  if (Array.isArray(item.path)) points.push(...item.path);
+  if (Array.isArray(item.legs)) {
+    item.legs.forEach((leg) => points.push(leg?.start, leg?.end));
+  }
+  return points;
+}
+
 function distanceToSegment(point, start, end) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const lengthSquared = dx * dx + dy * dy;
   if (lengthSquared <= Number.EPSILON) return distanceBetween(point, start);
 
-  const projection = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
-  const clamped = Math.max(0, Math.min(1, projection));
+  const projected = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+  const clamped = Math.max(0, Math.min(1, projected));
   return distanceBetween(point, {
     x: start.x + clamped * dx,
     y: start.y + clamped * dy,

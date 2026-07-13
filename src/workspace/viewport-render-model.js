@@ -1,39 +1,28 @@
 import { WORKSPACE_DATASET_SCHEMA } from './dataset-adapter.js';
 import { freezeDeep } from './dataset-utils.js';
+import {
+  assertResolvedEngineeringGeometry,
+  buildResolvedEngineeringGeometry,
+  RESOLVED_ENGINEERING_GEOMETRY_SCHEMA,
+} from './resolved-engineering-geometry.js';
 
-export const VIEWPORT_RENDER_MODEL_SCHEMA = 'viewport-render-model/v1';
+export const VIEWPORT_RENDER_MODEL_SCHEMA = 'viewport-render-model/v2';
 
-export function buildViewportRenderModel(dataset) {
-  assertDataset(dataset);
-  const items = [];
-  const skippedEntityIds = [];
-
-  dataset.entities.forEach((entity) => {
-    const geometry = entity?.properties?.geometry || {};
-    if (geometry.start && geometry.end) {
-      items.push(renderItem(entity, 'segment', geometry));
-      return;
-    }
-    if (geometry.center) {
-      items.push(renderItem(entity, 'point', geometry));
-      return;
-    }
-    skippedEntityIds.push(entity.entityId);
-  });
-
-  const bounds = calculateBounds(items);
-  const segmentCount = items.filter((item) => item.kind === 'segment').length;
+export function buildViewportRenderModel(source) {
+  const resolved = normalizeSource(source);
+  const items = resolved.items.map(toRenderItem);
+  const segmentCount = items.filter((item) => hasLinearExtent(item)).length;
   const pointCount = items.length - segmentCount;
 
   return freezeDeep({
     schema: VIEWPORT_RENDER_MODEL_SCHEMA,
-    datasetId: dataset.datasetId,
+    datasetId: resolved.datasetId,
+    sourceSchema: RESOLVED_ENGINEERING_GEOMETRY_SCHEMA,
     items,
-    skippedEntityIds,
-    bounds,
+    skippedEntityIds: resolved.skippedEntityIds,
+    bounds: resolved.bounds,
     summary: {
-      renderableCount: items.length,
-      skippedCount: skippedEntityIds.length,
+      ...resolved.summary,
       segmentCount,
       pointCount,
     },
@@ -46,61 +35,37 @@ export function assertViewportRenderModel(model) {
   }
 }
 
-function assertDataset(dataset) {
-  if (!dataset || dataset.schema !== WORKSPACE_DATASET_SCHEMA || !Array.isArray(dataset.entities)) {
-    throw new TypeError(`Render-model adapter requires ${WORKSPACE_DATASET_SCHEMA}.`);
-  }
+function normalizeSource(source) {
+  if (source?.schema === WORKSPACE_DATASET_SCHEMA) return buildResolvedEngineeringGeometry(source);
+  assertResolvedEngineeringGeometry(source);
+  return source;
 }
 
-function renderItem(entity, kind, geometry) {
+function toRenderItem(item) {
+  const primitive = item.primitive;
   return freezeDeep({
-    entityId: entity.entityId,
-    entityType: entity.entityType,
-    category: entity.category,
-    kind,
-    start: kind === 'segment' ? geometry.start : null,
-    end: kind === 'segment' ? geometry.end : null,
-    center: geometry.center || midpoint(geometry.start, geometry.end),
+    entityId: item.entityId,
+    entityType: item.entityType,
+    category: item.category,
+    componentKind: item.componentKind,
+    resolutionStatus: item.resolutionStatus,
+    resolutionReason: item.resolutionReason,
+    kind: primitive.kind,
+    primitive,
+    start: primitive.start || primitive.axisStart || primitive.path?.[0] || primitive.legs?.[0]?.start || null,
+    end: primitive.end || primitive.axisEnd || primitive.path?.at(-1) || primitive.legs?.[0]?.end || null,
+    center: primitive.center || midpoint(primitive.start, primitive.end) || null,
+    path: primitive.path || null,
+    legs: primitive.legs || null,
   });
 }
 
-function calculateBounds(items) {
-  const points = items.flatMap((item) => [item.start, item.end, item.center]).filter(Boolean);
-  if (points.length === 0) return defaultBounds();
-
-  const min = { x: Infinity, y: Infinity, z: Infinity };
-  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
-  points.forEach((point) => {
-    min.x = Math.min(min.x, point.x);
-    min.y = Math.min(min.y, point.y);
-    min.z = Math.min(min.z, point.z);
-    max.x = Math.max(max.x, point.x);
-    max.y = Math.max(max.y, point.y);
-    max.z = Math.max(max.z, point.z);
-  });
-
-  const size = {
-    x: Math.max(max.x - min.x, 1),
-    y: Math.max(max.y - min.y, 1),
-    z: Math.max(max.z - min.z, 1),
-  };
-  const center = {
-    x: (min.x + max.x) / 2,
-    y: (min.y + max.y) / 2,
-    z: (min.z + max.z) / 2,
-  };
-  const radius = Math.max(Math.hypot(size.x, size.y, size.z) / 2, 1);
-  return freezeDeep({ min, max, size, center, radius });
-}
-
-function defaultBounds() {
-  return freezeDeep({
-    min: { x: -0.5, y: -0.5, z: -0.5 },
-    max: { x: 0.5, y: 0.5, z: 0.5 },
-    size: { x: 1, y: 1, z: 1 },
-    center: { x: 0, y: 0, z: 0 },
-    radius: 1,
-  });
+function hasLinearExtent(item) {
+  return Boolean(
+    (item.start && item.end)
+    || (Array.isArray(item.path) && item.path.length > 1)
+    || (Array.isArray(item.legs) && item.legs.length > 0),
+  );
 }
 
 function midpoint(a, b) {

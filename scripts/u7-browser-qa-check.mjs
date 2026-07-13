@@ -15,6 +15,7 @@ const requiredE2EFiles = [
   'e2e/phase5-analysis-capabilities.spec.js',
   'e2e/phase6-analysis-sessions.spec.js',
   'e2e/phase7-analysis-ledger.spec.js',
+  'e2e/phase8-engineering-geometry.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -117,6 +118,20 @@ checkSpecContracts('e2e/phase7-analysis-ledger.spec.js', [
   'Export Markdown',
   'getAnalysisLedger',
   'analysis:ledgerChanged',
+]);
+
+checkSpecContracts('e2e/phase8-engineering-geometry.spec.js', [
+  'PIPE-8',
+  'ELBOW-8',
+  'TEE-8',
+  'REDUCER-8',
+  'FLANGE-8',
+  'VALVE-8',
+  'SUPPORT-8',
+  'data-resolved-count',
+  'data-fallback-count',
+  'data-component-kinds',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 console.log();
