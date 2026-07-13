@@ -39,7 +39,7 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
   await expect(propertiesPanel).toContainText('material');
   await expect(propertiesPanel).toContainText('Steel');
 
-  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(3);
+  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(4);
   expect(await page.evaluate(() => EventBus.listenerCount('viewport:selectionRequested'))).toBe(1);
 
   await page.evaluate(() => AnalysisWorkspace.destroy());
@@ -54,6 +54,11 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
     'viewport:selectionRequested',
     'viewport:entitySelected',
     'analysis:capabilitiesChanged',
+    'analysis:sessionOpenRequested',
+    'analysis:sessionOverrideRequested',
+    'analysis:sessionResetRequested',
+    'analysis:sessionCloseRequested',
+    'analysis:sessionChanged',
     'analysis:requested',
     'analysis:started',
     'analysis:completed',
@@ -78,5 +83,9 @@ test('tree selection remains event-driven when no analysis capability is ready',
   await expect(page.locator('[data-panel="properties"]')).toContainText('SUP-201');
   await expect(page.locator('[data-panel="properties"]')).toContainText('Guide');
   await expect(page.locator('[data-role="viewport-selection"]')).toHaveText('Selection: SUP-201');
-  await expect(page.locator('[data-analysis-type="support-load"]')).toBeDisabled();
+
+  await page.locator('[data-analysis-type="support-load"]').click();
+  await expect(page.locator('[data-role="analysis-session"]')).toContainText(
+    'No unambiguous pipe is linked to this selection.',
+  );
 });
