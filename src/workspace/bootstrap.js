@@ -10,6 +10,8 @@ import { ModelSupportLoadController } from './model-support-load-controller.js';
 import { ModelSupportLoadPanel } from './model-support-load-panel.js';
 import { assessModelSupportLoadReadiness } from './model-support-load-readiness.js';
 import { PropertiesPanel } from './properties-panel.js';
+import { SharedModelController } from './shared-model-controller.js';
+import { SharedModelPanel } from './shared-model-panel.js';
 import { TreePanel } from './tree-panel.js';
 import { ViewportPanel } from './viewport-panel.js';
 import { renderWorkspaceLayout } from './workspace-layout.js';
@@ -25,6 +27,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const datasetController = new DatasetController(EventBus, WorkspaceState);
+  const sharedModelController = new SharedModelController(EventBus, WorkspaceState, rootElement.ownerDocument);
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
   const sessionController = new AnalysisSessionController(
     EventBus,
@@ -45,6 +48,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   );
   const treePanel = new TreePanel(rootElement.querySelector('[data-panel="tree"]'), EventBus);
   const viewportPanel = new ViewportPanel(rootElement.querySelector('[data-panel="viewport"]'), EventBus);
+  const sharedModelPanel = new SharedModelPanel(
+    rootElement.querySelector('[data-role="shared-model-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -56,12 +63,14 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   );
   const controllers = [
     datasetController,
+    sharedModelController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
     ledgerController,
     treePanel,
     viewportPanel,
+    sharedModelPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -72,6 +81,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   return Object.freeze({
     getSnapshot() {
       return WorkspaceState.getSnapshot();
+    },
+    getSharedModel() {
+      const snapshot = WorkspaceState.getSnapshot();
+      return snapshot.status === 'ready' ? snapshot.dataset?.sharedModel || null : null;
     },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
