@@ -35,9 +35,9 @@ export const pipeScreeningCapability = Object.freeze({
   }),
 
   applicability(context) {
-    return context.entity.category === 'pipe'
+    return isStraightPipe(context.entity)
       ? { applicable: true, reason: '' }
-      : { applicable: false, reason: 'Pipe flexibility screening is applicable only to a selected pipe entity.' };
+      : { applicable: false, reason: 'Pipe flexibility screening is applicable only to a selected straight-pipe entity.' };
   },
 
   evaluate(context) {
@@ -105,4 +105,8 @@ function readiness(prepared) {
     reason: prepared.reason,
     missing: prepared.missing,
   };
+}
+
+function isStraightPipe(entity) {
+  return String(entity?.entityType || '').trim().toUpperCase() === 'PIPE';
 }
