@@ -45,8 +45,8 @@ export class AnalysisLedgerStore {
       datasetId,
       session,
     });
+    this.#archiveKeys.add(archiveKey);
     const entries = [...this.#snapshot.entries, entry].slice(-MAX_ANALYSIS_LEDGER_ENTRIES);
-    this.#archiveKeys = new Set(entries.map((item) => item.archiveKey));
     this.#snapshot = freezeDeep({
       ...this.#snapshot,
       entries,
