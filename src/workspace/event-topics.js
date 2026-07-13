@@ -241,7 +241,9 @@ function assertRecord(value, topic) {
 }
 
 function assertNonEmptyString(value, field, topic) {
-  if (typeof value !== 'string' || value.trim() === '') throw new TypeError(`${topic} payload.${field} must be non-empty.`);
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new TypeError(`${topic} payload.${field} must be a non-empty string.`);
+  }
 }
 
 function assertNonNegativeInteger(value, field, topic) {
