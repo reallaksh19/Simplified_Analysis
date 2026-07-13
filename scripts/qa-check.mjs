@@ -2,6 +2,8 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+const skipE2E = process.argv.includes('--skip-e2e');
+
 function runCheck(name, cmd) {
     console.log(`\n--- Running ${name} ---`);
     try {
@@ -21,7 +23,6 @@ const hasPlaywright = fs.existsSync(path.join(process.cwd(), 'node_modules', 'pl
 success &= runCheck('Syntax Check', 'npm run syntax:strict');
 success &= runCheck('Forbidden Modules Check', 'node scripts/smoke-check.mjs');
 
-// Check for Math.random in src (exclude tests, benchmarks)
 console.log(`\n--- Running Math.random Check ---`);
 function findMathRandom(dir, problems = []) {
     if (!fs.existsSync(dir)) return problems;
@@ -47,7 +48,6 @@ if (randomProblems.length > 0) {
     console.log(`✅ Math.random Check passed.`);
 }
 
-// Check for deterministic timestamp guards (Date.now, new Date, performance.now)
 console.log(`\n--- Running Deterministic Timestamp Check ---`);
 const ALLOWED_TIMESTAMP_FILES = new Set([
     path.normalize('src/sketcher/SketcherStore.js'),
@@ -91,12 +91,11 @@ if (timestampProblems.length > 0) {
     console.log(`✅ Deterministic Timestamp Check passed.`);
 }
 
-// Check for required E2E file presence
 console.log(`\n--- Running Required E2E Files Check ---`);
 const requiredE2EFiles = [
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
-    'e2e/v16-pcfx-import-export.spec.js',
+    'e2e/phase1-analysis-workspace.spec.js',
 ];
 
 let e2eFilesOk = true;
@@ -116,7 +115,9 @@ if (!e2eFilesOk) {
     console.log(`✅ Required E2E Files Check passed.`);
 }
 
-if (hasPlaywright) {
+if (skipE2E) {
+    console.log(`\nℹ️ Browser E2E execution delegated to explicit CI steps.`);
+} else if (hasPlaywright) {
     success &= runCheck('E2E Smoke Tests', 'npx playwright test e2e/smoke.spec.js e2e/u7-workflow-smoke.spec.js');
 } else {
     console.log(`\n⚠️ Playwright not found, skipping E2E tests.`);
