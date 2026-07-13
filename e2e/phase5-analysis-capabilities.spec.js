@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('pipe selection exposes and executes certified support-load and screening capabilities', async ({ page }) => {
+test('pipe selection reviews and executes certified support-load and screening capabilities', async ({ page }) => {
   await page.goto('/');
   await uploadJson(page, 'complete.json', COMPLETE_PACKAGE);
   await page.locator('[data-entity-id="PIPE-1"]').click();
@@ -63,6 +63,10 @@ test('pipe selection exposes and executes certified support-load and screening c
   await expect(screening).toBeEnabled();
 
   await supportLoad.click();
+  await expect(page.locator('[data-role="analysis-session-readiness"]')).toHaveText(
+    'Ready for reviewed execution',
+  );
+  await page.getByRole('button', { name: 'Run reviewed analysis · support-load' }).click();
   await expect(page.locator('[data-role="analysis-status"]')).toHaveText(
     'support-load completed · CALCULATED',
   );
@@ -72,6 +76,8 @@ test('pipe selection exposes and executes certified support-load and screening c
   await expect(result).toContainText('results.vertical.opeVA');
 
   await screening.click();
+  await expect(page.locator('[data-role="analysis-session"]')).toContainText('Connected pipe legs');
+  await page.getByRole('button', { name: 'Run reviewed analysis · pipe-screening' }).click();
   await expect(page.locator('[data-role="analysis-status"]')).toContainText(
     'pipe-screening completed ·',
   );
@@ -87,8 +93,8 @@ test('linked support resolves to its pipe without panel-side calculator coupling
 
   const supportLoad = page.locator('[data-analysis-type="support-load"]');
   await expect(supportLoad).toBeEnabled();
-  await expect(page.locator('[data-analysis-type="pipe-screening"]')).toBeDisabled();
   await supportLoad.click();
+  await page.getByRole('button', { name: 'Run reviewed analysis · support-load' }).click();
 
   await expect(page.locator('[data-role="analysis-status"]')).toHaveText(
     'support-load completed · CALCULATED',
@@ -98,16 +104,19 @@ test('linked support resolves to its pipe without panel-side calculator coupling
   expect(await page.evaluate(() => AnalysisWorkspace.getSnapshot().selectedEntityId)).toBe('SUP-1');
 });
 
-test('incomplete engineering data disables actions and forced requests fail deterministically', async ({ page }) => {
+test('incomplete engineering data opens review and forced requests fail deterministically', async ({ page }) => {
   await page.goto('/');
   await uploadJson(page, 'incomplete.json', INCOMPLETE_PACKAGE);
   await page.locator('[data-entity-id="PIPE-INCOMPLETE"]').click();
 
-  await expect(page.locator('[data-analysis-type="support-load"]')).toBeDisabled();
-  await expect(page.locator('[data-analysis-type="pipe-screening"]')).toBeDisabled();
   await expect(page.locator('[data-role="analysis-capabilities"]')).toContainText(
     'Support-load inputs are incomplete',
   );
+  await page.locator('[data-analysis-type="support-load"]').click();
+  await expect(page.locator('[data-role="analysis-session-readiness"]')).toContainText(
+    'Support-load inputs are incomplete',
+  );
+  await expect(page.getByRole('button', { name: 'Run reviewed analysis · support-load' })).toBeDisabled();
 
   await page.evaluate(() => {
     EventBus.publish('analysis:requested', {
@@ -124,17 +133,24 @@ test('selection change clears previous result and destroy removes analysis liste
   await uploadJson(page, 'complete.json', COMPLETE_PACKAGE);
   await page.locator('[data-entity-id="PIPE-1"]').click();
   await page.locator('[data-analysis-type="support-load"]').click();
+  await page.getByRole('button', { name: 'Run reviewed analysis · support-load' }).click();
   await expect(page.locator('[data-role="analysis-status"]')).toContainText('completed');
 
   await page.locator('[data-entity-id="PIPE-2"]').click();
   await expect(page.locator('[data-role="analysis-status"]')).toHaveText(
     'No analysis has been run for this selection.',
   );
+  await expect(page.locator('[data-role="analysis-session"]')).toBeEmpty();
   await expect(page.locator('[data-role="analysis-result"]')).not.toContainText('summary.sourcePipeId');
 
   await page.evaluate(() => AnalysisWorkspace.destroy());
   const topics = [
     'analysis:capabilitiesChanged',
+    'analysis:sessionOpenRequested',
+    'analysis:sessionOverrideRequested',
+    'analysis:sessionResetRequested',
+    'analysis:sessionCloseRequested',
+    'analysis:sessionChanged',
     'analysis:requested',
     'analysis:started',
     'analysis:completed',
