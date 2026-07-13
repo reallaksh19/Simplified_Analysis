@@ -1,5 +1,5 @@
 import { EventBus } from './event-bus.js';
-import { EVENT_TOPICS } from './event-topics.js';
+import { SHARED_MODEL_EVENTS } from './shared-model-events.js';
 import { renderSharedModelSummary } from './shared-model-view.js';
 
 export class SharedModelPanel {
@@ -17,9 +17,9 @@ export class SharedModelPanel {
     if (this.unsubscribeCallbacks.length) return;
     this.rootElement.addEventListener('click', this.handleClick);
     this.unsubscribeCallbacks = [
-      this.eventBus.subscribe(EVENT_TOPICS.SHARED_MODEL_CHANGED, ({ model }) => this.handleModel(model)),
-      this.eventBus.subscribe(EVENT_TOPICS.SHARED_MODEL_EXPORT_COMPLETED, ({ artifact }) => this.handleCompleted(artifact)),
-      this.eventBus.subscribe(EVENT_TOPICS.SHARED_MODEL_EXPORT_FAILED, (payload) => this.handleFailed(payload)),
+      this.eventBus.subscribe(SHARED_MODEL_EVENTS.CHANGED, ({ model }) => this.handleModel(model)),
+      this.eventBus.subscribe(SHARED_MODEL_EVENTS.EXPORT_COMPLETED, ({ artifact }) => this.handleCompleted(artifact)),
+      this.eventBus.subscribe(SHARED_MODEL_EVENTS.EXPORT_FAILED, (payload) => this.handleFailed(payload)),
     ];
     this.render();
   }
@@ -43,7 +43,7 @@ export class SharedModelPanel {
   handleClick(event) {
     const button = event.target?.closest?.('[data-shared-model-action="export"]');
     if (!button || !this.rootElement.contains(button) || !this.model) return;
-    this.eventBus.publish(EVENT_TOPICS.SHARED_MODEL_EXPORT_REQUESTED, {});
+    this.eventBus.publish(SHARED_MODEL_EVENTS.EXPORT_REQUESTED, {});
   }
 
   render() {
