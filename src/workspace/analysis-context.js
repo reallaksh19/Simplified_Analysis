@@ -46,6 +46,8 @@ export function resolvePipeEntity(context) {
 
 export function toSupportLoadSource(pipeEntity) {
   const properties = pipeEntity.properties || {};
+  const geometry = properties.geometry || {};
+  const nativeParams = properties.nativeParams || {};
   return freezeDeep({
     id: pipeEntity.entityId,
     name: pipeEntity.name,
@@ -54,7 +56,10 @@ export function toSupportLoadSource(pipeEntity) {
     sourceAttributes: properties.sourceAttributes || {},
     attributes: properties.attributes || {},
     enrichedAttributes: properties.enrichedAttributes || {},
-    nativeParams: properties.nativeParams || {},
+    nativeParams,
+    apos: geometry.start || nativeParams.startPoint || null,
+    lpos: geometry.end || nativeParams.endPoint || null,
+    center: geometry.center || nativeParams.center || null,
   });
 }
 
