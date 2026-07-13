@@ -38,9 +38,13 @@ export class AnalysisLedgerController {
   }
 
   capture(session) {
-    const before = this.ledgerStore.getSnapshot().version;
-    this.ledgerStore.archive(session);
-    if (this.ledgerStore.getSnapshot().version !== before) this.publish();
+    try {
+      const before = this.ledgerStore.getSnapshot().version;
+      this.ledgerStore.archive(session);
+      if (this.ledgerStore.getSnapshot().version !== before) this.publish();
+    } catch (error) {
+      this.publishFailure('LEDGER_ARCHIVE_FAILED', error);
+    }
   }
 
   activate(entryId) {
