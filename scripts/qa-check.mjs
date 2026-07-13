@@ -21,6 +21,7 @@ const hasPlaywright = fs.existsSync(path.join(process.cwd(), 'node_modules', 'pl
 
 success &= runCheck('Syntax Check', 'npm run syntax:strict');
 success &= runCheck('Forbidden Modules Check', 'node scripts/smoke-check.mjs');
+success &= runCheck('W10.1 Shared Model Static Check', 'npm run check:w10.1:static');
 
 console.log(`\n--- Running Math.random Check ---`);
 function findMathRandom(dir, problems = []) {
@@ -101,6 +102,7 @@ const requiredE2EFiles = [
     'e2e/phase7-analysis-ledger.spec.js',
     'e2e/phase8-engineering-geometry.spec.js',
     'e2e/phase9-analysis-readiness.spec.js',
+    'e2e/w10.1-shared-model-export.spec.js',
 ];
 
 let e2eFilesOk = true;
