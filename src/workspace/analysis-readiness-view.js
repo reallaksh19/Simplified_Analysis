@@ -22,7 +22,7 @@ function renderCapability(documentRef, capability, activeSession) {
   const readiness = capability.readiness || fallbackReadiness(capability);
   const card = documentRef.createElement('article');
   card.className = `analysis-capability analysis-capability--${statusClass(readiness)}`;
-  card.dataset.analysisType = capability.analysisType;
+  card.dataset.readinessAnalysisType = capability.analysisType;
   card.dataset.solverId = readiness.solverId || capability.solverId || '';
   card.dataset.methodId = readiness.methodId || capability.methodId || '';
   card.dataset.qualificationStatus = readiness.qualificationStatus || '';
