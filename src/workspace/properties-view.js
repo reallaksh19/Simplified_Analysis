@@ -1,3 +1,4 @@
+import { renderAnalysisLedger } from './analysis-ledger-view.js';
 import { renderAnalysisSession } from './analysis-session-view.js';
 import { flattenProperties } from './property-flattener.js';
 
@@ -7,6 +8,8 @@ export function renderPropertiesContent(
   capabilities,
   analysisState,
   analysisSession = null,
+  analysisLedger = null,
+  ledgerStatus = {},
 ) {
   const fragment = documentRef.createDocumentFragment();
   fragment.append(renderSelectionHeader(documentRef, selection));
@@ -14,6 +17,7 @@ export function renderPropertiesContent(
   fragment.append(renderCapabilities(documentRef, capabilities, analysisSession));
   fragment.append(renderAnalysisSession(documentRef, analysisSession));
   fragment.append(renderAnalysis(documentRef, analysisState));
+  fragment.append(renderAnalysisLedger(documentRef, analysisLedger, ledgerStatus));
   return fragment;
 }
 
@@ -129,14 +133,8 @@ function renderRows(documentRef, value, emptyText, limit = 240) {
 }
 
 function analysisStatusText(state) {
-  if (state.status === 'running') {
-    return `Running ${state.analysisType} for ${state.targetId}…`;
-  }
-  if (state.status === 'completed') {
-    return `${state.analysisType} completed · ${state.result.status}`;
-  }
-  if (state.status === 'failed') {
-    return `${state.analysisType} failed`;
-  }
+  if (state.status === 'running') return `Running ${state.analysisType} for ${state.targetId}…`;
+  if (state.status === 'completed') return `${state.analysisType} completed · ${state.result.status}`;
+  if (state.status === 'failed') return `${state.analysisType} failed`;
   return 'No analysis has been run for this selection.';
 }

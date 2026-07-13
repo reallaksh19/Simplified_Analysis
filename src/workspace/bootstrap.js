@@ -1,5 +1,7 @@
 import { createDefaultAnalysisCapabilityRegistry } from './analysis-capabilities.js';
 import { AnalysisCoordinator } from './analysis-coordinator.js';
+import { AnalysisLedgerController } from './analysis-ledger-controller.js';
+import { AnalysisLedger } from './analysis-ledger-store.js';
 import { AnalysisSessionController } from './analysis-session-controller.js';
 import { AnalysisSessions } from './analysis-session-store.js';
 import { DatasetController } from './dataset-controller.js';
@@ -15,6 +17,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
 
   WorkspaceState.clearDataset();
   AnalysisSessions.clear();
+  AnalysisLedger.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -31,6 +34,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     capabilityRegistry,
     AnalysisSessions,
   );
+  const ledgerController = new AnalysisLedgerController(
+    EventBus,
+    AnalysisLedger,
+    rootElement.ownerDocument,
+  );
   const treePanel = new TreePanel(rootElement.querySelector('[data-panel="tree"]'), EventBus);
   const viewportPanel = new ViewportPanel(rootElement.querySelector('[data-panel="viewport"]'), EventBus);
   const propertiesPanel = new PropertiesPanel(
@@ -42,6 +50,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     datasetController,
     sessionController,
     analysisCoordinator,
+    ledgerController,
     treePanel,
     viewportPanel,
     propertiesPanel,
@@ -56,6 +65,9 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     getAnalysisSession() {
       return AnalysisSessions.getSnapshot();
+    },
+    getAnalysisLedger() {
+      return AnalysisLedger.getSnapshot();
     },
     getAnalysisCapabilities(targetId) {
       try {
@@ -75,6 +87,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      AnalysisLedger.clear();
       AnalysisSessions.clear();
       WorkspaceState.clearDataset();
       rootElement.replaceChildren();
