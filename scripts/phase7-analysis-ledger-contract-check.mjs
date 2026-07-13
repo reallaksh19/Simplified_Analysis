@@ -5,7 +5,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AnalysisLedgerController } from '../src/workspace/analysis-ledger-controller.js';
 import { compareLedgerEntries } from '../src/workspace/analysis-ledger-comparison.js';
-import { AnalysisLedgerStore } from '../src/workspace/analysis-ledger-store.js';
+import {
+  AnalysisLedgerStore,
+  MAX_ANALYSIS_LEDGER_ENTRIES,
+} from '../src/workspace/analysis-ledger-store.js';
 import { buildAnalysisReport, validateAnalysisReport } from '../src/workspace/analysis-report.js';
 import { exportAnalysisReport } from '../src/workspace/analysis-report-export.js';
 import { EventBus } from '../src/workspace/event-bus.js';
@@ -69,12 +72,17 @@ const comparison = compareLedgerEntries(first, second);
 assert.equal(comparison.schema, 'analysis-ledger-comparison/v1');
 assert.ok(comparison.counts.changed > 0);
 assert.ok(comparison.rows.some((row) => row.path === 'overrides.pipeOdMm' && row.status === 'changed'));
+assert.ok(comparison.rows.some((row) => row.path === 'requestId' && row.status === 'changed'));
+assert.ok(comparison.rows.some((row) => row.path === 'archiveKey' && row.status === 'changed'));
 assert.ok(Object.isFrozen(comparison.rows));
-console.log('✅ Comparison emits stable path-level equal and changed evidence.');
+console.log('✅ Comparison emits stable path-level engineering and request trace evidence.');
 
 const comparisonReport = buildAnalysisReport(store.getSnapshot());
 assert.equal(comparisonReport.schema, 'analysis-report/v1');
 assert.equal(comparisonReport.mode, 'comparison');
+assert.equal(comparisonReport.entries[0].archiveKey, 'analysis-session-1:analysis-1');
+assert.equal(comparisonReport.entries[0].sessionSchema, 'analysis-session/v1');
+assert.deepEqual(comparisonReport.entries[0].fieldErrors, {});
 assert.equal(validateAnalysisReport(comparisonReport).ok, true);
 const jsonOne = exportAnalysisReport(comparisonReport, 'json');
 const jsonTwo = exportAnalysisReport(comparisonReport, 'json');
@@ -86,7 +94,7 @@ assert.match(jsonOne.filename, /^analysis-dataset-a-analysis-ledger-entry-1-vs-a
 assert.ok(csv.content.includes('comparison'));
 assert.ok(markdown.content.includes('# Analysis Report'));
 assert.ok(!/createdAt|timestamp|Date\(/i.test(jsonOne.content));
-console.log('✅ JSON, CSV, and Markdown exports are byte-stable and timestamp-free.');
+console.log('✅ JSON, CSV, and Markdown exports are byte-stable, traceable, and timestamp-free.');
 
 store.clearComparison();
 const singleReport = buildAnalysisReport(store.getSnapshot());
@@ -94,6 +102,42 @@ assert.equal(singleReport.mode, 'single');
 assert.equal(singleReport.activeEntryId, first.entryId);
 assert.equal(validateAnalysisReport(singleReport).ok, true);
 console.log('✅ Single-entry report follows the active ledger result.');
+
+const boundedStore = new AnalysisLedgerStore();
+boundedStore.resetForDataset('DATASET-A');
+for (let index = 1; index <= MAX_ANALYSIS_LEDGER_ENTRIES + 2; index += 1) {
+  boundedStore.archive(session({
+    sessionId: `analysis-session-${index}`,
+    requestId: `analysis-${index}`,
+    version: index,
+    od: 100 + index,
+    load: index,
+  }));
+}
+const boundedSnapshot = boundedStore.getSnapshot();
+assert.equal(boundedSnapshot.entries.length, MAX_ANALYSIS_LEDGER_ENTRIES);
+assert.equal(boundedSnapshot.entries[0].entryId, 'analysis-ledger-entry-3');
+assert.equal(boundedSnapshot.activeEntryId, `analysis-ledger-entry-${MAX_ANALYSIS_LEDGER_ENTRIES + 2}`);
+assert.equal(boundedStore.getEntry('analysis-ledger-entry-1'), null);
+console.log('✅ Ledger retains a bounded 100-entry immutable history with monotonic IDs.');
+
+const comparisonPruneStore = new AnalysisLedgerStore();
+comparisonPruneStore.resetForDataset('DATASET-A');
+const comparisonFirst = comparisonPruneStore.archive(completedOne);
+const comparisonSecond = comparisonPruneStore.archive(completedTwo);
+comparisonPruneStore.setComparisonSide('left', comparisonFirst.entryId);
+comparisonPruneStore.setComparisonSide('right', comparisonSecond.entryId);
+for (let index = 3; index <= MAX_ANALYSIS_LEDGER_ENTRIES + 1; index += 1) {
+  comparisonPruneStore.archive(session({
+    sessionId: `rollover-session-${index}`,
+    requestId: `rollover-analysis-${index}`,
+    version: index,
+    od: 150 + index,
+    load: index,
+  }));
+}
+assert.equal(comparisonPruneStore.getSnapshot().comparison, null);
+console.log('✅ Rollover clears comparison state when a selected entry is pruned.');
 
 const controllerStore = new AnalysisLedgerStore();
 const downloads = [];
