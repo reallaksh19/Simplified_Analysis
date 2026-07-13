@@ -34,8 +34,14 @@ jobs:
       - name: Run full repository checks
         run: npm run check:full
 
-      - name: Run QA checks
-        run: npm run check:qa
+      - name: Run QA static checks
+        run: npm run check:qa -- --skip-e2e
+
+      - name: Run application smoke test
+        run: npx playwright test e2e/smoke.spec.js
+
+      - name: Run consolidated workspace smoke test
+        run: npx playwright test e2e/u7-workflow-smoke.spec.js
 
       - name: Run U0 benchmark baseline guard
         run: npm run check:u0
