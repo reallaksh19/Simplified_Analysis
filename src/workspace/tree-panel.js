@@ -6,6 +6,7 @@ export class TreePanel {
     if (!rootElement) throw new TypeError('TreePanel requires a root element.');
     this.rootElement = rootElement;
     this.eventBus = eventBus;
+    this.dataset = null;
     this.entities = new Map();
     this.unsubscribeCallbacks = [];
     this.handleClick = this.handleClick.bind(this);
@@ -101,6 +102,8 @@ export class TreePanel {
     }
 
     const { dataset } = snapshot;
+    if (this.dataset === dataset) return;
+    this.dataset = dataset;
     this.entities = new Map(dataset.entities.map((entity) => [entity.entityId, entity]));
     this.statusElement.textContent = `${dataset.datasetId} · ${dataset.summary.nodeCount} entities`;
     this.pipesElement.textContent = `Pipes ${dataset.summary.pipes}`;
@@ -166,6 +169,7 @@ export class TreePanel {
   }
 
   renderEmpty() {
+    this.dataset = null;
     this.entities = new Map();
     this.statusElement.textContent = 'No dataset loaded';
     this.pipesElement.textContent = 'Pipes 0';
@@ -184,6 +188,7 @@ export class TreePanel {
     this.rootElement.removeEventListener('change', this.handleChange);
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
+    this.dataset = null;
     this.initialized = false;
   }
 }
