@@ -8,6 +8,7 @@ export class ViewportRenderer {
     this.backendName = 'unmounted';
     this.hostElement = null;
     this.lastError = null;
+    this.selectionRequestHandler = null;
   }
 
   mount(hostElement) {
@@ -23,6 +24,7 @@ export class ViewportRenderer {
     try {
       this.backend = new ThreeViewportBackend();
       this.backend.mount(hostElement);
+      this.backend.setSelectionRequestHandler(this.selectionRequestHandler);
       this.backendName = 'webgl';
     } catch (error) {
       this.lastError = error;
@@ -31,6 +33,14 @@ export class ViewportRenderer {
       this.mountCanvasBackend();
       hostElement.dataset.viewportFallback = 'true';
     }
+  }
+
+  setSelectionRequestHandler(callback) {
+    if (callback !== null && typeof callback !== 'function') {
+      throw new TypeError('Viewport selection handler must be a function or null.');
+    }
+    this.selectionRequestHandler = callback;
+    this.backend?.setSelectionRequestHandler(callback);
   }
 
   renderModel(model) {
@@ -58,9 +68,11 @@ export class ViewportRenderer {
   }
 
   destroy() {
+    this.backend?.setSelectionRequestHandler(null);
     this.backend?.destroy();
     this.backend = null;
     this.backendName = 'destroyed';
+    this.selectionRequestHandler = null;
     if (this.hostElement) {
       delete this.hostElement.dataset.viewportFallback;
       this.hostElement.replaceChildren();
@@ -71,6 +83,7 @@ export class ViewportRenderer {
   mountCanvasBackend() {
     const backend = new Canvas2DViewportBackend();
     backend.mount(this.hostElement);
+    backend.setSelectionRequestHandler(this.selectionRequestHandler);
     this.backend = backend;
     this.backendName = 'canvas2d';
   }
