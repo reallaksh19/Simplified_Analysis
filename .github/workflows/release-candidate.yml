@@ -24,6 +24,16 @@ jobs:
         run: npm run check:qa -- --skip-e2e
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
+      - name: Upload workspace browser report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-workspace-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - run: npm run check:u3
       - run: npm run check:u3:behavior
       - run: npm run check:u4
