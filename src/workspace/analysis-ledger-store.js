@@ -2,6 +2,7 @@ import { freezeDeep } from './dataset-utils.js';
 
 export const ANALYSIS_LEDGER_SCHEMA = 'analysis-ledger/v1';
 export const ANALYSIS_LEDGER_ENTRY_SCHEMA = 'analysis-ledger-entry/v1';
+export const MAX_ANALYSIS_LEDGER_ENTRIES = 100;
 
 export class AnalysisLedgerStore {
   #snapshot = emptySnapshot(0);
@@ -44,11 +45,13 @@ export class AnalysisLedgerStore {
       datasetId,
       session,
     });
-    this.#archiveKeys.add(archiveKey);
+    const entries = [...this.#snapshot.entries, entry].slice(-MAX_ANALYSIS_LEDGER_ENTRIES);
+    this.#archiveKeys = new Set(entries.map((item) => item.archiveKey));
     this.#snapshot = freezeDeep({
       ...this.#snapshot,
-      entries: [...this.#snapshot.entries, entry],
+      entries,
       activeEntryId: entry.entryId,
+      comparison: retainedComparison(this.#snapshot.comparison, entries),
       version: this.#snapshot.version + 1,
     });
     return entry;
@@ -137,6 +140,14 @@ function isTerminalSession(session) {
       && typeof session.requestId === 'string'
       && session.requestId,
   );
+}
+
+function retainedComparison(comparison, entries) {
+  if (!comparison) return null;
+  const retainedIds = new Set(entries.map((entry) => entry.entryId));
+  if (comparison.leftEntryId && !retainedIds.has(comparison.leftEntryId)) return null;
+  if (comparison.rightEntryId && !retainedIds.has(comparison.rightEntryId)) return null;
+  return comparison;
 }
 
 function validateComparison(comparison, entries) {
