@@ -120,7 +120,7 @@ export class TreePanel {
     const documentRef = this.rootElement.ownerDocument;
     const details = documentRef.createElement('details');
     details.className = 'tree-branch';
-    details.open = level < 1;
+    details.open = level < 2;
 
     const summary = documentRef.createElement('summary');
     summary.textContent = `${node.label} (${node.entityCount})`;
