@@ -69,7 +69,7 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
   }
 });
 
-test('tree selection remains event-driven when no analysis capability is ready', async ({ page }) => {
+test('tree selection remains event-driven when no analysis capability is applicable', async ({ page }) => {
   await page.goto('/');
   await page.locator('[data-role="dataset-file"]').setInputFiles({
     name: 'support.json',
@@ -84,8 +84,17 @@ test('tree selection remains event-driven when no analysis capability is ready',
   await expect(page.locator('[data-panel="properties"]')).toContainText('Guide');
   await expect(page.locator('[data-role="viewport-selection"]')).toHaveText('Selection: SUP-201');
 
-  await page.locator('[data-analysis-type="support-load"]').click();
-  await expect(page.locator('[data-role="analysis-session"]')).toContainText(
-    'No unambiguous pipe is linked to this selection.',
+  const supportLoad = page.locator('[data-analysis-type="support-load"]');
+  await expect(supportLoad).toBeDisabled();
+  await expect(page.locator('[data-readiness-analysis-type="support-load"]')).toHaveAttribute(
+    'data-qualification-status',
+    'NOT_APPLICABLE',
   );
+  await page.evaluate(() => {
+    EventBus.publish('analysis:sessionOpenRequested', {
+      analysisType: 'support-load',
+      targetId: 'SUP-201',
+    });
+  });
+  expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisSession().session)).toBeNull();
 });
