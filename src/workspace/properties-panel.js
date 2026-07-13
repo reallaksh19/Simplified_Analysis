@@ -185,7 +185,7 @@ export class PropertiesPanel {
 
   handleLedgerAction(action) {
     const type = action.dataset.ledgerAction;
-    const entryId = action.dataset.entryId;
+    const entryId = action.dataset.ledgerEntryId;
     if (type === 'activate') {
       this.eventBus.publish(EVENT_TOPICS.ANALYSIS_LEDGER_ACTIVE_REQUESTED, { entryId });
     } else if (type === 'compare-left' || type === 'compare-right') {
