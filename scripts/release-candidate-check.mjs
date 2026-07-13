@@ -13,6 +13,7 @@ const checks = {
     'RELEASE_CANDIDATE_REGISTER.md',
     'FINAL_PENDING_REGISTER.md',
     'docs/analysis-workspace/PHASE_1_ARCHITECTURE.md',
+    'docs/analysis-workspace/PHASE_2_DATASET_ADAPTER.md',
   ],
   certificationScripts: [
     'scripts/u3-engineering-data-check.mjs',
@@ -25,6 +26,7 @@ const checks = {
     'scripts/u6-active-reporting-behavior-test.mjs',
     'scripts/u7-browser-qa-check.mjs',
     'scripts/phase1-workspace-contract-check.mjs',
+    'scripts/phase2-workspace-contract-check.mjs',
     'scripts/release-candidate-check.mjs',
   ],
   sourceContracts: [
@@ -36,10 +38,14 @@ const checks = {
     'src/reporting/buildReportPayload.js',
     'src/workspace/event-bus.js',
     'src/workspace/event-topics.js',
+    'src/workspace/dataset-adapter.js',
+    'src/workspace/dataset-controller.js',
+    'src/workspace/workspace-state.js',
     'src/workspace/bootstrap.js',
   ],
   browserEvidence: [
     'e2e/phase1-analysis-workspace.spec.js',
+    'e2e/phase2-workspace-dataset.spec.js',
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
   ],
@@ -77,7 +83,6 @@ function warnForLegacyDocuments() {
 }
 
 console.log('# Release Candidate Certification Check\n');
-
 check('Governance Records', checks.governanceRecords);
 check('Certification Scripts', checks.certificationScripts);
 check('Source Contracts', checks.sourceContracts);
@@ -98,5 +103,4 @@ if (failCount > 0) {
   console.error('\n❌ Release candidate check FAILED');
   process.exit(1);
 }
-
 console.log('\n✓ Release candidate check PASSED');
