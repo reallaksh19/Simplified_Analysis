@@ -1,3 +1,4 @@
+import { createInspection } from './analysis-input-evidence.js';
 import { freezeDeep } from './dataset-utils.js';
 
 export class AnalysisCapabilityError extends Error {
@@ -39,15 +40,22 @@ export class AnalysisCapabilityRegistry {
     }));
   }
 
-  async execute(analysisType, context) {
-    const capability = this.#capabilities.get(String(analysisType || ''));
-    if (!capability) {
+  inspect(analysisType, context) {
+    const capability = this.#require(analysisType);
+    const readiness = normalizeReadiness(capability.evaluate(context));
+    if (!capability.inspect) return createInspection([], readiness);
+    const inspection = capability.inspect(context);
+    if (!inspection || typeof inspection !== 'object') {
       throw new AnalysisCapabilityError(
-        'CAPABILITY_NOT_FOUND',
-        `Unknown analysis capability: ${analysisType}.`,
+        'INVALID_INPUT_INSPECTION',
+        `${capability.id} returned an invalid input inspection.`,
       );
     }
+    return createInspection(inspection.fields || [], inspection.readiness || readiness);
+  }
 
+  async execute(analysisType, context) {
+    const capability = this.#require(analysisType);
     const readiness = normalizeReadiness(capability.evaluate(context));
     if (!readiness.enabled) {
       throw new AnalysisCapabilityError(
@@ -74,6 +82,17 @@ export class AnalysisCapabilityRegistry {
   get size() {
     return this.#capabilities.size;
   }
+
+  #require(analysisType) {
+    const capability = this.#capabilities.get(String(analysisType || ''));
+    if (!capability) {
+      throw new AnalysisCapabilityError(
+        'CAPABILITY_NOT_FOUND',
+        `Unknown analysis capability: ${analysisType}.`,
+      );
+    }
+    return capability;
+  }
 }
 
 function normalizeDefinition(definition) {
@@ -88,6 +107,9 @@ function normalizeDefinition(definition) {
   if (typeof definition.execute !== 'function') {
     throw new TypeError(`Analysis capability ${id} requires execute(context).`);
   }
+  if (definition.inspect !== undefined && typeof definition.inspect !== 'function') {
+    throw new TypeError(`Analysis capability ${id} inspect must be a function.`);
+  }
   return Object.freeze({
     id,
     label,
@@ -95,6 +117,7 @@ function normalizeDefinition(definition) {
     engineeringLevel: String(definition.engineeringLevel || 'SCREENING'),
     evaluate: definition.evaluate,
     execute: definition.execute,
+    inspect: definition.inspect || null,
   });
 }
 
