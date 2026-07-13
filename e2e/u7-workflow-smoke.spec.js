@@ -65,7 +65,7 @@ test.describe('Consolidated Analysis Workspace browser smoke', () => {
     await expect(propertiesPanel).toContainText('Steel');
   });
 
-  test('tree selection runs contextual analysis without global routing', async ({ page }) => {
+  test('tree selection reviews and runs contextual analysis without global routing', async ({ page }) => {
     await page.goto('/');
     await page.locator('[data-role="dataset-file"]').setInputFiles({
       name: 'support.json',
@@ -76,6 +76,10 @@ test.describe('Consolidated Analysis Workspace browser smoke', () => {
     await page.locator('[data-entity-id="SUP-201"]').click();
     await expect(page.locator('[data-panel="properties"]')).toContainText('SUP-201');
     await page.locator('[data-analysis-type="support-load"]').click();
+    await expect(page.locator('[data-role="analysis-session-readiness"]')).toHaveText(
+      'Ready for reviewed execution',
+    );
+    await page.getByRole('button', { name: 'Run reviewed analysis · support-load' }).click();
     await expect(page.locator('[data-role="analysis-status"]')).toHaveText(
       'support-load completed · CALCULATED',
     );
