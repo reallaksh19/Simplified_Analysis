@@ -2,6 +2,7 @@ import './index.css';
 import './workspace/workspace.css';
 import './workspace/dataset.css';
 import './workspace/viewport-renderer.css';
+import './workspace/analysis-session.css';
 import { bootstrapAnalysisWorkspace } from './workspace/bootstrap.js';
 
 const applicationRoot = document.getElementById('root');
