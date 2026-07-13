@@ -21,6 +21,8 @@ jobs:
         run: npm run check:phase1-workspace:static
       - name: Certify Phase 2 dataset contracts
         run: npm run check:phase2-workspace:static
+      - name: Certify Phase 3 viewport contracts
+        run: npm run check:phase3-workspace:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e

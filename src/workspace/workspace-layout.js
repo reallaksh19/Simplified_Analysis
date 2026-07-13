@@ -29,17 +29,23 @@ export function renderWorkspaceLayout(rootElement) {
       <section class="workspace-panel viewport-panel" data-panel="viewport" aria-label="3D viewport">
         <header class="viewport-toolbar">
           <div>
-            <span class="panel-eyebrow">Single-page workflow</span>
+            <span class="panel-eyebrow">Read-only model review</span>
             <h2>Model Viewport</h2>
           </div>
-          <output data-role="viewport-status">No dataset loaded</output>
-        </header>
-        <div class="viewport-stage" data-webgl-host aria-label="WebGL canvas mount point">
-          <div class="viewport-placeholder">
-            <strong>WebGL viewport host</strong>
-            <span>Phase 2 intentionally contains no rendering engine.</span>
+          <div class="viewport-toolbar__status">
+            <output data-role="viewport-status">No dataset loaded</output>
+            <div class="viewport-toolbar__actions" aria-label="Viewport navigation">
+              <button type="button" data-viewport-action="fit">Fit View</button>
+              <button type="button" data-viewport-action="reset">Reset View</button>
+            </div>
           </div>
-        </div>
+        </header>
+        <div
+          class="viewport-stage"
+          data-webgl-host
+          data-role="viewport-render-host"
+          aria-label="Read-only model viewport"
+        ></div>
         <footer class="viewport-footer" data-role="viewport-selection">Selection: none</footer>
       </section>
 

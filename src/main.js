@@ -1,6 +1,7 @@
 import './index.css';
 import './workspace/workspace.css';
 import './workspace/dataset.css';
+import './workspace/viewport-renderer.css';
 import { bootstrapAnalysisWorkspace } from './workspace/bootstrap.js';
 
 const applicationRoot = document.getElementById('root');

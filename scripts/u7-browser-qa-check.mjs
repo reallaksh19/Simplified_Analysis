@@ -10,6 +10,7 @@ const requiredE2EFiles = [
   'e2e/u7-workflow-smoke.spec.js',
   'e2e/phase1-analysis-workspace.spec.js',
   'e2e/phase2-workspace-dataset.spec.js',
+  'e2e/phase3-viewport-renderer.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -49,33 +50,46 @@ if (fs.existsSync(qaCheckPath)) {
   success = false;
 }
 
-console.log();
-const u7SpecPath = path.join(process.cwd(), 'e2e/u7-workflow-smoke.spec.js');
-if (fs.existsSync(u7SpecPath)) {
-  const specContent = fs.readFileSync(u7SpecPath, 'utf8');
-  const requiredContracts = [
-    'test.describe',
-    'data-panel="tree"',
-    'data-panel="viewport"',
-    'data-panel="properties"',
-    'data-role="dataset-file"',
-    "EventBus.publish('viewport:entitySelected'",
-    'data-entity-id="SUP-201"',
-    'Run contextual analysis',
-  ];
-  const missingContracts = requiredContracts.filter((contract) => !specContent.includes(contract));
+checkSpecContracts('e2e/u7-workflow-smoke.spec.js', [
+  'test.describe',
+  'data-panel="tree"',
+  'data-panel="viewport"',
+  'data-panel="properties"',
+  'data-role="dataset-file"',
+  "EventBus.publish('viewport:entitySelected'",
+  'data-entity-id="SUP-201"',
+  'Run contextual analysis',
+]);
 
-  if (missingContracts.length === 0) {
-    console.log('✅ e2e/u7-workflow-smoke.spec.js certifies the consolidated workspace flow');
-  } else {
-    console.error(`❌ e2e/u7-workflow-smoke.spec.js is missing: ${missingContracts.join(', ')}`);
-    success = false;
-  }
-} else {
-  console.error('❌ e2e/u7-workflow-smoke.spec.js NOT found');
-  success = false;
-}
+checkSpecContracts('e2e/phase3-viewport-renderer.spec.js', [
+  '__WORKSPACE_VIEWPORT_BACKEND__',
+  'data-viewport-backend',
+  'data-renderable-count',
+  'data-skipped-count',
+  'Fit View',
+  'Reset View',
+  'retained 2 rendered',
+  'AnalysisWorkspace.destroy()',
+]);
 
 console.log();
 if (!success) process.exit(1);
 console.log('✅ All U7 browser QA static checks passed.\n');
+
+function checkSpecContracts(relativePath, requiredContracts) {
+  console.log();
+  const fullPath = path.join(process.cwd(), relativePath);
+  if (!fs.existsSync(fullPath)) {
+    console.error(`❌ ${relativePath} NOT found`);
+    success = false;
+    return;
+  }
+  const specContent = fs.readFileSync(fullPath, 'utf8');
+  const missingContracts = requiredContracts.filter((contract) => !specContent.includes(contract));
+  if (missingContracts.length === 0) {
+    console.log(`✅ ${relativePath} contains required workspace contracts`);
+  } else {
+    console.error(`❌ ${relativePath} is missing: ${missingContracts.join(', ')}`);
+    success = false;
+  }
+}

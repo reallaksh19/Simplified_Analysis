@@ -1,5 +1,6 @@
 import { buildDatasetHierarchy } from './dataset-hierarchy.js';
 import { isPipeType, isSupportType, resolveEntityType, selectionTypeFor } from './dataset-types.js';
+import { extractGeometryEvidence } from './geometry-evidence.js';
 import {
   clonePlain,
   deterministicDatasetId,
@@ -120,6 +121,7 @@ function resolveEntityId(item, index) {
 function buildEntityProperties(item, identity) {
   return freezeDeep({
     identity,
+    geometry: extractGeometryEvidence(item),
     sourceAttributes: clonePlain(item.sourceAttributes || {}),
     attributes: clonePlain(item.attributes || {}),
     enrichedAttributes: clonePlain(item.enrichedAttributes || {}),

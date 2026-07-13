@@ -13,6 +13,7 @@ const REAL_PACKAGE = {
         sourcePath: '/AREA-A/LINE-100/PIPE-REAL-1',
         sourceAttributes: { MATERIAL: 'A106-B', LINE_NO: 'LINE-100' },
         attributes: { OD_MM: 168.3, WT_MM: 7.11 },
+        nativeParams: { startPoint: [0, 0, 0], endPoint: [1200, 0, 0] },
       },
     ],
     supports: [
@@ -21,7 +22,7 @@ const REAL_PACKAGE = {
         name: 'Real Guide 1',
         type: 'GUIDE',
         sourcePath: '/AREA-A/LINE-100/SUP-REAL-1',
-        sourceAttributes: { GAP_MM: 5, SUPPORT_TYPE: 'GUIDE' },
+        sourceAttributes: { GAP_MM: 5, SUPPORT_TYPE: 'GUIDE', CENTER: '600 100 0' },
       },
     ],
     branches: [],
@@ -36,7 +37,7 @@ test('imports a real package and drives panels through state and EventBus', asyn
   await expect(page.locator('[data-role="tree-status"]')).toContainText('2 entities');
   await expect(page.locator('[data-entity-id="PIPE-REAL-1"]')).toBeVisible();
   await expect(page.locator('[data-entity-id="SUP-REAL-1"]')).toBeVisible();
-  await expect(page.locator('[data-role="viewport-status"]')).toContainText('2 entities');
+  await expect(page.locator('[data-role="viewport-status"]')).toContainText('2 rendered');
 
   await page.locator('[data-entity-id="PIPE-REAL-1"]').click();
   await expect(page.locator('[data-role="viewport-selection"]')).toHaveText('Selection: PIPE-REAL-1');
@@ -61,6 +62,7 @@ test('invalid import preserves the previous valid dataset and shows a scoped err
   await expect(page.locator('[data-role="tree-error"]')).toContainText('Unsupported workspace package schema');
   await expect(page.locator('[data-entity-id="PIPE-REAL-1"]')).toBeVisible();
   await expect(page.locator('[data-role="tree-status"]')).toContainText('retained 2 entities');
+  await expect(page.locator('[data-role="viewport-status"]')).toContainText('retained 2 rendered');
 
   const snapshot = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
   expect(snapshot.dataset.datasetId).toBe('REAL-DATASET-001');
@@ -76,6 +78,7 @@ test('clear removes dataset state without cross-panel mutation', async ({ page }
   await expect(page.locator('[data-role="tree-status"]')).toHaveText('No dataset loaded');
   await expect(page.locator('[data-role="viewport-status"]')).toHaveText('No dataset loaded');
   await expect(page.locator('[data-role="viewport-selection"]')).toHaveText('Selection: none');
+  await expect(page.locator('[data-role="viewport-render-host"]')).toHaveAttribute('data-renderable-count', '0');
   expect((await page.evaluate(() => AnalysisWorkspace.getSnapshot())).status).toBe('empty');
 });
 
