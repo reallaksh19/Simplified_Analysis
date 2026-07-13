@@ -39,7 +39,8 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
   await expect(propertiesPanel).toContainText('material');
   await expect(propertiesPanel).toContainText('Steel');
 
-  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(3);
+  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(2);
+  expect(await page.evaluate(() => EventBus.listenerCount('viewport:selectionRequested'))).toBe(1);
 
   await page.evaluate(() => AnalysisWorkspace.destroy());
 
@@ -50,6 +51,7 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
     'dataset:loadFailed',
     'dataset:cleared',
     'workspace:snapshotChanged',
+    'viewport:selectionRequested',
     'viewport:entitySelected',
     'analysis:requested',
   ];
