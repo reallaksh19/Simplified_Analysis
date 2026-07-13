@@ -17,15 +17,13 @@ jobs:
       - run: npm ci
 
       - run: npx playwright install chromium --with-deps
-      - name: Certify Phase 1 Analysis Workspace
-        run: npm run check:phase1-workspace
+      - name: Certify Phase 1 workspace contracts
+        run: npm run check:phase1-workspace:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
-      - name: Run application smoke test
-        run: npx playwright test e2e/smoke.spec.js
-      - name: Run consolidated workspace smoke test
-        run: npx playwright test e2e/u7-workflow-smoke.spec.js
+      - name: Run consolidated workspace browser certification
+        run: npm run check:workspace-browser
       - run: npm run check:u3
       - run: npm run check:u3:behavior
       - run: npm run check:u4
