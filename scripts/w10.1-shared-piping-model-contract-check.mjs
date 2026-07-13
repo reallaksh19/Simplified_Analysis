@@ -119,6 +119,7 @@ function checkCalculationProjection() {
   assert.equal(pipe.attributes.enrichment.weight.unitPipeWeightKgPerM, 28);
   assert.equal(pipe.attributes.enrichment.lineList.fluidWeightHydKgPerM, 15);
   assert.equal(support.sourceAttributes.VERTICAL_CAPABILITY, 'YES');
+  assert.deepEqual(support.sourceAttributes.POS, { x: 500, y: 0, z: 0 });
   console.log('✅ Shared model projects directly and deterministically to calculation-workspace/v1.');
 }
 
