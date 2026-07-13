@@ -98,6 +98,7 @@ const requiredE2EFiles = [
     'e2e/phase4-viewport-picking.spec.js',
     'e2e/phase5-analysis-capabilities.spec.js',
     'e2e/phase6-analysis-sessions.spec.js',
+    'e2e/phase7-analysis-ledger.spec.js',
 ];
 
 let e2eFilesOk = true;
