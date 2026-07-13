@@ -52,6 +52,8 @@ function reportEntry(entry) {
   return {
     entryId: entry.entryId,
     sequence: entry.sequence,
+    archiveKey: entry.archiveKey,
+    sessionSchema: session.schema,
     sessionId: session.sessionId,
     requestId: session.requestId,
     targetId: session.targetId,
@@ -62,6 +64,7 @@ function reportEntry(entry) {
     status: session.status,
     inputs: session.inputs,
     overrides: session.overrides,
+    fieldErrors: session.fieldErrors,
     readiness: session.readiness,
     result: session.result,
     failure: session.failure,
