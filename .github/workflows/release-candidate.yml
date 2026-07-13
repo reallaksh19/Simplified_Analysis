@@ -20,7 +20,12 @@ jobs:
       - name: Certify Phase 1 Analysis Workspace
         run: npm run check:phase1-workspace
       - run: npm run check:full
-      - run: npm run check:qa
+      - name: Run QA static checks
+        run: npm run check:qa -- --skip-e2e
+      - name: Run application smoke test
+        run: npx playwright test e2e/smoke.spec.js
+      - name: Run consolidated workspace smoke test
+        run: npx playwright test e2e/u7-workflow-smoke.spec.js
       - run: npm run check:u3
       - run: npm run check:u3:behavior
       - run: npm run check:u4
