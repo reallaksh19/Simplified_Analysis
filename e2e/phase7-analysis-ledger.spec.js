@@ -64,11 +64,11 @@ test('reviewed reruns archive once, compare, activate, and export stable reports
   await expect(page.locator('[data-entry-id="analysis-ledger-entry-2"]')).toContainText('analysis-2');
   await expect(page.locator('[data-entry-id="analysis-ledger-entry-2"]')).toHaveClass(/analysis-ledger-entry--active/);
 
+  await page.getByRole('button', { name: 'Close input review' }).click();
+  await expect(page.locator('[data-role="analysis-ledger-count"]')).toHaveText('2 entries');
   await page.locator('[data-entity-id="PIPE-LEDGER-2"]').click();
   await expect(page.locator('[data-role="analysis-ledger-count"]')).toHaveText('2 entries');
   await page.locator('[data-entity-id="PIPE-LEDGER-1"]').click();
-  await page.getByRole('button', { name: 'Close input review' }).click();
-  await expect(page.locator('[data-role="analysis-ledger-count"]')).toHaveText('2 entries');
 
   await ledgerAction(page, 'analysis-ledger-entry-1', 'compare-left');
   await ledgerAction(page, 'analysis-ledger-entry-2', 'compare-right');
