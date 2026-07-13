@@ -148,7 +148,7 @@ export class PropertiesPanel {
 
   handleClick(event) {
     const analysisAction = event.target?.closest?.('[data-analysis-action="open-session"]');
-    if (analysisAction && this.rootElement.contains(analysisAction) && this.selection) {
+    if (analysisAction && this.rootElement.contains(analysisAction) && this.selection && !analysisAction.disabled) {
       this.eventBus.publish(EVENT_TOPICS.ANALYSIS_SESSION_OPEN_REQUESTED, {
         analysisType: analysisAction.dataset.analysisType,
         targetId: this.selection.entityId,

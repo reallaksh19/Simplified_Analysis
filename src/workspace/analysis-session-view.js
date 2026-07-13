@@ -4,6 +4,8 @@ export function renderAnalysisSession(documentRef, session) {
   section.dataset.role = 'analysis-session';
   if (!session) return section;
 
+  const professional = session.workspaceReadiness;
+  const readyToRun = professional?.readyToRun ?? session.readiness.enabled;
   const header = documentRef.createElement('header');
   const heading = documentRef.createElement('h3');
   heading.textContent = 'Reviewed analysis inputs';
@@ -12,12 +14,20 @@ export function renderAnalysisSession(documentRef, session) {
   header.append(heading, identity);
   section.append(header);
 
+  if (professional) {
+    const method = documentRef.createElement('p');
+    method.className = 'analysis-session__method';
+    method.dataset.role = 'analysis-session-method';
+    method.textContent = `${professional.solverId} v${professional.solverVersion} · ${professional.methodId} v${professional.methodVersion} · ${professional.engineeringLevel}`;
+    section.append(method);
+  }
+
   const readiness = documentRef.createElement('output');
-  readiness.className = `analysis-session__readiness analysis-session__readiness--${session.readiness.enabled ? 'ready' : 'draft'}`;
+  readiness.className = `analysis-session__readiness analysis-session__readiness--${readyToRun ? 'ready' : 'draft'}`;
   readiness.dataset.role = 'analysis-session-readiness';
-  readiness.textContent = session.readiness.enabled
+  readiness.textContent = readyToRun
     ? 'Ready for reviewed execution'
-    : session.readiness.reason || 'Additional reviewed inputs are required.';
+    : professional?.diagnostics?.[0]?.message || session.readiness.reason || 'Additional reviewed inputs are required.';
   section.append(readiness);
 
   const fieldList = documentRef.createElement('div');
@@ -29,7 +39,7 @@ export function renderAnalysisSession(documentRef, session) {
   actions.className = 'analysis-session__actions';
   actions.append(
     actionButton(documentRef, 'run', `Run reviewed analysis · ${session.analysisType}`, {
-      disabled: !session.readiness.enabled || session.status === 'running',
+      disabled: !readyToRun || session.status === 'running',
       primary: true,
     }),
     actionButton(documentRef, 'reset', 'Reset reviewed overrides', {
@@ -45,7 +55,7 @@ export function renderAnalysisSession(documentRef, session) {
   const status = documentRef.createElement('p');
   status.className = 'analysis-session__status';
   status.dataset.role = 'analysis-session-status';
-  status.textContent = sessionStatus(session);
+  status.textContent = sessionStatus(session, readyToRun);
   section.append(status);
   return section;
 }
@@ -111,10 +121,10 @@ function displayInputValue(session, field) {
   return field.value == null ? '' : String(field.value);
 }
 
-function sessionStatus(session) {
+function sessionStatus(session, readyToRun) {
   if (session.status === 'running') return 'Reviewed analysis is running…';
   if (session.status === 'completed') return `Completed · ${session.result?.status || 'UNKNOWN'}`;
   if (session.status === 'failed') return `${session.failure?.code || 'FAILED'}: ${session.failure?.message || 'Analysis failed.'}`;
-  if (session.readiness.enabled) return 'Inputs reviewed and ready. Execution remains manual.';
-  return `${session.readiness.missing.length} required input(s) remain unresolved.`;
+  if (readyToRun) return 'Inputs reviewed and ready. Execution remains manual.';
+  return `${session.workspaceReadiness?.missingInputs?.length ?? session.readiness.missing.length} required input(s) remain unresolved.`;
 }

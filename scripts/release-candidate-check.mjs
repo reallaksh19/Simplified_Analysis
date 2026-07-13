@@ -20,6 +20,7 @@ const checks = {
     'docs/analysis-workspace/PHASE_6_ANALYSIS_SESSIONS.md',
     'docs/analysis-workspace/PHASE_7_ANALYSIS_LEDGER.md',
     'docs/analysis-workspace/PHASE_8_RESOLVED_ENGINEERING_GEOMETRY.md',
+    'docs/analysis-workspace/PHASE_9_ANALYSIS_READINESS.md',
   ],
   certificationScripts: [
     'scripts/u3-engineering-data-check.mjs',
@@ -39,6 +40,7 @@ const checks = {
     'scripts/phase6-analysis-session-contract-check.mjs',
     'scripts/phase7-analysis-ledger-contract-check.mjs',
     'scripts/phase8-engineering-geometry-contract-check.mjs',
+    'scripts/phase9-analysis-readiness-contract-check.mjs',
     'scripts/release-candidate-check.mjs',
   ],
   sourceContracts: [
@@ -69,6 +71,8 @@ const checks = {
     'src/workspace/analysis-context.js',
     'src/workspace/analysis-coordinator.js',
     'src/workspace/analysis-input-evidence.js',
+    'src/workspace/analysis-readiness.js',
+    'src/workspace/analysis-readiness-view.js',
     'src/workspace/analysis-session-context.js',
     'src/workspace/analysis-session-store.js',
     'src/workspace/analysis-session-controller.js',
@@ -93,6 +97,7 @@ const checks = {
     'e2e/phase6-analysis-sessions.spec.js',
     'e2e/phase7-analysis-ledger.spec.js',
     'e2e/phase8-engineering-geometry.spec.js',
+    'e2e/phase9-analysis-readiness.spec.js',
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
   ],

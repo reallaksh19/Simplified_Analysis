@@ -16,6 +16,7 @@ const requiredE2EFiles = [
   'e2e/phase6-analysis-sessions.spec.js',
   'e2e/phase7-analysis-ledger.spec.js',
   'e2e/phase8-engineering-geometry.spec.js',
+  'e2e/phase9-analysis-readiness.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -92,7 +93,7 @@ checkSpecContracts('e2e/phase4-viewport-picking.spec.js', [
 checkSpecContracts('e2e/phase5-analysis-capabilities.spec.js', [
   'support-load',
   'pipe-screening',
-  'CAPABILITY_NOT_READY',
+  'UNREVIEWED_ANALYSIS_SESSION',
   'summary.sourcePipeId',
   'summary.sourceEntityCount',
   'No analysis has been run for this selection.',
@@ -132,6 +133,17 @@ checkSpecContracts('e2e/phase8-engineering-geometry.spec.js', [
   'data-fallback-count',
   'data-component-kinds',
   'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/phase9-analysis-readiness.spec.js', [
+  'workspace-support-load-screening',
+  'ACCESS_TEMP_WALL_WEIGHTED_V1',
+  'READY_FOR_REVIEWED_EXECUTION',
+  'INPUT_REQUIRED',
+  'NOT_APPLICABLE',
+  'data-readiness-analysis-type',
+  'UNREVIEWED_ANALYSIS_SESSION',
+  'getAnalysisSession',
 ]);
 
 console.log();

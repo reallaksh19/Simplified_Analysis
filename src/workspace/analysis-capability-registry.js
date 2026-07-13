@@ -1,4 +1,9 @@
 import { createInspection } from './analysis-input-evidence.js';
+import {
+  createWorkspaceAnalysisReadiness,
+  evaluateApplicability,
+  validateWorkspaceAnalysisReadiness,
+} from './analysis-readiness.js';
 import { freezeDeep } from './dataset-utils.js';
 
 export class AnalysisCapabilityError extends Error {
@@ -27,41 +32,42 @@ export class AnalysisCapabilityRegistry {
 
   list(context) {
     return freezeDeep([...this.#capabilities.values()].map((capability) => {
-      const readiness = normalizeReadiness(capability.evaluate(context));
+      const assessment = this.#assess(capability, context);
+      const readiness = assessment.workspaceReadiness;
       return {
         analysisType: capability.id,
         label: capability.label,
         description: capability.description,
         engineeringLevel: capability.engineeringLevel,
-        enabled: readiness.enabled,
-        reason: readiness.reason,
-        missing: readiness.missing,
+        solverId: readiness.solverId,
+        solverVersion: readiness.solverVersion,
+        methodId: readiness.methodId,
+        methodVersion: readiness.methodVersion,
+        enabled: readiness.readyToRun,
+        reason: readiness.diagnostics[0]?.message || '',
+        missing: readiness.missingInputs.map((item) => item.key),
+        readiness,
       };
     }));
   }
 
   inspect(analysisType, context) {
-    const capability = this.#require(analysisType);
-    const readiness = normalizeReadiness(capability.evaluate(context));
-    if (!capability.inspect) return createInspection([], readiness);
-    const inspection = capability.inspect(context);
-    if (!inspection || typeof inspection !== 'object') {
-      throw new AnalysisCapabilityError(
-        'INVALID_INPUT_INSPECTION',
-        `${capability.id} returned an invalid input inspection.`,
-      );
-    }
-    return createInspection(inspection.fields || [], inspection.readiness || readiness);
+    return this.#assess(this.#require(analysisType), context);
+  }
+
+  readiness(analysisType, context) {
+    return this.#assess(this.#require(analysisType), context).workspaceReadiness;
   }
 
   async execute(analysisType, context) {
     const capability = this.#require(analysisType);
-    const readiness = normalizeReadiness(capability.evaluate(context));
-    if (!readiness.enabled) {
+    const assessment = this.#assess(capability, context);
+    const readiness = assessment.workspaceReadiness;
+    if (!readiness.readyToRun) {
       throw new AnalysisCapabilityError(
-        'CAPABILITY_NOT_READY',
-        readiness.reason || `${capability.label} is not ready.`,
-        { missing: readiness.missing },
+        readiness.applicable ? 'CAPABILITY_INPUTS_NOT_READY' : 'CAPABILITY_NOT_APPLICABLE',
+        readiness.diagnostics[0]?.message || `${capability.label} is not ready.`,
+        { readiness },
       );
     }
 
@@ -81,6 +87,34 @@ export class AnalysisCapabilityRegistry {
 
   get size() {
     return this.#capabilities.size;
+  }
+
+  #assess(capability, context) {
+    const evaluatedReadiness = normalizeReadiness(capability.evaluate(context));
+    const rawInspection = capability.inspect ? capability.inspect(context) : { fields: [], readiness: evaluatedReadiness };
+    if (!rawInspection || typeof rawInspection !== 'object') {
+      throw new AnalysisCapabilityError(
+        'INVALID_INPUT_INSPECTION',
+        `${capability.id} returned an invalid input inspection.`,
+      );
+    }
+    const inspection = createInspection(rawInspection.fields || [], rawInspection.readiness || evaluatedReadiness);
+    const workspaceReadiness = createWorkspaceAnalysisReadiness({
+      capability,
+      context,
+      inspection,
+      applicability: evaluateApplicability(capability, context),
+      evaluatedReadiness,
+    });
+    const validation = validateWorkspaceAnalysisReadiness(workspaceReadiness);
+    if (!validation.ok) {
+      throw new AnalysisCapabilityError(
+        'INVALID_WORKSPACE_READINESS',
+        `${capability.id} produced invalid workspace readiness: ${validation.errors.join(' ')}`,
+        { errors: validation.errors },
+      );
+    }
+    return freezeDeep({ ...inspection, workspaceReadiness });
   }
 
   #require(analysisType) {
@@ -107,6 +141,9 @@ function normalizeDefinition(definition) {
   if (typeof definition.execute !== 'function') {
     throw new TypeError(`Analysis capability ${id} requires execute(context).`);
   }
+  if (typeof definition.applicability !== 'function') {
+    throw new TypeError(`Analysis capability ${id} requires applicability(context).`);
+  }
   if (definition.inspect !== undefined && typeof definition.inspect !== 'function') {
     throw new TypeError(`Analysis capability ${id} inspect must be a function.`);
   }
@@ -114,17 +151,34 @@ function normalizeDefinition(definition) {
     id,
     label,
     description: String(definition.description || ''),
-    engineeringLevel: String(definition.engineeringLevel || 'SCREENING'),
+    engineeringLevel: nonEmptyString(definition.engineeringLevel || 'SCREENING', 'engineeringLevel'),
+    manifest: normalizeManifest(definition.manifest, id),
+    applicability: definition.applicability,
     evaluate: definition.evaluate,
     execute: definition.execute,
     inspect: definition.inspect || null,
   });
 }
 
+function normalizeManifest(value, capabilityId) {
+  if (!value || typeof value !== 'object') {
+    throw new TypeError(`Analysis capability ${capabilityId} requires a solver manifest.`);
+  }
+  return freezeDeep({
+    solverId: nonEmptyString(value.solverId, 'manifest.solverId'),
+    solverVersion: nonEmptyString(value.solverVersion, 'manifest.solverVersion'),
+    methodId: nonEmptyString(value.methodId, 'manifest.methodId'),
+    methodVersion: nonEmptyString(value.methodVersion, 'manifest.methodVersion'),
+    codeBasis: nonEmptyStringArray(value.codeBasis, 'manifest.codeBasis'),
+    assumptions: nonEmptyStringArray(value.assumptions, 'manifest.assumptions'),
+    limitations: nonEmptyStringArray(value.limitations, 'manifest.limitations'),
+  });
+}
+
 function normalizeReadiness(value) {
   if (value === true) return { enabled: true, reason: '', missing: [] };
   if (value === false || value == null) {
-    return { enabled: false, reason: 'Capability is not available for this selection.', missing: [] };
+    return { enabled: false, reason: 'Capability inputs are not ready.', missing: [] };
   }
   if (typeof value !== 'object') {
     throw new TypeError('Capability readiness must be a boolean or object.');
@@ -134,6 +188,13 @@ function normalizeReadiness(value) {
     reason: String(value.reason || ''),
     missing: Array.isArray(value.missing) ? value.missing.map(String) : [],
   };
+}
+
+function nonEmptyStringArray(value, field) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new TypeError(`Analysis capability ${field} must be a non-empty array.`);
+  }
+  return value.map((item) => nonEmptyString(String(item), field));
 }
 
 function nonEmptyString(value, field) {

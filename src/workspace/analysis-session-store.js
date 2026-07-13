@@ -8,6 +8,7 @@ export class AnalysisSessionStore {
 
   open({ targetId, analysisType, datasetId, workspaceVersion, inspection }) {
     assertInspection(inspection);
+    const readyToRun = inspection.workspaceReadiness?.readyToRun ?? inspection.readiness.enabled;
     const session = freezeDeep({
       schema: ANALYSIS_SESSION_SCHEMA,
       sessionId: `analysis-session-${++this.#sequence}`,
@@ -16,11 +17,12 @@ export class AnalysisSessionStore {
       datasetId: nonEmptyString(datasetId, 'datasetId'),
       workspaceVersion: integerValue(workspaceVersion, 'workspaceVersion'),
       version: 1,
-      status: inspection.readiness.enabled ? 'ready' : 'draft',
+      status: readyToRun ? 'ready' : 'draft',
       inputs: inspection.fields,
       overrides: {},
       fieldErrors: {},
       readiness: inspection.readiness,
+      workspaceReadiness: inspection.workspaceReadiness || null,
       result: null,
       failure: null,
     });
@@ -35,14 +37,16 @@ export class AnalysisSessionStore {
   revise(sessionId, { overrides, fieldErrors = {}, inspection }) {
     const current = this.require(sessionId);
     assertInspection(inspection);
+    const readyToRun = inspection.workspaceReadiness?.readyToRun ?? inspection.readiness.enabled;
     const session = freezeDeep({
       ...current,
       version: current.version + 1,
-      status: inspection.readiness.enabled ? 'ready' : 'draft',
+      status: readyToRun ? 'ready' : 'draft',
       inputs: inspection.fields,
       overrides: { ...(overrides || {}) },
       fieldErrors: { ...fieldErrors },
       readiness: inspection.readiness,
+      workspaceReadiness: inspection.workspaceReadiness || null,
       result: null,
       failure: null,
     });
@@ -140,6 +144,9 @@ function assertInspection(inspection) {
   }
   if (!Array.isArray(inspection.fields) || !inspection.readiness) {
     throw new TypeError('Analysis session inspection is invalid.');
+  }
+  if (inspection.workspaceReadiness && inspection.workspaceReadiness.readyToReview !== true) {
+    throw new TypeError('Analysis session inspection is not reviewable.');
   }
 }
 

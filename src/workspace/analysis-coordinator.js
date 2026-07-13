@@ -74,11 +74,23 @@ export class AnalysisCoordinator {
           `Analysis target is not the active selection: ${targetId}.`,
         );
       }
+      if (!sessionId) {
+        throw new AnalysisCapabilityError(
+          'UNREVIEWED_ANALYSIS_SESSION',
+          'Workspace analysis requires an active reviewed input session.',
+        );
+      }
       let context = createAnalysisContext(this.workspaceState, targetId);
-      if (sessionId) {
-        const session = this.sessionStore.getSession(sessionId);
-        assertSessionMatchesContext(session, context, analysisType);
-        context = withAnalysisSession(context, session);
+      const session = this.sessionStore.getSession(sessionId);
+      assertSessionMatchesContext(session, context, analysisType);
+      context = withAnalysisSession(context, session);
+      const readiness = this.registry.readiness(analysisType, context);
+      if (!readiness.readyToRun) {
+        throw new AnalysisCapabilityError(
+          'REVIEWED_INPUTS_NOT_RUNNABLE',
+          readiness.diagnostics[0]?.message || 'Reviewed analysis inputs are not runnable.',
+          { readiness },
+        );
       }
       const result = await this.registry.execute(analysisType, context);
       if (this.shouldIgnore(selectionVersion, targetId, sessionId)) return;

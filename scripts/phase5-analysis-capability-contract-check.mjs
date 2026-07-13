@@ -11,6 +11,7 @@ import { AnalysisCapabilityRegistry } from '../src/workspace/analysis-capability
 import { createDefaultAnalysisCapabilityRegistry } from '../src/workspace/analysis-capabilities.js';
 import { AnalysisCoordinator } from '../src/workspace/analysis-coordinator.js';
 import { createAnalysisContext } from '../src/workspace/analysis-context.js';
+import { AnalysisSessionStore } from '../src/workspace/analysis-session-store.js';
 import { normalizeWorkspaceDataset } from '../src/workspace/dataset-adapter.js';
 import { EventBus } from '../src/workspace/event-bus.js';
 import { EVENT_TOPICS } from '../src/workspace/event-topics.js';
@@ -56,7 +57,7 @@ const incomplete = registry.list(createAnalysisContext(incompleteState, 'PIPE-IN
 assert.equal(incomplete.every((item) => item.enabled === false), true);
 await assert.rejects(
   registry.execute('support-load', createAnalysisContext(incompleteState, 'PIPE-INCOMPLETE')),
-  /not ready|incomplete/i,
+  /not ready|incomplete|required/i,
 );
 
 const disconnectedState = new WorkspaceStateStore();
@@ -69,18 +70,8 @@ assert.match(disconnectedScreening.reason, /connected pipe legs/i);
 
 const strictRegistry = new AnalysisCapabilityRegistry();
 assert.throws(() => strictRegistry.register({ id: '', label: 'Bad' }), /non-empty string/);
-strictRegistry.register({
-  id: 'test-capability',
-  label: 'Test capability',
-  evaluate: () => true,
-  execute: () => ({ ok: true }),
-});
-assert.throws(() => strictRegistry.register({
-  id: 'test-capability',
-  label: 'Duplicate',
-  evaluate: () => true,
-  execute: () => ({ ok: true }),
-}), /already registered/);
+strictRegistry.register(testCapability('test-capability'));
+assert.throws(() => strictRegistry.register(testCapability('test-capability')), /already registered/);
 
 await assertStaleCompletionIsIgnored(dataset);
 assertEventValidation();
@@ -90,15 +81,22 @@ console.log('Phase 5 analysis capability and coordinator contracts passed.');
 async function assertStaleCompletionIsIgnored(activeDataset) {
   let resolveExecution;
   const delayedRegistry = new AnalysisCapabilityRegistry().register({
-    id: 'delayed',
-    label: 'Delayed',
-    evaluate: () => true,
+    ...testCapability('delayed'),
     execute: () => new Promise((resolve) => { resolveExecution = resolve; }),
   });
   const localState = new WorkspaceStateStore();
   localState.loadDataset(activeDataset);
   localState.selectEntity('PIPE-1');
-  const coordinator = new AnalysisCoordinator(EventBus, localState, delayedRegistry);
+  const context = createAnalysisContext(localState, 'PIPE-1');
+  const store = new AnalysisSessionStore();
+  const session = store.open({
+    targetId: 'PIPE-1',
+    analysisType: 'delayed',
+    datasetId: context.dataset.datasetId,
+    workspaceVersion: context.version,
+    inspection: delayedRegistry.inspect('delayed', context),
+  });
+  const coordinator = new AnalysisCoordinator(EventBus, localState, delayedRegistry, store);
   const completions = [];
   const failures = [];
   const unsubscribeCompleted = EventBus.subscribe(EVENT_TOPICS.ANALYSIS_COMPLETED, (payload) => completions.push(payload));
@@ -108,7 +106,7 @@ async function assertStaleCompletionIsIgnored(activeDataset) {
     entityId: 'PIPE-1', type: 'pipe', properties: {}, source: 'api',
   });
   EventBus.publish(EVENT_TOPICS.ANALYSIS_REQUESTED, {
-    analysisType: 'delayed', targetId: 'PIPE-1',
+    analysisType: 'delayed', targetId: 'PIPE-1', sessionId: session.sessionId,
   });
   localState.selectEntity('PIPE-2');
   EventBus.publish(EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED, {
@@ -168,6 +166,25 @@ async function assertSourceGuards() {
     'PropertiesPanel imports or names calculation implementation modules.',
   );
   assert.doesNotMatch(propertiesSource, /document\.(querySelector|getElementById)/);
+}
+
+function testCapability(id) {
+  return {
+    id,
+    label: id,
+    engineeringLevel: ENGINEERING_LEVEL.SCREENING,
+    manifest: {
+      solverId: `${id}-solver`, solverVersion: '1.0.0', methodId: `${id}-method`, methodVersion: '1',
+      codeBasis: ['Test basis'], assumptions: ['Test assumption'], limitations: ['Test limitation'],
+    },
+    applicability: () => ({ applicable: true, reason: '' }),
+    evaluate: () => true,
+    inspect: () => ({ fields: [], readiness: { enabled: true, reason: '', missing: [] } }),
+    execute: () => createSolverResultContract({
+      moduleId: id, methodId: `${id}-method`, formulaIds: [`${id}-formula`],
+      engineeringLevel: ENGINEERING_LEVEL.SCREENING, status: 'PASS', results: { value: 1 },
+    }),
+  };
 }
 
 function completePackage() {

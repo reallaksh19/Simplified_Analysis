@@ -40,7 +40,8 @@ export class AnalysisSessionController {
     const context = createAnalysisContext(this.workspaceState, targetId);
     const snapshot = this.workspaceState.getSnapshot();
     const inspection = this.registry.inspect(analysisType, context);
-    this.sessionStore.open({
+    if (!inspection.workspaceReadiness.readyToReview) return null;
+    const session = this.sessionStore.open({
       targetId,
       analysisType,
       datasetId: snapshot.dataset.datasetId,
@@ -48,6 +49,7 @@ export class AnalysisSessionController {
       inspection,
     });
     this.publish();
+    return session;
   }
 
   override({ sessionId, fieldKey, value }) {

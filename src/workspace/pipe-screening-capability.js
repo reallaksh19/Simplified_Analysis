@@ -16,8 +16,29 @@ const PARAMETER_FIELDS = Object.freeze([
 export const pipeScreeningCapability = Object.freeze({
   id: PIPE_SCREENING_CAPABILITY_ID,
   label: 'Pipe flexibility screening',
-  description: 'Runs the certified simplified 2D screening solver for the selected pipe line.',
+  description: 'Runs the benchmarked simplified 2D screening solver for the selected pipe line.',
   engineeringLevel: ENGINEERING_LEVEL.BENCHMARKED_SCREENING,
+  manifest: Object.freeze({
+    solverId: 'workspace-simplified-2d-screening',
+    solverVersion: '1.0.0',
+    methodId: 'SIMPLIFIED_2D_TOPOLOGY_SCREENING',
+    methodVersion: '1',
+    codeBasis: ['Simplified guided-cantilever flexibility screening equations'],
+    assumptions: [
+      'The connected route is projected onto its two dominant geometric axes.',
+      'The route is assessed as a simplified generating-leg and absorbing-leg system.',
+    ],
+    limitations: [
+      'This is a screening method, not a final piping-code stress analysis.',
+      'Restraint stiffness, gaps, friction, branch flexibility, equipment interaction, and nonlinear effects are excluded.',
+    ],
+  }),
+
+  applicability(context) {
+    return isStraightPipe(context.entity)
+      ? { applicable: true, reason: '' }
+      : { applicable: false, reason: 'Pipe flexibility screening is applicable only to a selected straight-pipe entity.' };
+  },
 
   evaluate(context) {
     const prepared = buildPipeScreeningInput(context);
@@ -84,4 +105,8 @@ function readiness(prepared) {
     reason: prepared.reason,
     missing: prepared.missing,
   };
+}
+
+function isStraightPipe(entity) {
+  return String(entity?.entityType || '').trim().toUpperCase() === 'PIPE';
 }
