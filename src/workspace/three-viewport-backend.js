@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { assertViewportRenderModel } from './viewport-render-model.js';
 
 const SELECTED_COLOR = 0xfbbf24;
+const MAX_POINTER_TRAVEL_PX = 5;
 
 export class ThreeViewportBackend {
   constructor() {
@@ -17,6 +18,12 @@ export class ThreeViewportBackend {
     this.selectedEntityId = '';
     this.resizeObserver = null;
     this.animationFrame = 0;
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
+    this.pointerStart = null;
+    this.selectionRequestHandler = null;
+    this.handlePointerDown = this.handlePointerDown.bind(this);
+    this.handlePointerUp = this.handlePointerUp.bind(this);
   }
 
   mount(hostElement) {
@@ -28,6 +35,8 @@ export class ThreeViewportBackend {
     this.renderer.domElement.className = 'viewport-canvas';
     this.renderer.domElement.dataset.viewportBackend = 'webgl';
     this.renderer.domElement.setAttribute('aria-label', 'Read-only WebGL model viewport');
+    this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
@@ -55,12 +64,20 @@ export class ThreeViewportBackend {
     this.startAnimation();
   }
 
+  setSelectionRequestHandler(callback) {
+    if (callback !== null && typeof callback !== 'function') {
+      throw new TypeError('Three viewport selection handler must be a function or null.');
+    }
+    this.selectionRequestHandler = callback;
+  }
+
   renderModel(model) {
     assertViewportRenderModel(model);
     this.clearSceneObjects();
     this.model = model;
     this.selectedEntityId = '';
     const markerRadius = Math.max(model.bounds.radius * 0.018, 0.5);
+    this.raycaster.params.Line.threshold = Math.max(model.bounds.radius * 0.015, 0.5);
 
     model.items.forEach((item) => {
       const object = item.kind === 'segment'
@@ -81,6 +98,7 @@ export class ThreeViewportBackend {
     this.clearSceneObjects();
     this.model = null;
     this.selectedEntityId = '';
+    this.pointerStart = null;
     this.updateHostMetadata();
     this.renderOnce();
   }
@@ -131,22 +149,48 @@ export class ThreeViewportBackend {
     this.renderOnce();
   }
 
+  handlePointerDown(event) {
+    if (event.button !== 0) return;
+    this.pointerStart = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  handlePointerUp(event) {
+    const start = this.pointerStart;
+    this.pointerStart = null;
+    if (!start || event.button !== 0 || start.pointerId !== event.pointerId || !this.model) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > MAX_POINTER_TRAVEL_PX) return;
+
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.set(
+      ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1,
+      -((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const intersection = this.raycaster.intersectObjects([...this.objects.values()], true)[0];
+    const entityId = resolveEntityId(intersection?.object);
+    if (!entityId) return;
+
+    this.hostElement.dataset.lastPickEntityId = entityId;
+    this.selectionRequestHandler?.(entityId);
+  }
+
   destroy() {
     if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
     this.animationFrame = 0;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.renderer?.domElement.removeEventListener('pointerdown', this.handlePointerDown);
+    this.renderer?.domElement.removeEventListener('pointerup', this.handlePointerUp);
     this.controls?.dispose();
     this.clearSceneObjects();
     this.renderer?.dispose();
     this.renderer?.forceContextLoss?.();
     this.renderer?.domElement.remove();
-    if (this.hostElement) {
-      delete this.hostElement.dataset.viewportBackend;
-      delete this.hostElement.dataset.renderableCount;
-      delete this.hostElement.dataset.skippedCount;
-      delete this.hostElement.dataset.selectedEntityId;
-    }
+    if (this.hostElement) clearHostMetadata(this.hostElement);
     this.hostElement = null;
     this.renderer = null;
     this.scene = null;
@@ -154,6 +198,8 @@ export class ThreeViewportBackend {
     this.controls = null;
     this.modelGroup = null;
     this.model = null;
+    this.pointerStart = null;
+    this.selectionRequestHandler = null;
     this.objects.clear();
   }
 
@@ -197,10 +243,7 @@ export class ThreeViewportBackend {
 }
 
 function createLine(item) {
-  const geometry = new THREE.BufferGeometry().setFromPoints([
-    vector(item.start),
-    vector(item.end),
-  ]);
+  const geometry = new THREE.BufferGeometry().setFromPoints([vector(item.start), vector(item.end)]);
   return new THREE.Line(
     geometry,
     new THREE.LineBasicMaterial({ color: categoryColor(item.category) }),
@@ -213,6 +256,23 @@ function createMarker(item, radius) {
   const marker = new THREE.Mesh(geometry, material);
   marker.position.copy(vector(item.center));
   return marker;
+}
+
+function resolveEntityId(object) {
+  let current = object;
+  while (current) {
+    if (current.userData?.entityId) return current.userData.entityId;
+    current = current.parent;
+  }
+  return '';
+}
+
+function clearHostMetadata(hostElement) {
+  delete hostElement.dataset.viewportBackend;
+  delete hostElement.dataset.renderableCount;
+  delete hostElement.dataset.skippedCount;
+  delete hostElement.dataset.selectedEntityId;
+  delete hostElement.dataset.lastPickEntityId;
 }
 
 function vector(point) {
