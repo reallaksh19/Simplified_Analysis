@@ -1,5 +1,9 @@
 import { EventBus } from './event-bus.js';
 import { EVENT_TOPICS } from './event-topics.js';
+import {
+  createModelSupportLoadReadinessEvent,
+  MODEL_SUPPORT_LOAD_READINESS_TOPIC,
+} from './model-support-load-contract.js';
 import { assessModelSupportLoadReadiness } from './model-support-load-readiness.js';
 import { WorkspaceState } from './workspace-state.js';
 
@@ -19,7 +23,7 @@ export class ModelSupportLoadController {
       ),
       this.eventBus.subscribe(
         EVENT_TOPICS.DATASET_CLEARED,
-        () => this.eventBus.publish(EVENT_TOPICS.MODEL_SUPPORT_LOAD_READINESS_CHANGED, { readiness: null }),
+        () => this.publishEvent(null),
       ),
     ];
     this.publishReadiness(this.workspaceState.getSnapshot());
@@ -28,14 +32,17 @@ export class ModelSupportLoadController {
   publishReadiness(snapshot) {
     if (snapshot?.status !== 'ready' || !snapshot.dataset) return;
     try {
-      const readiness = assessModelSupportLoadReadiness(snapshot.dataset);
-      this.eventBus.publish(EVENT_TOPICS.MODEL_SUPPORT_LOAD_READINESS_CHANGED, { readiness });
+      this.publishEvent(assessModelSupportLoadReadiness(snapshot.dataset));
     } catch (error) {
-      this.eventBus.publish(EVENT_TOPICS.MODEL_SUPPORT_LOAD_READINESS_CHANGED, {
-        readiness: null,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.publishEvent(null, error instanceof Error ? error.message : String(error));
     }
+  }
+
+  publishEvent(readiness, error = '') {
+    this.eventBus.publish(
+      MODEL_SUPPORT_LOAD_READINESS_TOPIC,
+      createModelSupportLoadReadinessEvent(readiness, error),
+    );
   }
 
   destroy() {
