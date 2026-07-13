@@ -90,7 +90,9 @@ export class ThreeViewportBackend {
     this.objects.forEach((object, id) => {
       const selected = id === this.selectedEntityId;
       object.material.color.setHex(selected ? SELECTED_COLOR : object.userData.baseColor);
-      object.scale.setScalar(selected ? object.userData.baseScale * 1.5 : object.userData.baseScale);
+      if (object.isMesh) {
+        object.scale.setScalar(selected ? object.userData.baseScale * 1.5 : object.userData.baseScale);
+      }
     });
     this.updateHostMetadata();
     this.renderOnce();
