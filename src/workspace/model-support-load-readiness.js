@@ -8,6 +8,7 @@ import { buildCalculationWorkspaceBridge } from './calculation-workspace-bridge.
 import { freezeDeep, stringValue } from './dataset-utils.js';
 
 export const MODEL_SUPPORT_LOAD_READINESS_SCHEMA = 'model-support-load-readiness/v1';
+const NON_PHYSICAL_TYPES = new Set(['BRANCH', 'GROUP', 'MODEL', 'ROOT', 'FOLDER', 'SYSTEM', 'ZONE']);
 
 export function assessModelSupportLoadReadiness(dataset) {
   const bridge = buildCalculationWorkspaceBridge(dataset);
@@ -17,7 +18,9 @@ export function assessModelSupportLoadReadiness(dataset) {
     ...workspaceSupports(workspace),
     ...objects.filter(isEngineeringSupport),
   ]);
-  const elementSources = objects.filter((object) => !isEngineeringSupport(object));
+  const elementSources = objects.filter((object) => (
+    !isEngineeringSupport(object) && isPhysicalElement(object)
+  ));
   const elements = elementSources.map(resolveEngineeringElement).filter(hasLoadIntent);
   const supports = supportSources.map(resolveEngineeringSupport);
 
@@ -50,6 +53,7 @@ export function assessModelSupportLoadReadiness(dataset) {
     calculationWorkspaceSchema: workspace.schema,
     elements: {
       total: elements.length,
+      excludedContainers: objects.length - supportSources.length - elementSources.length,
       opeReady: elements.length - opeBlocked.length,
       hydReady: elements.length - hydBlocked.length,
       opeBlockedIds: opeBlocked.map((element) => element.elementId),
@@ -92,6 +96,11 @@ function buildDistributionBlockers(state) {
   if (state.missingElementChainage.length) blockers.push('ELEMENT_CHAINAGE_INCOMPLETE');
   blockers.push('ROUTE_PARTITION_MODEL_NOT_BUILT');
   return blockers;
+}
+
+function isPhysicalElement(object) {
+  const type = stringValue(object?.type || object?.kind || object?.sourceAttributes?.TYPE).toUpperCase();
+  return !NON_PHYSICAL_TYPES.has(type);
 }
 
 function hasLoadIntent(element) {
