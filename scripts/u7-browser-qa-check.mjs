@@ -12,6 +12,7 @@ const requiredE2EFiles = [
   'e2e/phase2-workspace-dataset.spec.js',
   'e2e/phase3-viewport-renderer.spec.js',
   'e2e/phase4-viewport-picking.spec.js',
+  'e2e/phase5-analysis-capabilities.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -59,7 +60,8 @@ checkSpecContracts('e2e/u7-workflow-smoke.spec.js', [
   'data-role="dataset-file"',
   "EventBus.publish('viewport:entitySelected'",
   'data-entity-id="SUP-201"',
-  'Run contextual analysis',
+  'data-analysis-type="support-load"',
+  'support-load completed · CALCULATED',
 ]);
 
 checkSpecContracts('e2e/phase3-viewport-renderer.spec.js', [
@@ -80,6 +82,16 @@ checkSpecContracts('e2e/phase4-viewport-picking.spec.js', [
   'SUP-PICK-POINT',
   'direct selected notification',
   'empty-space click retains',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/phase5-analysis-capabilities.spec.js', [
+  'support-load',
+  'pipe-screening',
+  'CAPABILITY_NOT_READY',
+  'summary.sourcePipeId',
+  'summary.sourceEntityCount',
+  'No analysis has been run for this selection.',
   'AnalysisWorkspace.destroy()',
 ]);
 
