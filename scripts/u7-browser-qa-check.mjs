@@ -71,44 +71,90 @@ checkSpecContracts('e2e/u7-workflow-smoke.spec.js', [
 ]);
 
 checkSpecContracts('e2e/phase3-viewport-renderer.spec.js', [
-  '__WORKSPACE_VIEWPORT_BACKEND__', 'data-viewport-backend', 'data-renderable-count',
-  'data-skipped-count', 'Fit View', 'Reset View', 'retained 2 rendered', 'AnalysisWorkspace.destroy()',
+  '__WORKSPACE_VIEWPORT_BACKEND__',
+  'data-viewport-backend',
+  'data-renderable-count',
+  'data-skipped-count',
+  'Fit View',
+  'Reset View',
+  'retained 2 rendered',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 checkSpecContracts('e2e/phase4-viewport-picking.spec.js', [
-  'viewport:selectionRequested', 'aria-current', 'PIPE-PICK-SEGMENT', 'SUP-PICK-POINT',
-  'direct selected notification', 'empty-space click retains', 'AnalysisWorkspace.destroy()',
+  'viewport:selectionRequested',
+  'aria-current',
+  'PIPE-PICK-SEGMENT',
+  'SUP-PICK-POINT',
+  'direct selected notification',
+  'empty-space click retains',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 checkSpecContracts('e2e/phase5-analysis-capabilities.spec.js', [
-  'support-load', 'pipe-screening', 'UNREVIEWED_ANALYSIS_SESSION', 'summary.sourcePipeId',
-  'summary.sourceEntityCount', 'No analysis has been run for this selection.', 'AnalysisWorkspace.destroy()',
+  'support-load',
+  'pipe-screening',
+  'UNREVIEWED_ANALYSIS_SESSION',
+  'summary.sourcePipeId',
+  'summary.sourceEntityCount',
+  'No analysis has been run for this selection.',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 checkSpecContracts('e2e/phase6-analysis-sessions.spec.js', [
-  'analysis-session-1', 'Ready for reviewed execution', 'pipeOdMm', 'must be greater than zero',
-  'connectedLineSegments', 'getAnalysisSession', 'AnalysisWorkspace.destroy()',
+  'analysis-session-1',
+  'Ready for reviewed execution',
+  'pipeOdMm',
+  'must be greater than zero',
+  'connectedLineSegments',
+  'getAnalysisSession',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 checkSpecContracts('e2e/phase7-analysis-ledger.spec.js', [
-  'analysis-ledger-entry-1', 'analysis-ledger-entry-2', 'analysis-comparison-summary',
-  'Export JSON', 'Export CSV', 'Export Markdown', 'getAnalysisLedger', 'analysis:ledgerChanged',
+  'analysis-ledger-entry-1',
+  'analysis-ledger-entry-2',
+  'analysis-comparison-summary',
+  'Export JSON',
+  'Export CSV',
+  'Export Markdown',
+  'getAnalysisLedger',
+  'analysis:ledgerChanged',
 ]);
 
 checkSpecContracts('e2e/phase8-engineering-geometry.spec.js', [
-  'PIPE-8', 'ELBOW-8', 'TEE-8', 'REDUCER-8', 'FLANGE-8', 'VALVE-8', 'SUPPORT-8',
-  'data-resolved-count', 'data-fallback-count', 'data-component-kinds', 'AnalysisWorkspace.destroy()',
+  'PIPE-8',
+  'ELBOW-8',
+  'TEE-8',
+  'REDUCER-8',
+  'FLANGE-8',
+  'VALVE-8',
+  'SUPPORT-8',
+  'data-resolved-count',
+  'data-fallback-count',
+  'data-component-kinds',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 checkSpecContracts('e2e/phase9-analysis-readiness.spec.js', [
-  'workspace-support-load-screening', 'ACCESS_TEMP_WALL_WEIGHTED_V1',
-  'READY_FOR_REVIEWED_EXECUTION', 'INPUT_REQUIRED', 'NOT_APPLICABLE',
-  'data-readiness-analysis-type', 'UNREVIEWED_ANALYSIS_SESSION', 'getAnalysisSession',
+  'workspace-support-load-screening',
+  'ACCESS_TEMP_WALL_WEIGHTED_V1',
+  'READY_FOR_REVIEWED_EXECUTION',
+  'INPUT_REQUIRED',
+  'NOT_APPLICABLE',
+  'data-readiness-analysis-type',
+  'UNREVIEWED_ANALYSIS_SESSION',
+  'getAnalysisSession',
 ]);
 
 checkSpecContracts('e2e/w10.1-shared-model-export.spec.js', [
-  'shared-piping-model/v1', 'Export Shared Model', 'getSharedModel',
-  'sharedModel:exportRequested', '__sharedModelUrlAudit', 'clear-dataset', 'AnalysisWorkspace.destroy()',
+  'shared-piping-model/v1',
+  'Export Shared Model',
+  'getSharedModel',
+  'sharedModel:exportRequested',
+  '__sharedModelUrlAudit',
+  'clear-dataset',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 console.log();
