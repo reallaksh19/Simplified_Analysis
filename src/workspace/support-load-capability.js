@@ -1,6 +1,7 @@
 import {
   buildSupportLoadInput,
   calculateSupportLoads,
+  DEFAULT_SUPPORT_LOAD_PROFILE,
   SUPPORT_LOAD_FORMULA_PROFILE_ID,
 } from '../calc-workspace/supportLoadEngine.js';
 import {
@@ -63,6 +64,7 @@ export const supportLoadCapability = Object.freeze({
       meta: {
         requestedTargetId: context.targetId,
         sourcePipeId: prepared.pipeEntity.entityId,
+        formulaProfileId: DEFAULT_SUPPORT_LOAD_PROFILE.profileId,
       },
       summary: {
         sourcePipeId: prepared.pipeEntity.entityId,
@@ -80,6 +82,6 @@ function prepareSupportLoad(context) {
   const source = toSupportLoadSource(pipeEntity);
   return {
     pipeEntity,
-    input: buildSupportLoadInput(source),
+    input: buildSupportLoadInput(source, DEFAULT_SUPPORT_LOAD_PROFILE),
   };
 }
