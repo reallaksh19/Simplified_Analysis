@@ -17,6 +17,8 @@ jobs:
       - run: npm ci
 
       - run: npx playwright install chromium --with-deps
+      - name: Certify Phase 1 Analysis Workspace
+        run: npm run check:phase1-workspace
       - run: npm run check:full
       - run: npm run check:qa
       - run: npm run check:u3
