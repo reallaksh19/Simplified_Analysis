@@ -5,10 +5,10 @@ let success = true;
 
 console.log('\n--- U7 Browser QA Static Checks ---\n');
 
-// Check 1: Verify required E2E spec files exist
 const requiredE2EFiles = [
   'e2e/smoke.spec.js',
   'e2e/u7-workflow-smoke.spec.js',
+  'e2e/phase1-analysis-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -21,7 +21,6 @@ for (const file of requiredE2EFiles) {
   }
 }
 
-// Check 2: Verify playwright.config.js contains artifact configuration
 console.log();
 const playwrightConfigPath = path.join(process.cwd(), 'playwright.config.js');
 if (fs.existsSync(playwrightConfigPath)) {
@@ -36,7 +35,6 @@ if (fs.existsSync(playwrightConfigPath)) {
   success = false;
 }
 
-// Check 3: Verify qa-check.mjs contains Date.now guard text
 console.log();
 const qaCheckPath = path.join(process.cwd(), 'scripts/qa-check.mjs');
 if (fs.existsSync(qaCheckPath)) {
@@ -51,18 +49,24 @@ if (fs.existsSync(qaCheckPath)) {
   success = false;
 }
 
-// Check 4: Verify e2e/u7-workflow-smoke.spec.js contains expected test structure
 console.log();
 const u7SpecPath = path.join(process.cwd(), 'e2e/u7-workflow-smoke.spec.js');
 if (fs.existsSync(u7SpecPath)) {
   const specContent = fs.readFileSync(u7SpecPath, 'utf8');
-  const hasTestStructure = specContent.includes('test.describe') &&
-                           specContent.includes('settings-contract-hash') &&
-                           specContent.includes('settings-results-stale-banner');
-  if (hasTestStructure) {
-    console.log('✅ e2e/u7-workflow-smoke.spec.js has expected test structure');
+  const requiredContracts = [
+    'test.describe',
+    'data-panel="tree"',
+    'data-panel="viewport"',
+    'data-panel="properties"',
+    'data-entity-id="PIPE-102"',
+    'data-action="request-analysis"',
+  ];
+  const missingContracts = requiredContracts.filter((contract) => !specContent.includes(contract));
+
+  if (missingContracts.length === 0) {
+    console.log('✅ e2e/u7-workflow-smoke.spec.js certifies the consolidated workspace flow');
   } else {
-    console.error('❌ e2e/u7-workflow-smoke.spec.js structure incomplete');
+    console.error(`❌ e2e/u7-workflow-smoke.spec.js is missing: ${missingContracts.join(', ')}`);
     success = false;
   }
 } else {
