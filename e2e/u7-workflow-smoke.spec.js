@@ -1,5 +1,23 @@
 import { test, expect } from '@playwright/test';
 
+const SUPPORT_PACKAGE = {
+  schema: 'rvm-selected-geometry-workspace-package/v1',
+  packageHash: 'U7-SUPPORT-DATASET',
+  geometry: {
+    objects: [],
+    supports: [
+      {
+        id: 'SUP-201',
+        name: 'Guide Support 201',
+        type: 'GUIDE',
+        sourcePath: '/LINE-1/SUP-201',
+        sourceAttributes: { SUPPORT_TYPE: 'Guide' },
+      },
+    ],
+    branches: [],
+  },
+};
+
 test.describe('Consolidated Analysis Workspace browser smoke', () => {
   test('loads the three-panel shell without legacy top navigation', async ({ page }) => {
     await page.goto('/');
@@ -29,6 +47,11 @@ test.describe('Consolidated Analysis Workspace browser smoke', () => {
 
   test('tree selection publishes contextual analysis without global routing', async ({ page }) => {
     await page.goto('/');
+    await page.locator('[data-role="dataset-file"]').setInputFiles({
+      name: 'support.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(SUPPORT_PACKAGE)),
+    });
 
     await page.locator('[data-entity-id="SUP-201"]').click();
     await expect(page.locator('[data-panel="properties"]')).toContainText('SUP-201');
