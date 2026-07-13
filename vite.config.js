@@ -1,20 +1,17 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
 
-// Inject build timestamp for VersionBadge component
 const buildTime = new Date().toISOString();
 
-// https://vite.dev/config/
 export default defineConfig({
   base: '/Simplified_Analysis/',
-  plugins: [react(), tailwindcss()],
+  plugins: [tailwindcss()],
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
   },
   server: {
     watch: {
-      ignored: ['**/benchmarks/**', '**/reports/**']
-    }
-  }
-})
+      ignored: ['**/benchmarks/**', '**/reports/**'],
+    },
+  },
+});
