@@ -16,6 +16,7 @@ const checks = {
     'docs/analysis-workspace/PHASE_2_DATASET_ADAPTER.md',
     'docs/analysis-workspace/PHASE_3_READONLY_VIEWPORT.md',
     'docs/analysis-workspace/PHASE_4_VIEWPORT_PICKING.md',
+    'docs/analysis-workspace/PHASE_5_CONTEXTUAL_ANALYSIS.md',
   ],
   certificationScripts: [
     'scripts/u3-engineering-data-check.mjs',
@@ -31,6 +32,7 @@ const checks = {
     'scripts/phase2-workspace-contract-check.mjs',
     'scripts/phase3-viewport-contract-check.mjs',
     'scripts/phase4-viewport-picking-contract-check.mjs',
+    'scripts/phase5-analysis-capability-contract-check.mjs',
     'scripts/release-candidate-check.mjs',
   ],
   sourceContracts: [
@@ -51,6 +53,13 @@ const checks = {
     'src/workspace/viewport-renderer.js',
     'src/workspace/canvas2d-viewport-backend.js',
     'src/workspace/three-viewport-backend.js',
+    'src/workspace/analysis-capability-registry.js',
+    'src/workspace/analysis-capabilities.js',
+    'src/workspace/analysis-context.js',
+    'src/workspace/analysis-coordinator.js',
+    'src/workspace/support-load-capability.js',
+    'src/workspace/pipe-screening-capability.js',
+    'src/workspace/properties-view.js',
     'src/workspace/bootstrap.js',
   ],
   browserEvidence: [
@@ -58,6 +67,7 @@ const checks = {
     'e2e/phase2-workspace-dataset.spec.js',
     'e2e/phase3-viewport-renderer.spec.js',
     'e2e/phase4-viewport-picking.spec.js',
+    'e2e/phase5-analysis-capabilities.spec.js',
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
   ],

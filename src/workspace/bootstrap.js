@@ -1,3 +1,5 @@
+import { createDefaultAnalysisCapabilityRegistry } from './analysis-capabilities.js';
+import { AnalysisCoordinator } from './analysis-coordinator.js';
 import { DatasetController } from './dataset-controller.js';
 import { EventBus } from './event-bus.js';
 import { PropertiesPanel } from './properties-panel.js';
@@ -12,7 +14,13 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   WorkspaceState.clearDataset();
   renderWorkspaceLayout(rootElement);
 
+  const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const datasetController = new DatasetController(EventBus, WorkspaceState);
+  const analysisCoordinator = new AnalysisCoordinator(
+    EventBus,
+    WorkspaceState,
+    capabilityRegistry,
+  );
   const treePanel = new TreePanel(rootElement.querySelector('[data-panel="tree"]'), EventBus);
   const viewportPanel = new ViewportPanel(rootElement.querySelector('[data-panel="viewport"]'), EventBus);
   const propertiesPanel = new PropertiesPanel(
@@ -20,7 +28,13 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     EventBus,
     WorkspaceState,
   );
-  const controllers = [datasetController, treePanel, viewportPanel, propertiesPanel];
+  const controllers = [
+    datasetController,
+    analysisCoordinator,
+    treePanel,
+    viewportPanel,
+    propertiesPanel,
+  ];
   controllers.forEach((controller) => controller.init());
 
   globalThis.EventBus = EventBus;
@@ -28,6 +42,22 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   return Object.freeze({
     getSnapshot() {
       return WorkspaceState.getSnapshot();
+    },
+    getAnalysisCapabilities(targetId) {
+      try {
+        const entity = WorkspaceState.getEntity(targetId);
+        const snapshot = WorkspaceState.getSnapshot();
+        if (!entity || snapshot.status !== 'ready') return [];
+        return capabilityRegistry.list({
+          targetId: entity.entityId,
+          entity,
+          dataset: snapshot.dataset,
+          selectedEntityId: snapshot.selectedEntityId,
+          version: snapshot.version,
+        });
+      } catch {
+        return [];
+      }
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());

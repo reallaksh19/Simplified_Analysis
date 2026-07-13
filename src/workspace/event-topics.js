@@ -7,7 +7,11 @@ export const EVENT_TOPICS = Object.freeze({
   WORKSPACE_SNAPSHOT_CHANGED: 'workspace:snapshotChanged',
   VIEWPORT_SELECTION_REQUESTED: 'viewport:selectionRequested',
   VIEWPORT_ENTITY_SELECTED: 'viewport:entitySelected',
+  ANALYSIS_CAPABILITIES_CHANGED: 'analysis:capabilitiesChanged',
   ANALYSIS_REQUESTED: 'analysis:requested',
+  ANALYSIS_STARTED: 'analysis:started',
+  ANALYSIS_COMPLETED: 'analysis:completed',
+  ANALYSIS_FAILED: 'analysis:failed',
 });
 
 export function assertEventPayload(topic, payload) {
@@ -24,7 +28,11 @@ const PAYLOAD_VALIDATORS = new Map([
   [EVENT_TOPICS.WORKSPACE_SNAPSHOT_CHANGED, validateSnapshotChanged],
   [EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED, validateSelectionRequested],
   [EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED, validateEntitySelected],
+  [EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED, validateCapabilitiesChanged],
   [EVENT_TOPICS.ANALYSIS_REQUESTED, validateAnalysisRequested],
+  [EVENT_TOPICS.ANALYSIS_STARTED, validateAnalysisLifecycle],
+  [EVENT_TOPICS.ANALYSIS_COMPLETED, validateAnalysisCompleted],
+  [EVENT_TOPICS.ANALYSIS_FAILED, validateAnalysisFailed],
 ]);
 
 const SELECTION_SOURCES = new Set(['tree', 'viewport', 'api']);
@@ -96,10 +104,51 @@ function validateEntitySelected(payload) {
   }
 }
 
+function validateCapabilitiesChanged(payload) {
+  assertRecord(payload, EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
+  if (typeof payload.targetId !== 'string') {
+    throw new TypeError('analysis:capabilitiesChanged payload.targetId must be a string.');
+  }
+  if (!Array.isArray(payload.capabilities)) {
+    throw new TypeError('analysis:capabilitiesChanged payload.capabilities must be an array.');
+  }
+  payload.capabilities.forEach((capability) => {
+    assertRecord(capability, EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
+    assertNonEmptyString(capability.analysisType, 'analysisType', EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
+    assertNonEmptyString(capability.label, 'label', EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
+    if (typeof capability.enabled !== 'boolean') {
+      throw new TypeError('analysis:capabilitiesChanged capability.enabled must be boolean.');
+    }
+  });
+}
+
 function validateAnalysisRequested(payload) {
   assertRecord(payload, EVENT_TOPICS.ANALYSIS_REQUESTED);
   assertNonEmptyString(payload.analysisType, 'analysisType', EVENT_TOPICS.ANALYSIS_REQUESTED);
   assertNonEmptyString(payload.targetId, 'targetId', EVENT_TOPICS.ANALYSIS_REQUESTED);
+}
+
+function validateAnalysisLifecycle(payload) {
+  assertRecord(payload, 'analysis lifecycle');
+  assertNonEmptyString(payload.requestId, 'requestId', 'analysis lifecycle');
+  assertNonEmptyString(payload.analysisType, 'analysisType', 'analysis lifecycle');
+  assertNonEmptyString(payload.targetId, 'targetId', 'analysis lifecycle');
+}
+
+function validateAnalysisCompleted(payload) {
+  validateAnalysisLifecycle(payload);
+  if (!isRecord(payload.result)) {
+    throw new TypeError('analysis:completed payload.result must be an object.');
+  }
+}
+
+function validateAnalysisFailed(payload) {
+  validateAnalysisLifecycle(payload);
+  assertNonEmptyString(payload.code, 'code', EVENT_TOPICS.ANALYSIS_FAILED);
+  assertNonEmptyString(payload.message, 'message', EVENT_TOPICS.ANALYSIS_FAILED);
+  if (payload.details !== undefined && !isRecord(payload.details)) {
+    throw new TypeError('analysis:failed payload.details must be an object.');
+  }
 }
 
 function validateSelectionSource(value, topic) {

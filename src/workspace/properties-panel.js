@@ -1,6 +1,6 @@
 import { EventBus } from './event-bus.js';
 import { EVENT_TOPICS } from './event-topics.js';
-import { flattenProperties } from './property-flattener.js';
+import { renderPropertiesContent } from './properties-view.js';
 import { WorkspaceState } from './workspace-state.js';
 
 export class PropertiesPanel {
@@ -10,6 +10,9 @@ export class PropertiesPanel {
     this.eventBus = eventBus;
     this.workspaceState = workspaceState;
     this.selection = null;
+    this.capabilityTargetId = '';
+    this.capabilities = [];
+    this.analysisState = idleAnalysis();
     this.unsubscribeCallbacks = [];
     this.handleClick = this.handleClick.bind(this);
   }
@@ -26,9 +29,22 @@ export class PropertiesPanel {
         (payload) => this.renderSelection(payload),
       ),
       this.eventBus.subscribe(
-        EVENT_TOPICS.DATASET_CLEARED,
-        () => this.renderEmpty(),
+        EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED,
+        (payload) => this.handleCapabilities(payload),
       ),
+      this.eventBus.subscribe(
+        EVENT_TOPICS.ANALYSIS_STARTED,
+        (payload) => this.handleAnalysisStarted(payload),
+      ),
+      this.eventBus.subscribe(
+        EVENT_TOPICS.ANALYSIS_COMPLETED,
+        (payload) => this.handleAnalysisCompleted(payload),
+      ),
+      this.eventBus.subscribe(
+        EVENT_TOPICS.ANALYSIS_FAILED,
+        (payload) => this.handleAnalysisFailed(payload),
+      ),
+      this.eventBus.subscribe(EVENT_TOPICS.DATASET_CLEARED, () => this.renderEmpty()),
     ];
   }
 
@@ -48,66 +64,97 @@ export class PropertiesPanel {
           properties: isPlainObject(payload.properties) ? payload.properties : {},
         };
 
+    const changed = this.selection?.entityId !== selection.entityId;
     this.selection = selection;
-    this.render(selection);
+    if (changed) {
+      this.analysisState = idleAnalysis();
+      if (this.capabilityTargetId !== selection.entityId) this.capabilities = [];
+    }
+    this.render();
   }
 
-  render(selection) {
-    const documentRef = this.rootElement.ownerDocument;
-    const fragment = documentRef.createDocumentFragment();
+  handleCapabilities({ targetId, capabilities }) {
+    this.capabilityTargetId = targetId;
+    this.capabilities = capabilities;
+    if (this.selection?.entityId === targetId) this.render();
+  }
 
-    const heading = documentRef.createElement('div');
-    heading.className = 'properties-selection';
-    const headingLabel = documentRef.createElement('span');
-    headingLabel.textContent = 'Selected entity';
-    const headingIdentity = documentRef.createElement('strong');
-    headingIdentity.textContent = selection.entityId;
-    const headingType = documentRef.createElement('em');
-    headingType.textContent = selection.entityType;
-    heading.append(headingLabel, headingIdentity, headingType);
-    fragment.append(heading);
+  handleAnalysisStarted(payload) {
+    if (!this.isCurrentTarget(payload.targetId)) return;
+    this.analysisState = {
+      status: 'running',
+      requestId: payload.requestId,
+      analysisType: payload.analysisType,
+      targetId: payload.targetId,
+    };
+    this.render();
+  }
 
-    const rows = flattenProperties(selection.properties);
-    if (!rows.length) {
-      const empty = documentRef.createElement('p');
-      empty.className = 'panel-empty';
-      empty.textContent = 'No properties supplied for this selection.';
-      fragment.append(empty);
-    } else {
-      const table = documentRef.createElement('dl');
-      table.className = 'properties-grid';
-      rows.forEach((row) => {
-        const term = documentRef.createElement('dt');
-        term.textContent = row.path;
-        term.title = row.path;
-        const description = documentRef.createElement('dd');
-        description.textContent = row.value;
-        description.title = row.value;
-        table.append(term, description);
-      });
-      fragment.append(table);
+  handleAnalysisCompleted(payload) {
+    if (!this.isCurrentRequest(payload)) return;
+    this.analysisState = {
+      status: 'completed',
+      requestId: payload.requestId,
+      analysisType: payload.analysisType,
+      targetId: payload.targetId,
+      result: payload.result,
+    };
+    this.render();
+  }
+
+  handleAnalysisFailed(payload) {
+    if (!this.isCurrentRequest(payload)) return;
+    this.analysisState = {
+      status: 'failed',
+      requestId: payload.requestId,
+      analysisType: payload.analysisType,
+      targetId: payload.targetId,
+      code: payload.code,
+      message: payload.message,
+      details: payload.details || {},
+    };
+    this.render();
+  }
+
+  isCurrentTarget(targetId) {
+    return this.selection?.entityId === targetId;
+  }
+
+  isCurrentRequest(payload) {
+    return this.isCurrentTarget(payload.targetId)
+      && this.analysisState.requestId === payload.requestId;
+  }
+
+  render() {
+    if (!this.selection) {
+      this.renderEmpty();
+      return;
     }
-
-    const action = documentRef.createElement('button');
-    action.type = 'button';
-    action.className = 'analysis-action';
-    action.dataset.action = 'request-analysis';
-    action.textContent = 'Run contextual analysis';
-    fragment.append(action);
-    this.contentElement.replaceChildren(fragment);
+    const capabilities = this.capabilityTargetId === this.selection.entityId
+      ? this.capabilities
+      : [];
+    this.contentElement.replaceChildren(renderPropertiesContent(
+      this.rootElement.ownerDocument,
+      this.selection,
+      capabilities,
+      this.analysisState,
+    ));
   }
 
   handleClick(event) {
-    const action = event.target?.closest?.('[data-action="request-analysis"]');
-    if (!action || !this.rootElement.contains(action) || !this.selection) return;
+    const action = event.target?.closest?.('[data-analysis-type]');
+    if (!action || !this.rootElement.contains(action) || !this.selection || action.disabled) return;
     this.eventBus.publish(EVENT_TOPICS.ANALYSIS_REQUESTED, {
-      analysisType: this.selection.type === 'support' ? 'support-load' : 'pipe-screening',
+      analysisType: action.dataset.analysisType,
       targetId: this.selection.entityId,
     });
   }
 
   renderEmpty() {
     this.selection = null;
+    this.capabilityTargetId = '';
+    this.capabilities = [];
+    this.analysisState = idleAnalysis();
     const empty = this.rootElement.ownerDocument.createElement('p');
     empty.className = 'panel-empty';
     empty.textContent = 'Select a pipe or support to inspect its properties.';
@@ -119,7 +166,18 @@ export class PropertiesPanel {
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
     this.selection = null;
+    this.capabilities = [];
+    this.analysisState = idleAnalysis();
   }
+}
+
+function idleAnalysis() {
+  return Object.freeze({
+    status: 'idle',
+    requestId: '',
+    analysisType: '',
+    targetId: '',
+  });
 }
 
 function isPlainObject(value) {
