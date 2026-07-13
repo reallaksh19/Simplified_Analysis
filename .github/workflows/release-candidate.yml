@@ -31,6 +31,8 @@ jobs:
         run: npm run check:phase6-workspace:static
       - name: Certify Phase 7 analysis ledger contracts
         run: npm run check:phase7-workspace:static
+      - name: Certify Phase 8 engineering geometry contracts
+        run: npm run check:phase8-workspace:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
