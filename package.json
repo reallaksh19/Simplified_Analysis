@@ -40,7 +40,7 @@
     "check:v11": "node scripts/v11-sketcher-drafting-commands-check.mjs",
     "check:v11:behavior": "node scripts/v11-sketcher-drafting-commands-behavior-test.mjs",
     "check:v12": "node scripts/v12-branch-aware-solver-check.mjs",
-    "check:v12:behavior": "node scripts/v12-solver-certification-behavior-test.mjs",
+    "check:v12:behavior": "node scripts/v12-branch-aware-solver-behavior-test.mjs",
     "check:v13": "node scripts/v13-report-export-checker-check.mjs",
     "check:v13:behavior": "node scripts/v13-report-export-checker-behavior-test.mjs",
     "check:v14": "node scripts/v14-component-master-db-check.mjs",
