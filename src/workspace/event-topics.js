@@ -17,6 +17,15 @@ export const EVENT_TOPICS = Object.freeze({
   ANALYSIS_STARTED: 'analysis:started',
   ANALYSIS_COMPLETED: 'analysis:completed',
   ANALYSIS_FAILED: 'analysis:failed',
+  ANALYSIS_LEDGER_CHANGED: 'analysis:ledgerChanged',
+  ANALYSIS_LEDGER_ACTIVE_REQUESTED: 'analysis:ledgerActiveRequested',
+  ANALYSIS_LEDGER_COMPARISON_REQUESTED: 'analysis:ledgerComparisonRequested',
+  ANALYSIS_LEDGER_COMPARISON_RESET_REQUESTED: 'analysis:ledgerComparisonResetRequested',
+  ANALYSIS_LEDGER_CLEAR_REQUESTED: 'analysis:ledgerClearRequested',
+  ANALYSIS_LEDGER_FAILED: 'analysis:ledgerFailed',
+  ANALYSIS_EXPORT_REQUESTED: 'analysis:exportRequested',
+  ANALYSIS_EXPORT_COMPLETED: 'analysis:exportCompleted',
+  ANALYSIS_EXPORT_FAILED: 'analysis:exportFailed',
 });
 
 export function assertEventPayload(topic, payload) {
@@ -43,33 +52,37 @@ const PAYLOAD_VALIDATORS = new Map([
   [EVENT_TOPICS.ANALYSIS_STARTED, validateAnalysisLifecycle],
   [EVENT_TOPICS.ANALYSIS_COMPLETED, validateAnalysisCompleted],
   [EVENT_TOPICS.ANALYSIS_FAILED, validateAnalysisFailed],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_CHANGED, validateLedgerChanged],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_ACTIVE_REQUESTED, validateLedgerEntryRequest],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_COMPARISON_REQUESTED, validateComparisonRequest],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_COMPARISON_RESET_REQUESTED, validateOptionalEmptyPayload],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_CLEAR_REQUESTED, validateOptionalEmptyPayload],
+  [EVENT_TOPICS.ANALYSIS_LEDGER_FAILED, validateFailure],
+  [EVENT_TOPICS.ANALYSIS_EXPORT_REQUESTED, validateExportRequested],
+  [EVENT_TOPICS.ANALYSIS_EXPORT_COMPLETED, validateExportCompleted],
+  [EVENT_TOPICS.ANALYSIS_EXPORT_FAILED, validateFailure],
 ]);
 
 const SELECTION_SOURCES = new Set(['tree', 'viewport', 'api']);
+const EXPORT_FORMATS = new Set(['json', 'csv', 'markdown']);
 
 function validateDatasetLoadRequested(payload) {
   assertRecord(payload, EVENT_TOPICS.DATASET_LOAD_REQUESTED);
   const rawPackageValid = isRecord(payload.rawPackage) || Array.isArray(payload.rawPackage);
-  if (!rawPackageValid) {
-    throw new TypeError('dataset:loadRequested payload.rawPackage must be an object or array.');
-  }
+  if (!rawPackageValid) throw new TypeError('dataset:loadRequested payload.rawPackage must be an object or array.');
   if (payload.sourceName !== undefined && typeof payload.sourceName !== 'string') {
     throw new TypeError('dataset:loadRequested payload.sourceName must be a string.');
   }
 }
 
 function validateOptionalEmptyPayload(payload) {
-  if (payload !== undefined && !isRecord(payload)) {
-    throw new TypeError('Event payload must be omitted or an object.');
-  }
+  if (payload !== undefined && !isRecord(payload)) throw new TypeError('Event payload must be omitted or an object.');
 }
 
 function validateDatasetLoaded(payload) {
   assertRecord(payload, EVENT_TOPICS.DATASET_LOADED);
   assertNonEmptyString(payload.datasetId, 'datasetId', EVENT_TOPICS.DATASET_LOADED);
-  if (!Number.isInteger(payload.nodeCount) || payload.nodeCount < 0) {
-    throw new TypeError('dataset:loaded payload.nodeCount must be a non-negative integer.');
-  }
+  assertNonNegativeInteger(payload.nodeCount, 'nodeCount', EVENT_TOPICS.DATASET_LOADED);
 }
 
 function validateDatasetLoadFailed(payload) {
@@ -87,9 +100,7 @@ function validateDatasetCleared(payload) {
 
 function validateSnapshotChanged(payload) {
   assertRecord(payload, EVENT_TOPICS.WORKSPACE_SNAPSHOT_CHANGED);
-  if (!isRecord(payload.snapshot)) {
-    throw new TypeError('workspace:snapshotChanged payload.snapshot must be an object.');
-  }
+  if (!isRecord(payload.snapshot)) throw new TypeError('workspace:snapshotChanged payload.snapshot must be an object.');
 }
 
 function validateSelectionRequested(payload) {
@@ -112,19 +123,13 @@ function validateEntitySelected(payload) {
 
 function validateCapabilitiesChanged(payload) {
   assertRecord(payload, EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
-  if (typeof payload.targetId !== 'string') {
-    throw new TypeError('analysis:capabilitiesChanged payload.targetId must be a string.');
-  }
-  if (!Array.isArray(payload.capabilities)) {
-    throw new TypeError('analysis:capabilitiesChanged payload.capabilities must be an array.');
-  }
+  if (typeof payload.targetId !== 'string') throw new TypeError('analysis:capabilitiesChanged targetId must be a string.');
+  if (!Array.isArray(payload.capabilities)) throw new TypeError('analysis:capabilitiesChanged capabilities must be an array.');
   payload.capabilities.forEach((capability) => {
     assertRecord(capability, EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
     assertNonEmptyString(capability.analysisType, 'analysisType', EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
     assertNonEmptyString(capability.label, 'label', EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED);
-    if (typeof capability.enabled !== 'boolean') {
-      throw new TypeError('analysis:capabilitiesChanged capability.enabled must be boolean.');
-    }
+    if (typeof capability.enabled !== 'boolean') throw new TypeError('Analysis capability enabled must be boolean.');
   });
 }
 
@@ -138,7 +143,7 @@ function validateSessionOverrideRequested(payload) {
   validateSessionIdentity(payload);
   assertNonEmptyString(payload.fieldKey, 'fieldKey', EVENT_TOPICS.ANALYSIS_SESSION_OVERRIDE_REQUESTED);
   if (!['string', 'number'].includes(typeof payload.value) && payload.value !== null) {
-    throw new TypeError('analysis:sessionOverrideRequested payload.value must be string, number, or null.');
+    throw new TypeError('analysis:sessionOverrideRequested value must be string, number, or null.');
   }
 }
 
@@ -150,9 +155,7 @@ function validateSessionIdentity(payload) {
 function validateSessionChanged(payload) {
   assertRecord(payload, EVENT_TOPICS.ANALYSIS_SESSION_CHANGED);
   assertNonNegativeInteger(payload.version, 'version', EVENT_TOPICS.ANALYSIS_SESSION_CHANGED);
-  if (payload.session !== null && !isRecord(payload.session)) {
-    throw new TypeError('analysis:sessionChanged payload.session must be an object or null.');
-  }
+  if (payload.session !== null && !isRecord(payload.session)) throw new TypeError('analysis:sessionChanged session is invalid.');
   if (payload.session) {
     assertNonEmptyString(payload.session.sessionId, 'session.sessionId', EVENT_TOPICS.ANALYSIS_SESSION_CHANGED);
     assertNonEmptyString(payload.session.analysisType, 'session.analysisType', EVENT_TOPICS.ANALYSIS_SESSION_CHANGED);
@@ -177,30 +180,60 @@ function validateAnalysisLifecycle(payload) {
 
 function validateAnalysisCompleted(payload) {
   validateAnalysisLifecycle(payload);
-  if (!isRecord(payload.result)) {
-    throw new TypeError('analysis:completed payload.result must be an object.');
-  }
+  if (!isRecord(payload.result)) throw new TypeError('analysis:completed result must be an object.');
 }
 
 function validateAnalysisFailed(payload) {
   validateAnalysisLifecycle(payload);
   assertNonEmptyString(payload.code, 'code', EVENT_TOPICS.ANALYSIS_FAILED);
   assertNonEmptyString(payload.message, 'message', EVENT_TOPICS.ANALYSIS_FAILED);
-  if (payload.details !== undefined && !isRecord(payload.details)) {
-    throw new TypeError('analysis:failed payload.details must be an object.');
+  if (payload.details !== undefined && !isRecord(payload.details)) throw new TypeError('analysis:failed details must be an object.');
+}
+
+function validateLedgerChanged(payload) {
+  assertRecord(payload, EVENT_TOPICS.ANALYSIS_LEDGER_CHANGED);
+  if (!isRecord(payload.ledger) || payload.ledger.schema !== 'analysis-ledger/v1') {
+    throw new TypeError('analysis:ledgerChanged requires analysis-ledger/v1.');
+  }
+  if (!Array.isArray(payload.ledger.entries)) throw new TypeError('Analysis ledger entries must be an array.');
+}
+
+function validateLedgerEntryRequest(payload) {
+  assertRecord(payload, 'analysis ledger request');
+  assertNonEmptyString(payload.entryId, 'entryId', 'analysis ledger request');
+}
+
+function validateComparisonRequest(payload) {
+  validateLedgerEntryRequest(payload);
+  if (payload.side !== 'left' && payload.side !== 'right') {
+    throw new TypeError("analysis:ledgerComparisonRequested side must be 'left' or 'right'.");
+  }
+}
+
+function validateFailure(payload) {
+  assertRecord(payload, 'analysis failure event');
+  assertNonEmptyString(payload.code, 'code', 'analysis failure event');
+  assertNonEmptyString(payload.message, 'message', 'analysis failure event');
+}
+
+function validateExportRequested(payload) {
+  assertRecord(payload, EVENT_TOPICS.ANALYSIS_EXPORT_REQUESTED);
+  if (!EXPORT_FORMATS.has(payload.format)) throw new TypeError('analysis:exportRequested format is invalid.');
+}
+
+function validateExportCompleted(payload) {
+  assertRecord(payload, EVENT_TOPICS.ANALYSIS_EXPORT_COMPLETED);
+  if (!isRecord(payload.artifact) || payload.artifact.schema !== 'analysis-export-artifact/v1') {
+    throw new TypeError('analysis:exportCompleted artifact is invalid.');
   }
 }
 
 function validateOptionalSessionId(payload, topic) {
-  if (payload.sessionId !== undefined && payload.sessionId !== '') {
-    assertNonEmptyString(payload.sessionId, 'sessionId', topic);
-  }
+  if (payload.sessionId !== undefined && payload.sessionId !== '') assertNonEmptyString(payload.sessionId, 'sessionId', topic);
 }
 
 function validateSelectionSource(value, topic) {
-  if (!SELECTION_SOURCES.has(value)) {
-    throw new TypeError(`${topic} payload.source must be 'tree', 'viewport', or 'api'.`);
-  }
+  if (!SELECTION_SOURCES.has(value)) throw new TypeError(`${topic} source must be tree, viewport, or api.`);
 }
 
 function assertRecord(value, topic) {
@@ -208,15 +241,11 @@ function assertRecord(value, topic) {
 }
 
 function assertNonEmptyString(value, field, topic) {
-  if (typeof value !== 'string' || value.trim() === '') {
-    throw new TypeError(`${topic} payload.${field} must be a non-empty string.`);
-  }
+  if (typeof value !== 'string' || value.trim() === '') throw new TypeError(`${topic} payload.${field} must be non-empty.`);
 }
 
 function assertNonNegativeInteger(value, field, topic) {
-  if (!Number.isInteger(value) || value < 0) {
-    throw new TypeError(`${topic} payload.${field} must be a non-negative integer.`);
-  }
+  if (!Number.isInteger(value) || value < 0) throw new TypeError(`${topic} payload.${field} must be a non-negative integer.`);
 }
 
 function isRecord(value) {
