@@ -31,6 +31,9 @@ jobs:
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
 
+      - name: Certify Phase 2 dataset contracts
+        run: npm run check:phase2-workspace:static
+
       - name: Run full repository checks
         run: npm run check:full
 
@@ -44,7 +47,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase1-workspace-playwright-report
+          name: analysis-workspace-playwright-report
           path: |
             playwright-report/
             test-results/
