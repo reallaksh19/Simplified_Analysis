@@ -1,9 +1,12 @@
+import { assertEventPayload } from './event-topics.js';
+
 /**
  * Synchronous application event bus.
  *
  * Storage contract: Map<string, Set<Function>>.
  * Publishing uses a listener snapshot so subscriptions may safely detach while
- * an event is being dispatched.
+ * an event is being dispatched. Listener failures are reported only after every
+ * callback has received the event.
  */
 class EventBusContract {
   #topics = new Map();
@@ -32,10 +35,26 @@ class EventBusContract {
 
   publish(topic, payload) {
     assertTopic(topic);
+    assertEventPayload(topic, payload);
+
     const listeners = this.#topics.get(topic);
     if (!listeners) return;
 
-    [...listeners].forEach((callback) => callback(payload));
+    const failures = [];
+    [...listeners].forEach((callback) => {
+      try {
+        callback(payload);
+      } catch (error) {
+        failures.push(error);
+      }
+    });
+
+    if (failures.length === 1) {
+      throw failures[0];
+    }
+    if (failures.length > 1) {
+      throw new AggregateError(failures, `EventBus listeners failed for topic: ${topic}`);
+    }
   }
 
   listenerCount(topic) {
