@@ -1,5 +1,5 @@
 import { createDiagnostic, DIAGNOSTIC_SEVERITY, normalizeDiagnosticRows } from '../diagnostics.js';
-import { collectEvidence, normalizeGeometryEvidence } from '../evidence.js';
+import { collectEvidence, normalizeGeometryEvidence, normalizePoint } from '../evidence.js';
 import { deepFreeze, isPlainRecord, stringValue } from '../immutable.js';
 import { COMPATIBILITY_EVIDENCE_SPECS, ENGINEERING_PROPERTY_SPECS } from '../property-specs.js';
 import { createSharedPipingModel } from '../shared-piping-model.js';
@@ -57,12 +57,22 @@ function workspaceSupport(entity, evidence, diagnostics) {
     name: entity.name,
     type: normalizedType(entity.entityType),
     identity: entityIdentity(entity),
-    position: geometry.center || geometry.start || null,
+    position: supportPosition(entity, geometry),
     engineeringProperties: evidence.engineering.values,
     compatibilityEvidence: evidence.compatibility.values,
     sourceReferences: entitySourceReferences(entity),
     diagnostics,
   });
+}
+
+function supportPosition(entity, geometry) {
+  const properties = entity.properties || {};
+  return geometry.center
+    || geometry.start
+    || normalizePoint(properties.sourceAttributes?.POS)
+    || normalizePoint(properties.attributes?.POS)
+    || normalizePoint(properties.nativeParams?.center)
+    || null;
 }
 
 function collectEntityEvidence(entity) {
