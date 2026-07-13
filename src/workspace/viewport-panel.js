@@ -4,7 +4,6 @@ import { EVENT_TOPICS } from './event-topics.js';
 export class ViewportPanel {
   constructor(rootElement, eventBus = EventBus) {
     if (!rootElement) throw new TypeError('ViewportPanel requires a root element.');
-
     this.rootElement = rootElement;
     this.eventBus = eventBus;
     this.unsubscribers = [];
@@ -12,7 +11,6 @@ export class ViewportPanel {
 
   init() {
     if (this.unsubscribers.length > 0) return;
-
     this.statusElement = this.rootElement.querySelector('[data-role="viewport-status"]');
     this.selectionElement = this.rootElement.querySelector('[data-role="viewport-selection"]');
     if (!this.statusElement || !this.selectionElement) {
@@ -21,7 +19,14 @@ export class ViewportPanel {
 
     this.unsubscribers = [
       this.eventBus.subscribe(EVENT_TOPICS.DATASET_LOADED, (payload) => {
-        this.statusElement.textContent = `${payload.datasetId} · ${payload.nodeCount} nodes`;
+        this.statusElement.textContent = `${payload.datasetId} · ${payload.nodeCount} entities`;
+      }),
+      this.eventBus.subscribe(EVENT_TOPICS.DATASET_LOAD_FAILED, (payload) => {
+        this.statusElement.textContent = `Import failed: ${payload.message}`;
+      }),
+      this.eventBus.subscribe(EVENT_TOPICS.DATASET_CLEARED, () => {
+        this.statusElement.textContent = 'No dataset loaded';
+        this.selectionElement.textContent = 'Selection: none';
       }),
       this.eventBus.subscribe(EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED, (payload) => {
         this.selectionElement.textContent = `Selection: ${payload.entityId ?? 'Unknown'}`;
