@@ -95,6 +95,7 @@ const requiredE2EFiles = [
     'e2e/phase1-analysis-workspace.spec.js',
     'e2e/phase2-workspace-dataset.spec.js',
     'e2e/phase3-viewport-renderer.spec.js',
+    'e2e/phase4-viewport-picking.spec.js',
 ];
 
 let e2eFilesOk = true;
