@@ -94,6 +94,7 @@ const requiredE2EFiles = [
     'e2e/u7-workflow-smoke.spec.js',
     'e2e/phase1-analysis-workspace.spec.js',
     'e2e/phase2-workspace-dataset.spec.js',
+    'e2e/phase3-viewport-renderer.spec.js',
 ];
 
 let e2eFilesOk = true;
