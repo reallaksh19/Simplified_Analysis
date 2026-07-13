@@ -68,7 +68,7 @@ test('canvas segment hit selects through WorkspaceState without replacing the ca
   await page.evaluate(() => { globalThis.__phase4Canvas = document.querySelector('canvas'); });
 
   const box = await canvas.boundingBox();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height - 28);
+  await page.mouse.click(box.x + box.width - 28, box.y + box.height - 28);
 
   await expect(page.locator('[data-entity-id="PIPE-PICK-SEGMENT"]')).toHaveAttribute(
     'aria-current',
