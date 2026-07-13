@@ -33,10 +33,7 @@ export class TreePanel {
         EVENT_TOPICS.DATASET_LOAD_FAILED,
         ({ message }) => this.renderError(message),
       ),
-      this.eventBus.subscribe(
-        EVENT_TOPICS.DATASET_CLEARED,
-        () => this.renderEmpty(),
-      ),
+      this.eventBus.subscribe(EVENT_TOPICS.DATASET_CLEARED, () => this.renderEmpty()),
     ];
 
     this.rootElement.addEventListener('click', this.handleClick);
@@ -65,10 +62,9 @@ export class TreePanel {
 
     const entity = this.entities.get(trigger.dataset.entityId);
     if (!entity) return;
-    this.eventBus.publish(EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED, {
+    this.eventBus.publish(EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED, {
       entityId: entity.entityId,
-      type: entity.selectionType,
-      properties: entity.properties,
+      source: 'tree',
     });
   }
 
@@ -101,8 +97,11 @@ export class TreePanel {
       return;
     }
 
-    const { dataset } = snapshot;
-    if (this.dataset === dataset) return;
+    if (this.dataset !== snapshot.dataset) this.renderDataset(snapshot.dataset);
+    this.renderSelection(snapshot.selectedEntityId);
+  }
+
+  renderDataset(dataset) {
     this.dataset = dataset;
     this.entities = new Map(dataset.entities.map((entity) => [entity.entityId, entity]));
     this.statusElement.textContent = `${dataset.datasetId} · ${dataset.summary.nodeCount} entities`;
@@ -114,6 +113,28 @@ export class TreePanel {
     const fragment = this.rootElement.ownerDocument.createDocumentFragment();
     dataset.hierarchy.forEach((node) => fragment.append(this.renderBranch(node, 0)));
     this.listElement.replaceChildren(fragment);
+  }
+
+  renderSelection(entityId) {
+    const selectedId = String(entityId || '');
+    this.listElement.querySelectorAll('[data-entity-id]').forEach((button) => {
+      const selected = button.dataset.entityId === selectedId;
+      button.classList.toggle('tree-entity--selected', selected);
+      if (selected) {
+        button.setAttribute('aria-current', 'true');
+        this.revealSelection(button);
+      } else {
+        button.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  revealSelection(button) {
+    let ancestor = button.parentElement;
+    while (ancestor && this.rootElement.contains(ancestor)) {
+      if (ancestor.tagName === 'DETAILS') ancestor.open = true;
+      ancestor = ancestor.parentElement;
+    }
   }
 
   renderBranch(node, level) {
