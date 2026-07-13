@@ -1,4 +1,5 @@
 import { renderAnalysisLedger } from './analysis-ledger-view.js';
+import { renderAnalysisCapabilities } from './analysis-readiness-view.js';
 import { renderAnalysisSession } from './analysis-session-view.js';
 import { flattenProperties } from './property-flattener.js';
 
@@ -14,7 +15,7 @@ export function renderPropertiesContent(
   const fragment = documentRef.createDocumentFragment();
   fragment.append(renderSelectionHeader(documentRef, selection));
   fragment.append(renderRows(documentRef, selection.properties, 'No properties supplied for this selection.'));
-  fragment.append(renderCapabilities(documentRef, capabilities, analysisSession));
+  fragment.append(renderAnalysisCapabilities(documentRef, capabilities, analysisSession));
   fragment.append(renderAnalysisSession(documentRef, analysisSession));
   fragment.append(renderAnalysis(documentRef, analysisState));
   fragment.append(renderAnalysisLedger(documentRef, analysisLedger, ledgerStatus));
@@ -32,50 +33,6 @@ function renderSelectionHeader(documentRef, selection) {
   type.textContent = selection.entityType;
   heading.append(label, identity, type);
   return heading;
-}
-
-function renderCapabilities(documentRef, capabilities, activeSession) {
-  const section = documentRef.createElement('section');
-  section.className = 'analysis-capabilities';
-  section.dataset.role = 'analysis-capabilities';
-  const heading = documentRef.createElement('h3');
-  heading.textContent = 'Contextual analysis';
-  section.append(heading);
-
-  if (!capabilities.length) {
-    const empty = documentRef.createElement('p');
-    empty.className = 'panel-empty';
-    empty.textContent = 'No registered analysis capability is available for this selection.';
-    section.append(empty);
-    return section;
-  }
-
-  capabilities.forEach((capability) => {
-    const card = documentRef.createElement('article');
-    card.className = 'analysis-capability';
-    const title = documentRef.createElement('strong');
-    title.textContent = capability.label;
-    const description = documentRef.createElement('p');
-    description.textContent = capability.description || capability.engineeringLevel;
-    const action = documentRef.createElement('button');
-    action.type = 'button';
-    action.className = 'analysis-action';
-    action.dataset.analysisType = capability.analysisType;
-    action.dataset.analysisAction = 'open-session';
-    action.textContent = activeSession?.analysisType === capability.analysisType
-      ? `Reviewing inputs · ${capability.label}`
-      : `Review inputs · ${capability.label}`;
-    card.append(title, description, action);
-
-    if (!capability.enabled) {
-      const reason = documentRef.createElement('small');
-      reason.className = 'analysis-capability__reason';
-      reason.textContent = capability.reason || 'Required engineering inputs are unavailable.';
-      card.append(reason);
-    }
-    section.append(card);
-  });
-  return section;
 }
 
 function renderAnalysis(documentRef, state) {
