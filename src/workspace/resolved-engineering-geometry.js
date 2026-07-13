@@ -86,10 +86,10 @@ function resolvePipe(geometry, dimensions) {
       end: geometry.end,
       center: midpoint3(geometry.start, geometry.end),
       diameterMm: diameter,
-      visualDiameterMm: symbolicDiameter(length, diameter),
+      visualDiameterMm: symbolicDiameter(length, diameter || dimensions.nominalBoreMm),
     });
   }
-  return markerFallback(geometry.center, dimensions.outerDiameterMm, 'PIPE_TOPOLOGY_INCOMPLETE');
+  return markerFallback(geometry.center, dimensions.outerDiameterMm || dimensions.nominalBoreMm, 'PIPE_TOPOLOGY_INCOMPLETE');
 }
 
 function resolveElbow(geometry, dimensions) {
@@ -104,7 +104,7 @@ function resolveElbow(geometry, dimensions) {
         end: geometry.end,
         center: geometry.center,
         diameterMm: diameter,
-        visualDiameterMm: symbolicDiameter(pathLength(path), diameter),
+        visualDiameterMm: symbolicDiameter(pathLength(path), diameter || dimensions.nominalBoreMm),
       });
     }
   }
@@ -116,10 +116,10 @@ function resolveElbow(geometry, dimensions) {
       end: geometry.end,
       center: midpoint3(geometry.start, geometry.end),
       diameterMm: diameter,
-      visualDiameterMm: symbolicDiameter(length, diameter),
+      visualDiameterMm: symbolicDiameter(length, diameter || dimensions.nominalBoreMm),
     });
   }
-  return markerFallback(geometry.center, diameter, 'ELBOW_TOPOLOGY_INCOMPLETE');
+  return markerFallback(geometry.center, diameter || dimensions.nominalBoreMm, 'ELBOW_TOPOLOGY_INCOMPLETE');
 }
 
 function resolveTee(geometry, dimensions) {
@@ -137,7 +137,7 @@ function resolveTee(geometry, dimensions) {
       diameterMm: index >= 2 ? dimensions.branchDiameterMm : dimensions.outerDiameterMm,
       visualDiameterMm: symbolicDiameter(
         distance3(center, end),
-        index >= 2 ? dimensions.branchDiameterMm : dimensions.outerDiameterMm,
+        index >= 2 ? dimensions.branchDiameterMm : dimensions.outerDiameterMm || dimensions.nominalBoreMm,
       ),
     }))
     : [];
@@ -159,15 +159,15 @@ function resolveTee(geometry, dimensions) {
       end: geometry.end,
       center: midpoint3(geometry.start, geometry.end),
       diameterMm: dimensions.outerDiameterMm,
-      visualDiameterMm: symbolicDiameter(distance3(geometry.start, geometry.end), dimensions.outerDiameterMm),
+      visualDiameterMm: symbolicDiameter(distance3(geometry.start, geometry.end), dimensions.outerDiameterMm || dimensions.nominalBoreMm),
     });
   }
-  return markerFallback(center, dimensions.outerDiameterMm, 'TEE_TOPOLOGY_INCOMPLETE');
+  return markerFallback(center, dimensions.outerDiameterMm || dimensions.nominalBoreMm, 'TEE_TOPOLOGY_INCOMPLETE');
 }
 
 function resolveReducer(geometry, dimensions) {
   if (!hasSpan(geometry.start, geometry.end)) {
-    return markerFallback(geometry.center, dimensions.outerDiameterMm, 'REDUCER_TOPOLOGY_INCOMPLETE');
+    return markerFallback(geometry.center, dimensions.outerDiameterMm || dimensions.nominalBoreMm, 'REDUCER_TOPOLOGY_INCOMPLETE');
   }
   const length = distance3(geometry.start, geometry.end);
   const startDiameter = dimensions.inletDiameterMm;
@@ -180,8 +180,8 @@ function resolveReducer(geometry, dimensions) {
     center: midpoint3(geometry.start, geometry.end),
     startDiameterMm: startDiameter,
     endDiameterMm: endDiameter,
-    visualStartDiameterMm: symbolicDiameter(length, startDiameter || dimensions.outerDiameterMm),
-    visualEndDiameterMm: symbolicDiameter(length, endDiameter || dimensions.outerDiameterMm),
+    visualStartDiameterMm: symbolicDiameter(length, startDiameter || dimensions.outerDiameterMm || dimensions.nominalBoreMm),
+    visualEndDiameterMm: symbolicDiameter(length, endDiameter || dimensions.outerDiameterMm || dimensions.nominalBoreMm),
   });
 }
 
@@ -216,10 +216,10 @@ function resolveValve(geometry, dimensions) {
       end: geometry.end,
       center: midpoint3(geometry.start, geometry.end),
       bodyDiameterMm: body,
-      visualBodyDiameterMm: symbolicDiameter(length, body),
+      visualBodyDiameterMm: symbolicDiameter(length, body || dimensions.outerDiameterMm || dimensions.nominalBoreMm),
     });
   }
-  return markerFallback(geometry.center, dimensions.valveBodyDiameterMm, 'VALVE_TOPOLOGY_INCOMPLETE');
+  return markerFallback(geometry.center, dimensions.valveBodyDiameterMm || dimensions.outerDiameterMm || dimensions.nominalBoreMm, 'VALVE_TOPOLOGY_INCOMPLETE');
 }
 
 function resolveSupport(geometry, dimensions) {
@@ -243,10 +243,10 @@ function resolveGeneric(geometry, dimensions) {
       end: geometry.end,
       center: midpoint3(geometry.start, geometry.end),
       diameterMm: dimensions.outerDiameterMm,
-      visualDiameterMm: symbolicDiameter(length, dimensions.outerDiameterMm),
+      visualDiameterMm: symbolicDiameter(length, dimensions.outerDiameterMm || dimensions.nominalBoreMm),
     });
   }
-  return markerFallback(geometry.center, dimensions.outerDiameterMm, 'GENERIC_POINT_SYMBOL');
+  return markerFallback(geometry.center, dimensions.outerDiameterMm || dimensions.nominalBoreMm, 'GENERIC_POINT_SYMBOL');
 }
 
 function markerFallback(center, diameter, reason) {
