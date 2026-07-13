@@ -9,13 +9,13 @@ const requiredE2EFiles = [
   'e2e/smoke.spec.js',
   'e2e/u7-workflow-smoke.spec.js',
   'e2e/phase1-analysis-workspace.spec.js',
+  'e2e/phase2-workspace-dataset.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
   const fullPath = path.join(process.cwd(), file);
-  if (fs.existsSync(fullPath)) {
-    console.log(`✅ ${file} exists`);
-  } else {
+  if (fs.existsSync(fullPath)) console.log(`✅ ${file} exists`);
+  else {
     console.error(`❌ ${file} NOT found`);
     success = false;
   }
@@ -58,6 +58,7 @@ if (fs.existsSync(u7SpecPath)) {
     'data-panel="tree"',
     'data-panel="viewport"',
     'data-panel="properties"',
+    'data-role="dataset-file"',
     "EventBus.publish('viewport:entitySelected'",
     'data-entity-id="SUP-201"',
     'Run contextual analysis',
@@ -76,8 +77,5 @@ if (fs.existsSync(u7SpecPath)) {
 }
 
 console.log();
-if (!success) {
-  process.exit(1);
-}
-
+if (!success) process.exit(1);
 console.log('✅ All U7 browser QA static checks passed.\n');
