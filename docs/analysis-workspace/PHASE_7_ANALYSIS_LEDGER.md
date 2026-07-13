@@ -35,10 +35,13 @@ Closing or replacing the active session does not own or delete historical eviden
 Owns immutable terminal evidence for the active dataset:
 
 - deterministic ledger entry sequence
-- archived completed and failed session snapshots
+- the latest 100 archived completed and failed session snapshots
+- dataset-wide duplicate suppression until the dataset resets
 - active result designation
 - optional left/right comparison selection
 - dataset-scoped lifecycle
+
+The visible entry list is bounded to 100 records. Entry IDs remain monotonic for the dataset, and archive keys remain remembered for the complete dataset lifetime so a delayed duplicate event cannot reintroduce a rolled-off session request.
 
 The ledger never invokes a solver and never mutates a session.
 
@@ -83,7 +86,7 @@ Each entry contains:
 - dataset identity
 - the complete deeply immutable terminal `AnalysisSession.v1`
 
-Duplicate completion or failure notifications cannot create duplicate entries.
+Duplicate completion or failure notifications cannot create duplicate entries, including after an older visible record has rolled off the 100-entry window.
 
 ### `analysis-ledger-comparison/v1`
 
@@ -102,9 +105,10 @@ The comparison flattens bounded engineering evidence into stable paths and class
 
 Compared domains include:
 
+- archive, session, request, workspace-version, and session-version trace
 - target and capability identity
 - inspected input evidence
-- reviewed overrides
+- reviewed overrides and field-validation evidence
 - readiness
 - result status, summary, values, warnings, diagnostics, and metadata
 - failure evidence
@@ -116,7 +120,7 @@ Report mode is either:
 - `single` — the selected active ledger entry;
 - `comparison` — a complete compatible left/right pair.
 
-The report preserves dataset, entry, session, request, target, capability, workspace-version, session-version, input, override, result, and failure traceability.
+The report preserves dataset, archive, entry, session, request, target, capability, workspace-version, session-version, input, override, field-validation, result, and failure traceability.
 
 ### `analysis-export-artifact/v1`
 
@@ -153,7 +157,9 @@ History is cleared when:
 - the user explicitly clears history;
 - the workspace is destroyed.
 
-Explicit history clearing retains the current dataset identity. Dataset clearing removes it.
+Explicit history clearing retains the current dataset identity and resets the visible entry sequence for that new history window. Dataset clearing removes the dataset identity and all duplicate-suppression evidence.
+
+When rollover removes an entry selected for comparison, the comparison selection is cleared. The newest archived entry becomes active.
 
 ## Event contracts
 
@@ -177,6 +183,7 @@ All write operations are command events. `analysis:ledgerChanged` is the canonic
 - No imported-dataset or normalized-entity mutation.
 - No active-session mutation during archival.
 - No duplicate archival for the same session request.
+- Visible history is limited to 100 terminal entries.
 - No timestamp or random identifiers.
 - No automatic exports.
 - No report-tab restoration.
@@ -188,17 +195,19 @@ All write operations are command events. `analysis:ledgerChanged` is the canonic
 Phase 7 certification covers:
 
 1. deterministic terminal archival;
-2. duplicate-event idempotency;
-3. deep immutability;
-4. active-result selection;
-5. compatible comparison and stable row classification;
-6. single and comparison report validation;
-7. byte-stable JSON, CSV, and Markdown output;
-8. explicit browser download behavior;
-9. session-close and selection preservation;
-10. dataset and teardown reset boundaries;
-11. listener disposal;
-12. all prior workspace, engineering, benchmark, release, and production-build gates.
+2. duplicate-event idempotency, including after rollover;
+3. 100-entry bounded retention and comparison invalidation;
+4. deep immutability;
+5. active-result selection;
+6. compatible comparison and stable row classification;
+7. complete archive/session/request traceability;
+8. single and comparison report validation;
+9. byte-stable JSON, CSV, and Markdown output;
+10. explicit browser download behavior;
+11. session-close and selection preservation;
+12. dataset and teardown reset boundaries;
+13. listener disposal;
+14. all prior workspace, engineering, benchmark, release, and production-build gates.
 
 ## Non-goals
 
