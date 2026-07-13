@@ -122,7 +122,7 @@ test('selection, close, clear, and destroy remove active sessions and listeners'
   expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisSession().status)).toBe('empty');
 
   await page.locator('[data-analysis-type="pipe-screening"]').click();
-  await page.getByRole('button', { name: 'Clear dataset' }).click();
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
   expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisSession().status)).toBe('empty');
 
   await page.evaluate(() => AnalysisWorkspace.destroy());
