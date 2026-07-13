@@ -8,9 +8,38 @@ import {
   createSolverResultContract,
   ENGINEERING_LEVEL,
 } from '../core/solvers/certification/solverResultContract.js';
+import { createInputField, hasOverride } from './analysis-input-evidence.js';
 import { resolvePipeEntity, toSupportLoadSource } from './analysis-context.js';
 
 export const SUPPORT_LOAD_CAPABILITY_ID = 'support-load';
+
+const OVERRIDE_SOURCE_KEYS = Object.freeze({
+  pipeOdMm: 'PIPE_OD',
+  wallThicknessMm: 'WALL_THICKNESS_MM',
+  unitPipeWtKgPerM: 'UNIT_PIPE_WEIGHT_KG_PER_M',
+  fluidWtOpeKgPerM: 'FLUID_WT_OPE_KG_M',
+  fluidWtHydKgPerM: 'FLUID_WT_HYD_KG_M',
+  insulationThicknessMm: 'INSULATION_THICKNESS_MM',
+  insulationDensityKgM3: 'INSULATION_DENSITY_KG_M3',
+  tempExpC1: 'TEMP_EXP_C1',
+  autoSpanMm: 'AUTO_SPAN_MM',
+  depSpanMm: 'DEP_SPAN_MM',
+  lumpWeightKg: 'COMPONENT_WEIGHT_KG',
+});
+
+const FIELD_SPECS = Object.freeze([
+  ['pipeOdMm', 'Pipe outside diameter', 'mm', 'identity.pipeOdMm', 'positive'],
+  ['wallThicknessMm', 'Wall thickness', 'mm', 'pipePhysical.wallThicknessMm', 'positive'],
+  ['unitPipeWtKgPerM', 'Unit pipe weight', 'kg/m', 'pipePhysical.unitPipeWtKgPerM', 'positive'],
+  ['fluidWtOpeKgPerM', 'Operating fluid weight', 'kg/m', 'process.fluidWtOpeKgPerM', 'non-negative'],
+  ['fluidWtHydKgPerM', 'Hydrotest fluid weight', 'kg/m', 'process.fluidWtHydKgPerM', 'non-negative'],
+  ['insulationThicknessMm', 'Insulation thickness', 'mm', 'pipePhysical.insulationThicknessMm', 'non-negative'],
+  ['insulationDensityKgM3', 'Insulation density', 'kg/m³', 'pipePhysical.insulationDensityKgM3', 'positive'],
+  ['tempExpC1', 'Operating temperature', '°C', 'process.tempExpC1', ''],
+  ['autoSpanMm', 'Automatic support span', 'mm', 'spans.autoSpanMm', 'positive'],
+  ['depSpanMm', 'Dependent support span', 'mm', 'spans.depSpanMm', 'positive'],
+  ['lumpWeightKg', 'Concentrated component weight', 'kg', 'pipePhysical.lumpWeightKg', 'non-negative'],
+]);
 
 export const supportLoadCapability = Object.freeze({
   id: SUPPORT_LOAD_CAPABILITY_ID,
@@ -19,25 +48,20 @@ export const supportLoadCapability = Object.freeze({
   engineeringLevel: ENGINEERING_LEVEL.BENCHMARKED_SCREENING,
 
   evaluate(context) {
+    return supportReadiness(prepareSupportLoad(context));
+  },
+
+  inspect(context) {
     const prepared = prepareSupportLoad(context);
-    if (!prepared.pipeEntity) {
-      return {
-        enabled: false,
-        reason: 'No unambiguous pipe is linked to this selection.',
-        missing: ['linkedPipe'],
-      };
-    }
-    const readiness = prepared.input.readiness;
-    const enabled = readiness.readyForOpeVertical
-      || readiness.readyForHydVertical
-      || readiness.readyForGuide
-      || readiness.readyForLineStop;
+    const readiness = supportReadiness(prepared);
+    if (!prepared.input) return { fields: [], readiness };
     return {
-      enabled,
-      reason: enabled
-        ? ''
-        : `Support-load inputs are incomplete: ${readiness.missing.join(', ')}.`,
-      missing: readiness.missing,
+      fields: FIELD_SPECS.map(([key, label, unit, path, validation]) => inputField(
+        context,
+        prepared.input,
+        { key, label, unit, path, validation },
+      )),
+      readiness,
     };
   },
 
@@ -65,6 +89,7 @@ export const supportLoadCapability = Object.freeze({
         requestedTargetId: context.targetId,
         sourcePipeId: prepared.pipeEntity.entityId,
         formulaProfileId: DEFAULT_SUPPORT_LOAD_PROFILE.profileId,
+        analysisSessionId: context.analysisSession?.sessionId || '',
       },
       summary: {
         sourcePipeId: prepared.pipeEntity.entityId,
@@ -79,9 +104,61 @@ export const supportLoadCapability = Object.freeze({
 function prepareSupportLoad(context) {
   const pipeEntity = resolvePipeEntity(context);
   if (!pipeEntity) return { pipeEntity: null, input: null };
-  const source = toSupportLoadSource(pipeEntity);
+  const source = applyOverrides(toSupportLoadSource(pipeEntity), context.analysisSession?.overrides || {});
   return {
     pipeEntity,
     input: buildSupportLoadInput(source, DEFAULT_SUPPORT_LOAD_PROFILE),
   };
+}
+
+function supportReadiness(prepared) {
+  if (!prepared.pipeEntity) {
+    return {
+      enabled: false,
+      reason: 'No unambiguous pipe is linked to this selection.',
+      missing: ['linkedPipe'],
+    };
+  }
+  const readiness = prepared.input.readiness;
+  const enabled = readiness.readyForOpeVertical
+    || readiness.readyForHydVertical
+    || readiness.readyForGuide
+    || readiness.readyForLineStop;
+  return {
+    enabled,
+    reason: enabled ? '' : `Support-load inputs are incomplete: ${readiness.missing.join(', ')}.`,
+    missing: readiness.missing,
+  };
+}
+
+function applyOverrides(source, overrides) {
+  const sourceAttributes = { ...(source.sourceAttributes || {}) };
+  Object.entries(OVERRIDE_SOURCE_KEYS).forEach(([key, sourceKey]) => {
+    if (Object.prototype.hasOwnProperty.call(overrides, key)) sourceAttributes[sourceKey] = overrides[key];
+  });
+  return { ...source, sourceAttributes };
+}
+
+function inputField(context, input, spec) {
+  const value = valueAtPath(input, spec.path);
+  const overridden = hasOverride(context, spec.key);
+  const derived = !overridden && isDerivedInput(input, spec.path);
+  return createInputField({
+    key: spec.key,
+    label: spec.label,
+    unit: spec.unit,
+    value,
+    source: overridden ? 'override' : value == null ? 'missing' : derived ? 'derived' : 'source',
+    sourcePath: overridden ? `analysisSession.overrides.${spec.key}` : spec.path,
+    validation: spec.validation,
+  });
+}
+
+function isDerivedInput(input, path) {
+  if (path === 'spans.autoSpanMm' || path === 'spans.depSpanMm') return true;
+  return (input.audit || []).some((row) => row.source === 'DETERMINISTIC_DERIVATION' && row.field === path);
+}
+
+function valueAtPath(value, path) {
+  return path.split('.').reduce((current, key) => current?.[key], value) ?? null;
 }
