@@ -11,6 +11,7 @@ const requiredE2EFiles = [
   'e2e/phase1-analysis-workspace.spec.js',
   'e2e/phase2-workspace-dataset.spec.js',
   'e2e/phase3-viewport-renderer.spec.js',
+  'e2e/phase4-viewport-picking.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -69,6 +70,16 @@ checkSpecContracts('e2e/phase3-viewport-renderer.spec.js', [
   'Fit View',
   'Reset View',
   'retained 2 rendered',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/phase4-viewport-picking.spec.js', [
+  'viewport:selectionRequested',
+  'aria-current',
+  'PIPE-PICK-SEGMENT',
+  'SUP-PICK-POINT',
+  'direct selected notification',
+  'empty-space click retains',
   'AnalysisWorkspace.destroy()',
 ]);
 
