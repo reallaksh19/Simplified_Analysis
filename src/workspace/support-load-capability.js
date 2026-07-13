@@ -164,11 +164,15 @@ function inputField(context, input, spec) {
   const value = valueAtPath(input, spec.path);
   const overridden = hasOverride(context, spec.key);
   const derived = !overridden && isDerivedInput(input, spec.path);
+  const required = spec.key === 'lumpWeightKg'
+    ? input.pipePhysical.componentWeightRequired === true
+    : true;
   return createInputField({
     key: spec.key,
     label: spec.label,
     unit: spec.unit,
     value,
+    required,
     source: overridden ? 'override' : value == null ? 'missing' : derived ? 'derived' : 'source',
     sourcePath: overridden ? `analysisSession.overrides.${spec.key}` : spec.path,
     validation: spec.validation,
