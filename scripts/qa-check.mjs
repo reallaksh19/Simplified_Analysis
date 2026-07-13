@@ -100,6 +100,7 @@ const requiredE2EFiles = [
     'e2e/phase6-analysis-sessions.spec.js',
     'e2e/phase7-analysis-ledger.spec.js',
     'e2e/phase8-engineering-geometry.spec.js',
+    'e2e/phase9-analysis-readiness.spec.js',
 ];
 
 let e2eFilesOk = true;
