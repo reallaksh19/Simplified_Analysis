@@ -38,9 +38,6 @@ export class ViewportPanel {
         EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED,
         (payload) => this.renderSelection(payload.entityId),
       ),
-      this.eventBus.subscribe(EVENT_TOPICS.ANALYSIS_REQUESTED, (payload) => {
-        this.selectionElement.textContent = `Requested: ${payload.analysisType} · ${payload.targetId}`;
-      }),
     ];
     this.rootElement.addEventListener('click', this.handleClick);
   }
