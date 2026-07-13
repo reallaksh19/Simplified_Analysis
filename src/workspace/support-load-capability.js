@@ -63,9 +63,10 @@ export const supportLoadCapability = Object.freeze({
   }),
 
   applicability(context) {
-    return resolvePipeEntity(context)
+    const pipeEntity = resolvePipeEntity(context);
+    return pipeEntity && isStraightPipe(pipeEntity)
       ? { applicable: true, reason: '' }
-      : { applicable: false, reason: 'Support-load screening requires a selected pipe or a support linked unambiguously to one pipe.' };
+      : { applicable: false, reason: 'Support-load screening requires a selected straight pipe or a support linked unambiguously to one straight pipe.' };
   },
 
   evaluate(context) {
@@ -182,6 +183,10 @@ function inputField(context, input, spec) {
 function isDerivedInput(input, path) {
   if (path === 'spans.autoSpanMm' || path === 'spans.depSpanMm') return true;
   return (input.audit || []).some((row) => row.source === 'DETERMINISTIC_DERIVATION' && row.field === path);
+}
+
+function isStraightPipe(entity) {
+  return String(entity?.entityType || '').trim().toUpperCase() === 'PIPE';
 }
 
 function valueAtPath(value, path) {
