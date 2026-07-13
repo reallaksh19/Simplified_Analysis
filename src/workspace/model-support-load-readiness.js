@@ -14,9 +14,10 @@ export function assessModelSupportLoadReadiness(dataset) {
   const bridge = buildCalculationWorkspaceBridge(dataset);
   const workspace = bridge.calculationWorkspace;
   const objects = workspaceObjects(workspace);
+  const supportObjects = objects.filter(isEngineeringSupport);
   const supportSources = uniqueById([
     ...workspaceSupports(workspace),
-    ...objects.filter(isEngineeringSupport),
+    ...supportObjects,
   ]);
   const elementSources = objects.filter((object) => (
     !isEngineeringSupport(object) && isPhysicalElement(object)
@@ -53,7 +54,7 @@ export function assessModelSupportLoadReadiness(dataset) {
     calculationWorkspaceSchema: workspace.schema,
     elements: {
       total: elements.length,
-      excludedContainers: objects.length - supportSources.length - elementSources.length,
+      excludedContainers: objects.length - supportObjects.length - elementSources.length,
       opeReady: elements.length - opeBlocked.length,
       hydReady: elements.length - hydBlocked.length,
       opeBlockedIds: opeBlocked.map((element) => element.elementId),
