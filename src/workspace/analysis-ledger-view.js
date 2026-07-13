@@ -143,7 +143,7 @@ function renderExportControls(documentRef, ledger, status) {
 
 function actionButton(documentRef, action, label, entryId, selected) {
   const button = simpleAction(documentRef, action, label);
-  button.dataset.entryId = entryId;
+  button.dataset.ledgerEntryId = entryId;
   button.setAttribute('aria-pressed', selected ? 'true' : 'false');
   return button;
 }
