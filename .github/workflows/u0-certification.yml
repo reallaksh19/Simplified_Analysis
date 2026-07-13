@@ -37,6 +37,9 @@ jobs:
       - name: Certify Phase 3 viewport contracts
         run: npm run check:phase3-workspace:static
 
+      - name: Certify Phase 4 picking contracts
+        run: npm run check:phase4-workspace:static
+
       - name: Run full repository checks
         run: npm run check:full
 

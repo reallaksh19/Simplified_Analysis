@@ -1,6 +1,8 @@
 import { assertViewportRenderModel } from './viewport-render-model.js';
+import { buildCanvasProjection, pickViewportItem } from './viewport-hit-test.js';
 
 const DEVICE_PIXEL_RATIO_LIMIT = 2;
+const MAX_POINTER_TRAVEL_PX = 5;
 
 export class Canvas2DViewportBackend {
   constructor() {
@@ -10,6 +12,10 @@ export class Canvas2DViewportBackend {
     this.model = null;
     this.selectedEntityId = '';
     this.resizeObserver = null;
+    this.selectionRequestHandler = null;
+    this.pointerStart = null;
+    this.handlePointerDown = this.handlePointerDown.bind(this);
+    this.handlePointerUp = this.handlePointerUp.bind(this);
   }
 
   mount(hostElement) {
@@ -21,6 +27,9 @@ export class Canvas2DViewportBackend {
     this.canvas.setAttribute('aria-label', 'Read-only model viewport');
     this.context = this.canvas.getContext('2d');
     if (!this.context) throw new Error('Canvas 2D context is unavailable.');
+
+    this.canvas.addEventListener('pointerdown', this.handlePointerDown);
+    this.canvas.addEventListener('pointerup', this.handlePointerUp);
     hostElement.replaceChildren(this.canvas);
     hostElement.dataset.viewportBackend = 'canvas2d';
 
@@ -29,6 +38,13 @@ export class Canvas2DViewportBackend {
       this.resizeObserver.observe(hostElement);
     }
     this.resize();
+  }
+
+  setSelectionRequestHandler(callback) {
+    if (callback !== null && typeof callback !== 'function') {
+      throw new TypeError('Canvas viewport selection handler must be a function or null.');
+    }
+    this.selectionRequestHandler = callback;
   }
 
   renderModel(model) {
@@ -42,6 +58,7 @@ export class Canvas2DViewportBackend {
   clear() {
     this.model = null;
     this.selectedEntityId = '';
+    this.pointerStart = null;
     this.updateHostMetadata();
     this.draw();
   }
@@ -75,19 +92,44 @@ export class Canvas2DViewportBackend {
     this.draw();
   }
 
+  handlePointerDown(event) {
+    if (event.button !== 0) return;
+    this.pointerStart = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  handlePointerUp(event) {
+    const start = this.pointerStart;
+    this.pointerStart = null;
+    if (!start || event.button !== 0 || start.pointerId !== event.pointerId || !this.model) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > MAX_POINTER_TRAVEL_PX) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const entityId = pickViewportItem(this.model, rect.width, rect.height, {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+    if (!entityId) return;
+
+    this.hostElement.dataset.lastPickEntityId = entityId;
+    this.selectionRequestHandler?.(entityId);
+  }
+
   destroy() {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.canvas?.removeEventListener('pointerdown', this.handlePointerDown);
+    this.canvas?.removeEventListener('pointerup', this.handlePointerUp);
     this.canvas?.remove();
     this.canvas = null;
     this.context = null;
     this.model = null;
-    if (this.hostElement) {
-      delete this.hostElement.dataset.viewportBackend;
-      delete this.hostElement.dataset.renderableCount;
-      delete this.hostElement.dataset.skippedCount;
-      delete this.hostElement.dataset.selectedEntityId;
-    }
+    this.pointerStart = null;
+    this.selectionRequestHandler = null;
+    if (this.hostElement) clearHostMetadata(this.hostElement);
     this.hostElement = null;
   }
 
@@ -98,7 +140,7 @@ export class Canvas2DViewportBackend {
     this.context.clearRect(0, 0, width, height);
     if (!this.model || this.model.items.length === 0) return;
 
-    const projection = buildProjection(this.model, width, height);
+    const projection = buildCanvasProjection(this.model, width, height);
     this.model.items.forEach((item) => this.drawItem(item, projection));
   }
 
@@ -138,36 +180,12 @@ export class Canvas2DViewportBackend {
   }
 }
 
-function buildProjection(model, width, height) {
-  const projected = model.items
-    .flatMap((item) => [item.start, item.end, item.center])
-    .filter(Boolean)
-    .map(projectPoint);
-  const xs = projected.map((point) => point.x);
-  const ys = projected.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const spanX = Math.max(maxX - minX, 1);
-  const spanY = Math.max(maxY - minY, 1);
-  const padding = 28;
-  const scale = Math.min((width - padding * 2) / spanX, (height - padding * 2) / spanY);
-
-  return (point) => {
-    const projectedPoint = projectPoint(point);
-    return {
-      x: padding + (projectedPoint.x - minX) * scale,
-      y: height - padding - (projectedPoint.y - minY) * scale,
-    };
-  };
-}
-
-function projectPoint(point) {
-  return {
-    x: (point.x - point.z) * 0.70710678,
-    y: point.y * 0.85 - (point.x + point.z) * 0.35355339,
-  };
+function clearHostMetadata(hostElement) {
+  delete hostElement.dataset.viewportBackend;
+  delete hostElement.dataset.renderableCount;
+  delete hostElement.dataset.skippedCount;
+  delete hostElement.dataset.selectedEntityId;
+  delete hostElement.dataset.lastPickEntityId;
 }
 
 function categoryColor(category) {

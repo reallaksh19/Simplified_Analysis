@@ -5,6 +5,7 @@ export const EVENT_TOPICS = Object.freeze({
   DATASET_LOAD_FAILED: 'dataset:loadFailed',
   DATASET_CLEARED: 'dataset:cleared',
   WORKSPACE_SNAPSHOT_CHANGED: 'workspace:snapshotChanged',
+  VIEWPORT_SELECTION_REQUESTED: 'viewport:selectionRequested',
   VIEWPORT_ENTITY_SELECTED: 'viewport:entitySelected',
   ANALYSIS_REQUESTED: 'analysis:requested',
 });
@@ -21,9 +22,12 @@ const PAYLOAD_VALIDATORS = new Map([
   [EVENT_TOPICS.DATASET_LOAD_FAILED, validateDatasetLoadFailed],
   [EVENT_TOPICS.DATASET_CLEARED, validateDatasetCleared],
   [EVENT_TOPICS.WORKSPACE_SNAPSHOT_CHANGED, validateSnapshotChanged],
+  [EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED, validateSelectionRequested],
   [EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED, validateEntitySelected],
   [EVENT_TOPICS.ANALYSIS_REQUESTED, validateAnalysisRequested],
 ]);
+
+const SELECTION_SOURCES = new Set(['tree', 'viewport', 'api']);
 
 function validateDatasetLoadRequested(payload) {
   assertRecord(payload, EVENT_TOPICS.DATASET_LOAD_REQUESTED);
@@ -72,6 +76,12 @@ function validateSnapshotChanged(payload) {
   }
 }
 
+function validateSelectionRequested(payload) {
+  assertRecord(payload, EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED);
+  assertNonEmptyString(payload.entityId, 'entityId', EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED);
+  validateSelectionSource(payload.source, EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED);
+}
+
 function validateEntitySelected(payload) {
   assertRecord(payload, EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED);
   assertNonEmptyString(payload.entityId, 'entityId', EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED);
@@ -81,12 +91,21 @@ function validateEntitySelected(payload) {
   if (payload.properties !== undefined && !isRecord(payload.properties)) {
     throw new TypeError('viewport:entitySelected payload.properties must be an object.');
   }
+  if (payload.source !== undefined) {
+    validateSelectionSource(payload.source, EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED);
+  }
 }
 
 function validateAnalysisRequested(payload) {
   assertRecord(payload, EVENT_TOPICS.ANALYSIS_REQUESTED);
   assertNonEmptyString(payload.analysisType, 'analysisType', EVENT_TOPICS.ANALYSIS_REQUESTED);
   assertNonEmptyString(payload.targetId, 'targetId', EVENT_TOPICS.ANALYSIS_REQUESTED);
+}
+
+function validateSelectionSource(value, topic) {
+  if (!SELECTION_SOURCES.has(value)) {
+    throw new TypeError(`${topic} payload.source must be 'tree', 'viewport', or 'api'.`);
+  }
 }
 
 function assertRecord(value, topic) {

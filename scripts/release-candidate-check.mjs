@@ -15,6 +15,7 @@ const checks = {
     'docs/analysis-workspace/PHASE_1_ARCHITECTURE.md',
     'docs/analysis-workspace/PHASE_2_DATASET_ADAPTER.md',
     'docs/analysis-workspace/PHASE_3_READONLY_VIEWPORT.md',
+    'docs/analysis-workspace/PHASE_4_VIEWPORT_PICKING.md',
   ],
   certificationScripts: [
     'scripts/u3-engineering-data-check.mjs',
@@ -29,6 +30,7 @@ const checks = {
     'scripts/phase1-workspace-contract-check.mjs',
     'scripts/phase2-workspace-contract-check.mjs',
     'scripts/phase3-viewport-contract-check.mjs',
+    'scripts/phase4-viewport-picking-contract-check.mjs',
     'scripts/release-candidate-check.mjs',
   ],
   sourceContracts: [
@@ -45,6 +47,7 @@ const checks = {
     'src/workspace/workspace-state.js',
     'src/workspace/geometry-evidence.js',
     'src/workspace/viewport-render-model.js',
+    'src/workspace/viewport-hit-test.js',
     'src/workspace/viewport-renderer.js',
     'src/workspace/canvas2d-viewport-backend.js',
     'src/workspace/three-viewport-backend.js',
@@ -54,6 +57,7 @@ const checks = {
     'e2e/phase1-analysis-workspace.spec.js',
     'e2e/phase2-workspace-dataset.spec.js',
     'e2e/phase3-viewport-renderer.spec.js',
+    'e2e/phase4-viewport-picking.spec.js',
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
   ],
