@@ -49,7 +49,6 @@ export class AnalysisLedgerStore {
       ...this.#snapshot,
       entries: [...this.#snapshot.entries, entry],
       activeEntryId: entry.entryId,
-      comparison: normalizeComparisonAfterArchive(this.#snapshot.comparison, entry),
       version: this.#snapshot.version + 1,
     });
     return entry;
@@ -138,13 +137,6 @@ function isTerminalSession(session) {
       && typeof session.requestId === 'string'
       && session.requestId,
   );
-}
-
-function normalizeComparisonAfterArchive(comparison, entry) {
-  if (!comparison) return null;
-  if (!comparison.leftEntryId) return { ...comparison, leftEntryId: entry.entryId };
-  if (!comparison.rightEntryId) return { ...comparison, rightEntryId: entry.entryId };
-  return comparison;
 }
 
 function validateComparison(comparison, entries) {
