@@ -1,3 +1,4 @@
+import { connectedPipeComponent } from './analysis-connectivity.js';
 import { freezeDeep, stringValue } from './dataset-utils.js';
 
 const PIPE_REFERENCE_KEYS = [
@@ -69,14 +70,21 @@ export function buildPipeScreeningInput(context) {
   }
 
   const lineKey = resolveLineKey(context.entity);
-  const lineEntities = context.dataset.entities.filter((entity) => (
+  if (!lineKey) {
+    return disabledScreening('Pipe flexibility screening requires an explicit line identity.', ['lineIdentity']);
+  }
+  const candidates = context.dataset.entities.filter((entity) => (
     entity.category === 'pipe'
     && resolveLineKey(entity) === lineKey
     && entity.properties?.geometry?.start
     && entity.properties?.geometry?.end
   ));
+  const lineEntities = connectedPipeComponent(context.entity, candidates);
   if (lineEntities.length < 2) {
-    return disabledScreening('At least two pipe legs on the selected line are required.', ['lineSegments']);
+    return disabledScreening(
+      'At least two connected pipe legs on the selected line are required.',
+      ['connectedLineSegments'],
+    );
   }
 
   const projected = projectLineEntities(lineEntities);
