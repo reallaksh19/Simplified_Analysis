@@ -59,6 +59,14 @@ await assert.rejects(
   /not ready|incomplete/i,
 );
 
+const disconnectedState = new WorkspaceStateStore();
+disconnectedState.loadDataset(normalizeWorkspaceDataset(disconnectedPackage(), 'disconnected.json'));
+disconnectedState.selectEntity('PIPE-D1');
+const disconnected = registry.list(createAnalysisContext(disconnectedState, 'PIPE-D1'));
+const disconnectedScreening = disconnected.find((item) => item.analysisType === 'pipe-screening');
+assert.equal(disconnectedScreening.enabled, false);
+assert.match(disconnectedScreening.reason, /connected pipe legs/i);
+
 const strictRegistry = new AnalysisCapabilityRegistry();
 assert.throws(() => strictRegistry.register({ id: '', label: 'Bad' }), /non-empty string/);
 strictRegistry.register({
@@ -136,6 +144,7 @@ async function assertSourceGuards() {
   const modules = [
     'src/workspace/analysis-capability-registry.js',
     'src/workspace/analysis-capabilities.js',
+    'src/workspace/analysis-connectivity.js',
     'src/workspace/analysis-context.js',
     'src/workspace/analysis-coordinator.js',
     'src/workspace/support-load-capability.js',
@@ -162,21 +171,7 @@ async function assertSourceGuards() {
 }
 
 function completePackage() {
-  const engineering = {
-    LINE_NO: 'LINE-100',
-    PIPE_OD: 168.3,
-    WALL_THICKNESS_MM: 7.11,
-    MATERIAL_DENSITY_KG_M3: 7850,
-    FLUID_DENSITY_OPE_KG_M3: 800,
-    FLUID_DENSITY_HYD_KG_M3: 1000,
-    INSULATION_THICKNESS_MM: 40,
-    INSULATION_DENSITY_KG_M3: 120,
-    TEMP_EXP_C1: 200,
-    REFERENCE_TEMP_C: 20,
-    ALPHA_PER_C: 0.000012,
-    E_MPA: 200000,
-    SA_MPA: 100,
-  };
+  const engineering = engineeringAttributes();
   return {
     schema: 'rvm-selected-geometry-workspace-package/v1',
     packageHash: 'PHASE5-COMPLETE',
@@ -205,6 +200,39 @@ function incompletePackage() {
       supports: [],
       branches: [],
     },
+  };
+}
+
+function disconnectedPackage() {
+  return {
+    schema: 'rvm-selected-geometry-workspace-package/v1',
+    packageHash: 'PHASE5-DISCONNECTED',
+    geometry: {
+      objects: [
+        pipe('PIPE-D1', [0, 0, 0], [1000, 0, 0], engineeringAttributes()),
+        pipe('PIPE-D2', [5000, 0, 0], [5000, 1000, 0], { LINE_NO: 'LINE-100' }),
+      ],
+      supports: [],
+      branches: [],
+    },
+  };
+}
+
+function engineeringAttributes() {
+  return {
+    LINE_NO: 'LINE-100',
+    PIPE_OD: 168.3,
+    WALL_THICKNESS_MM: 7.11,
+    MATERIAL_DENSITY_KG_M3: 7850,
+    FLUID_DENSITY_OPE_KG_M3: 800,
+    FLUID_DENSITY_HYD_KG_M3: 1000,
+    INSULATION_THICKNESS_MM: 40,
+    INSULATION_DENSITY_KG_M3: 120,
+    TEMP_EXP_C1: 200,
+    REFERENCE_TEMP_C: 20,
+    ALPHA_PER_C: 0.000012,
+    E_MPA: 200000,
+    SA_MPA: 100,
   };
 }
 
