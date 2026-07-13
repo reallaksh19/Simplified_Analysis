@@ -43,10 +43,16 @@ function buildComparable(entry) {
     validation: field.validation,
   }]));
   return {
+    archiveKey: entry.archiveKey,
+    sessionId: session.sessionId,
+    requestId: session.requestId,
+    workspaceVersion: session.workspaceVersion,
+    sessionVersion: session.version,
     targetId: session.targetId,
     analysisType: session.analysisType,
     inputs: inputEvidence,
     overrides: session.overrides || {},
+    fieldErrors: session.fieldErrors || {},
     readiness: session.readiness || {},
     result: session.result ? {
       status: session.result.status,
