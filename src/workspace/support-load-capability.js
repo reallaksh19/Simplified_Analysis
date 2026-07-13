@@ -46,6 +46,27 @@ export const supportLoadCapability = Object.freeze({
   label: 'Support load screening',
   description: 'Calculates vertical, guide, and line-stop screening loads from explicit pipe data.',
   engineeringLevel: ENGINEERING_LEVEL.BENCHMARKED_SCREENING,
+  manifest: Object.freeze({
+    solverId: 'workspace-support-load-screening',
+    solverVersion: '1.0.0',
+    methodId: SUPPORT_LOAD_FORMULA_PROFILE_ID,
+    methodVersion: '1',
+    codeBasis: ['Visible project screening profile ACCESS_TEMP_WALL_WEIGHTED_V1'],
+    assumptions: [
+      'Distributed pipe, fluid, and insulation weights act over the resolved support span.',
+      'Concentrated component weight is applied as a lump load when explicitly available.',
+    ],
+    limitations: [
+      'Screening loads are not a global pipe-stress restraint solution.',
+      'Friction, gaps, nonlinear restraint behavior, wind, seismic, slug, surge, and relief loads are excluded.',
+    ],
+  }),
+
+  applicability(context) {
+    return resolvePipeEntity(context)
+      ? { applicable: true, reason: '' }
+      : { applicable: false, reason: 'Support-load screening requires a selected pipe or a support linked unambiguously to one pipe.' };
+  },
 
   evaluate(context) {
     return supportReadiness(prepareSupportLoad(context));
