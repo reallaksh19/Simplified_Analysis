@@ -25,6 +25,8 @@ jobs:
         run: npm run check:phase3-workspace:static
       - name: Certify Phase 4 picking contracts
         run: npm run check:phase4-workspace:static
+      - name: Certify Phase 5 analysis contracts
+        run: npm run check:phase5-workspace:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
