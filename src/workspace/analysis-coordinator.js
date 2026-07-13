@@ -3,16 +3,27 @@ import {
 } from '../core/solvers/certification/solverResultContract.js';
 import { createAnalysisContext } from './analysis-context.js';
 import { AnalysisCapabilityError } from './analysis-capability-registry.js';
+import {
+  assertSessionMatchesContext,
+  withAnalysisSession,
+} from './analysis-session-context.js';
+import { AnalysisSessions } from './analysis-session-store.js';
 import { EventBus } from './event-bus.js';
 import { EVENT_TOPICS } from './event-topics.js';
 import { WorkspaceState } from './workspace-state.js';
 
 export class AnalysisCoordinator {
-  constructor(eventBus = EventBus, workspaceState = WorkspaceState, registry) {
+  constructor(
+    eventBus = EventBus,
+    workspaceState = WorkspaceState,
+    registry,
+    sessionStore = AnalysisSessions,
+  ) {
     if (!registry) throw new TypeError('AnalysisCoordinator requires a capability registry.');
     this.eventBus = eventBus;
     this.workspaceState = workspaceState;
     this.registry = registry;
+    this.sessionStore = sessionStore;
     this.unsubscribers = [];
     this.requestSequence = 0;
     this.selectionVersion = 0;
@@ -49,14 +60,11 @@ export class AnalysisCoordinator {
     });
   }
 
-  async run({ analysisType, targetId }) {
+  async run({ analysisType, targetId, sessionId = '' }) {
     const requestId = `analysis-${++this.requestSequence}`;
     const selectionVersion = this.selectionVersion;
-    this.eventBus.publish(EVENT_TOPICS.ANALYSIS_STARTED, {
-      requestId,
-      analysisType,
-      targetId,
-    });
+    const lifecycle = { requestId, analysisType, targetId, sessionId };
+    this.eventBus.publish(EVENT_TOPICS.ANALYSIS_STARTED, lifecycle);
 
     try {
       const snapshot = this.workspaceState.getSnapshot();
@@ -66,9 +74,14 @@ export class AnalysisCoordinator {
           `Analysis target is not the active selection: ${targetId}.`,
         );
       }
-      const context = createAnalysisContext(this.workspaceState, targetId);
+      let context = createAnalysisContext(this.workspaceState, targetId);
+      if (sessionId) {
+        const session = this.sessionStore.getSession(sessionId);
+        assertSessionMatchesContext(session, context, analysisType);
+        context = withAnalysisSession(context, session);
+      }
       const result = await this.registry.execute(analysisType, context);
-      if (this.shouldIgnore(selectionVersion, targetId)) return;
+      if (this.shouldIgnore(selectionVersion, targetId, sessionId)) return;
       const validation = validateSolverResultContract(result);
       if (!validation.ok) {
         throw new AnalysisCapabilityError(
@@ -78,17 +91,13 @@ export class AnalysisCoordinator {
         );
       }
       this.eventBus.publish(EVENT_TOPICS.ANALYSIS_COMPLETED, {
-        requestId,
-        analysisType,
-        targetId,
+        ...lifecycle,
         result,
       });
     } catch (error) {
-      if (this.shouldIgnore(selectionVersion, targetId)) return;
+      if (this.shouldIgnore(selectionVersion, targetId, sessionId, true)) return;
       this.eventBus.publish(EVENT_TOPICS.ANALYSIS_FAILED, {
-        requestId,
-        analysisType,
-        targetId,
+        ...lifecycle,
         code: String(error?.code || 'ANALYSIS_EXECUTION_FAILED'),
         message: error instanceof Error ? error.message : String(error),
         details: error?.details && typeof error.details === 'object' ? error.details : {},
@@ -96,9 +105,11 @@ export class AnalysisCoordinator {
     }
   }
 
-  shouldIgnore(selectionVersion, targetId) {
+  shouldIgnore(selectionVersion, targetId, sessionId = '', allowMissingSession = false) {
     if (this.destroyed || selectionVersion !== this.selectionVersion) return true;
-    return this.workspaceState.getSnapshot().selectedEntityId !== targetId;
+    if (this.workspaceState.getSnapshot().selectedEntityId !== targetId) return true;
+    if (sessionId && !allowMissingSession && !this.sessionStore.getSession(sessionId)) return true;
+    return false;
   }
 
   handleClear() {

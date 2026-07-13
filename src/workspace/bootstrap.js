@@ -1,5 +1,7 @@
 import { createDefaultAnalysisCapabilityRegistry } from './analysis-capabilities.js';
 import { AnalysisCoordinator } from './analysis-coordinator.js';
+import { AnalysisSessionController } from './analysis-session-controller.js';
+import { AnalysisSessions } from './analysis-session-store.js';
 import { DatasetController } from './dataset-controller.js';
 import { EventBus } from './event-bus.js';
 import { PropertiesPanel } from './properties-panel.js';
@@ -12,14 +14,22 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   if (!rootElement) throw new Error('Application root #root was not found.');
 
   WorkspaceState.clearDataset();
+  AnalysisSessions.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const datasetController = new DatasetController(EventBus, WorkspaceState);
+  const sessionController = new AnalysisSessionController(
+    EventBus,
+    WorkspaceState,
+    capabilityRegistry,
+    AnalysisSessions,
+  );
   const analysisCoordinator = new AnalysisCoordinator(
     EventBus,
     WorkspaceState,
     capabilityRegistry,
+    AnalysisSessions,
   );
   const treePanel = new TreePanel(rootElement.querySelector('[data-panel="tree"]'), EventBus);
   const viewportPanel = new ViewportPanel(rootElement.querySelector('[data-panel="viewport"]'), EventBus);
@@ -30,6 +40,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   );
   const controllers = [
     datasetController,
+    sessionController,
     analysisCoordinator,
     treePanel,
     viewportPanel,
@@ -42,6 +53,9 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   return Object.freeze({
     getSnapshot() {
       return WorkspaceState.getSnapshot();
+    },
+    getAnalysisSession() {
+      return AnalysisSessions.getSnapshot();
     },
     getAnalysisCapabilities(targetId) {
       try {
@@ -61,6 +75,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      AnalysisSessions.clear();
       WorkspaceState.clearDataset();
       rootElement.replaceChildren();
     },

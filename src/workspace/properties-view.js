@@ -1,10 +1,18 @@
+import { renderAnalysisSession } from './analysis-session-view.js';
 import { flattenProperties } from './property-flattener.js';
 
-export function renderPropertiesContent(documentRef, selection, capabilities, analysisState) {
+export function renderPropertiesContent(
+  documentRef,
+  selection,
+  capabilities,
+  analysisState,
+  analysisSession = null,
+) {
   const fragment = documentRef.createDocumentFragment();
   fragment.append(renderSelectionHeader(documentRef, selection));
   fragment.append(renderRows(documentRef, selection.properties, 'No properties supplied for this selection.'));
-  fragment.append(renderCapabilities(documentRef, capabilities));
+  fragment.append(renderCapabilities(documentRef, capabilities, analysisSession));
+  fragment.append(renderAnalysisSession(documentRef, analysisSession));
   fragment.append(renderAnalysis(documentRef, analysisState));
   return fragment;
 }
@@ -22,7 +30,7 @@ function renderSelectionHeader(documentRef, selection) {
   return heading;
 }
 
-function renderCapabilities(documentRef, capabilities) {
+function renderCapabilities(documentRef, capabilities, activeSession) {
   const section = documentRef.createElement('section');
   section.className = 'analysis-capabilities';
   section.dataset.role = 'analysis-capabilities';
@@ -49,8 +57,10 @@ function renderCapabilities(documentRef, capabilities) {
     action.type = 'button';
     action.className = 'analysis-action';
     action.dataset.analysisType = capability.analysisType;
-    action.disabled = !capability.enabled;
-    action.textContent = `Run contextual analysis · ${capability.label}`;
+    action.dataset.analysisAction = 'open-session';
+    action.textContent = activeSession?.analysisType === capability.analysisType
+      ? `Reviewing inputs · ${capability.label}`
+      : `Review inputs · ${capability.label}`;
     card.append(title, description, action);
 
     if (!capability.enabled) {

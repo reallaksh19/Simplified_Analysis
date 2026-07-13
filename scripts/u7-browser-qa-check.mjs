@@ -13,6 +13,7 @@ const requiredE2EFiles = [
   'e2e/phase3-viewport-renderer.spec.js',
   'e2e/phase4-viewport-picking.spec.js',
   'e2e/phase5-analysis-capabilities.spec.js',
+  'e2e/phase6-analysis-sessions.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -61,6 +62,7 @@ checkSpecContracts('e2e/u7-workflow-smoke.spec.js', [
   "EventBus.publish('viewport:entitySelected'",
   'data-entity-id="SUP-201"',
   'data-analysis-type="support-load"',
+  'Run reviewed analysis · support-load',
   'support-load completed · CALCULATED',
 ]);
 
@@ -92,6 +94,16 @@ checkSpecContracts('e2e/phase5-analysis-capabilities.spec.js', [
   'summary.sourcePipeId',
   'summary.sourceEntityCount',
   'No analysis has been run for this selection.',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/phase6-analysis-sessions.spec.js', [
+  'analysis-session-1',
+  'Ready for reviewed execution',
+  'pipeOdMm',
+  'must be greater than zero',
+  'connectedLineSegments',
+  'getAnalysisSession',
   'AnalysisWorkspace.destroy()',
 ]);
 

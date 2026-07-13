@@ -12,9 +12,11 @@ export class PropertiesPanel {
     this.selection = null;
     this.capabilityTargetId = '';
     this.capabilities = [];
+    this.analysisSession = null;
     this.analysisState = idleAnalysis();
     this.unsubscribeCallbacks = [];
     this.handleClick = this.handleClick.bind(this);
+    this.handleChange = this.handleChange.bind(this);
   }
 
   init() {
@@ -23,6 +25,7 @@ export class PropertiesPanel {
     if (!this.contentElement) throw new Error('PropertiesPanel content root is missing.');
 
     this.rootElement.addEventListener('click', this.handleClick);
+    this.rootElement.addEventListener('change', this.handleChange);
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(
         EVENT_TOPICS.VIEWPORT_ENTITY_SELECTED,
@@ -31,6 +34,10 @@ export class PropertiesPanel {
       this.eventBus.subscribe(
         EVENT_TOPICS.ANALYSIS_CAPABILITIES_CHANGED,
         (payload) => this.handleCapabilities(payload),
+      ),
+      this.eventBus.subscribe(
+        EVENT_TOPICS.ANALYSIS_SESSION_CHANGED,
+        (payload) => this.handleSessionChanged(payload),
       ),
       this.eventBus.subscribe(
         EVENT_TOPICS.ANALYSIS_STARTED,
@@ -69,6 +76,7 @@ export class PropertiesPanel {
     if (changed) {
       this.analysisState = idleAnalysis();
       if (this.capabilityTargetId !== selection.entityId) this.capabilities = [];
+      if (this.analysisSession?.targetId !== selection.entityId) this.analysisSession = null;
     }
     this.render();
   }
@@ -79,11 +87,17 @@ export class PropertiesPanel {
     if (this.selection?.entityId === targetId) this.render();
   }
 
+  handleSessionChanged({ session }) {
+    this.analysisSession = session && session.targetId === this.selection?.entityId ? session : null;
+    if (this.selection) this.render();
+  }
+
   handleAnalysisStarted(payload) {
     if (!this.isCurrentTarget(payload.targetId)) return;
     this.analysisState = {
       status: 'running',
       requestId: payload.requestId,
+      sessionId: payload.sessionId || '',
       analysisType: payload.analysisType,
       targetId: payload.targetId,
     };
@@ -95,6 +109,7 @@ export class PropertiesPanel {
     this.analysisState = {
       status: 'completed',
       requestId: payload.requestId,
+      sessionId: payload.sessionId || '',
       analysisType: payload.analysisType,
       targetId: payload.targetId,
       result: payload.result,
@@ -107,6 +122,7 @@ export class PropertiesPanel {
     this.analysisState = {
       status: 'failed',
       requestId: payload.requestId,
+      sessionId: payload.sessionId || '',
       analysisType: payload.analysisType,
       targetId: payload.targetId,
       code: payload.code,
@@ -133,20 +149,53 @@ export class PropertiesPanel {
     const capabilities = this.capabilityTargetId === this.selection.entityId
       ? this.capabilities
       : [];
+    const session = this.analysisSession?.targetId === this.selection.entityId
+      ? this.analysisSession
+      : null;
     this.contentElement.replaceChildren(renderPropertiesContent(
       this.rootElement.ownerDocument,
       this.selection,
       capabilities,
       this.analysisState,
+      session,
     ));
   }
 
   handleClick(event) {
-    const action = event.target?.closest?.('[data-analysis-type]');
-    if (!action || !this.rootElement.contains(action) || !this.selection || action.disabled) return;
-    this.eventBus.publish(EVENT_TOPICS.ANALYSIS_REQUESTED, {
-      analysisType: action.dataset.analysisType,
-      targetId: this.selection.entityId,
+    const analysisAction = event.target?.closest?.('[data-analysis-action="open-session"]');
+    if (analysisAction && this.rootElement.contains(analysisAction) && this.selection) {
+      this.eventBus.publish(EVENT_TOPICS.ANALYSIS_SESSION_OPEN_REQUESTED, {
+        analysisType: analysisAction.dataset.analysisType,
+        targetId: this.selection.entityId,
+      });
+      return;
+    }
+
+    const sessionAction = event.target?.closest?.('[data-session-action]');
+    if (!sessionAction || !this.rootElement.contains(sessionAction) || sessionAction.disabled) return;
+    const sessionId = sessionAction.dataset.sessionId;
+    if (sessionAction.dataset.sessionAction === 'run' && this.analysisSession) {
+      this.eventBus.publish(EVENT_TOPICS.ANALYSIS_REQUESTED, {
+        analysisType: this.analysisSession.analysisType,
+        targetId: this.analysisSession.targetId,
+        sessionId,
+      });
+    }
+    if (sessionAction.dataset.sessionAction === 'reset') {
+      this.eventBus.publish(EVENT_TOPICS.ANALYSIS_SESSION_RESET_REQUESTED, { sessionId });
+    }
+    if (sessionAction.dataset.sessionAction === 'close') {
+      this.eventBus.publish(EVENT_TOPICS.ANALYSIS_SESSION_CLOSE_REQUESTED, {});
+    }
+  }
+
+  handleChange(event) {
+    const input = event.target?.closest?.('[data-session-field]');
+    if (!input || !this.rootElement.contains(input)) return;
+    this.eventBus.publish(EVENT_TOPICS.ANALYSIS_SESSION_OVERRIDE_REQUESTED, {
+      sessionId: input.dataset.sessionId,
+      fieldKey: input.dataset.sessionField,
+      value: input.value,
     });
   }
 
@@ -154,6 +203,7 @@ export class PropertiesPanel {
     this.selection = null;
     this.capabilityTargetId = '';
     this.capabilities = [];
+    this.analysisSession = null;
     this.analysisState = idleAnalysis();
     const empty = this.rootElement.ownerDocument.createElement('p');
     empty.className = 'panel-empty';
@@ -163,10 +213,12 @@ export class PropertiesPanel {
 
   destroy() {
     this.rootElement.removeEventListener('click', this.handleClick);
+    this.rootElement.removeEventListener('change', this.handleChange);
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
     this.selection = null;
     this.capabilities = [];
+    this.analysisSession = null;
     this.analysisState = idleAnalysis();
   }
 }
@@ -175,6 +227,7 @@ function idleAnalysis() {
   return Object.freeze({
     status: 'idle',
     requestId: '',
+    sessionId: '',
     analysisType: '',
     targetId: '',
   });
