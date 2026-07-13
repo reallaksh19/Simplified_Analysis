@@ -51,11 +51,12 @@ export function renderWorkspaceLayout(rootElement) {
 
       <aside class="workspace-panel properties-panel" data-panel="properties" aria-label="Properties and analysis actions">
         <header class="panel-header">
-          <span class="panel-eyebrow">Contextual workflow</span>
+          <span class="panel-eyebrow">Model and contextual workflow</span>
           <h2>Properties &amp; Actions</h2>
         </header>
+        <div data-role="model-support-load-summary"></div>
         <div class="properties-content" data-role="properties-content">
-          <p class="panel-empty">Select a pipe or support to inspect its properties.</p>
+          <p class="panel-empty">Select an entity to inspect its properties.</p>
         </div>
       </aside>
     </main>

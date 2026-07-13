@@ -1,6 +1,7 @@
 import { buildDatasetHierarchy } from './dataset-hierarchy.js';
 import { isPipeType, isSupportType, resolveEntityType, selectionTypeFor } from './dataset-types.js';
 import { extractGeometryEvidence } from './geometry-evidence.js';
+import { indexWorkspaceSourcePackage } from './staged-model-index.js';
 import {
   clonePlain,
   deterministicDatasetId,
@@ -10,18 +11,17 @@ import {
 } from './dataset-utils.js';
 
 export const WORKSPACE_DATASET_SCHEMA = 'analysis-workspace-dataset/v1';
-const SELECTED_PACKAGE_SCHEMA = 'rvm-selected-geometry-workspace-package/v1';
 const MANAGED_STAGE_SCHEMA = 'inputxml-managed-stage/v1';
 
 export function normalizeWorkspaceDataset(rawPackage, sourceName = '') {
   const packageJson = normalizePackageRoot(rawPackage);
   const sourceSchema = stringValue(packageJson.schema) || inferSourceSchema(packageJson);
-  const sourceItems = extractSourceItems(packageJson, sourceSchema);
-  const entities = sourceItems.map(normalizeEntity);
+  const indexed = indexWorkspaceSourcePackage(packageJson, sourceSchema);
+  const entities = indexed.entries.map(normalizeEntity);
   assertUniqueEntityIds(entities);
 
   const datasetId = deterministicDatasetId(packageJson, sourceName);
-  const summary = summarizeEntities(entities);
+  const summary = summarizeEntities(entities, indexed.model);
   return freezeDeep({
     schema: WORKSPACE_DATASET_SCHEMA,
     datasetId,
@@ -29,6 +29,7 @@ export function normalizeWorkspaceDataset(rawPackage, sourceName = '') {
     sourceName: stringValue(sourceName),
     entities,
     hierarchy: buildDatasetHierarchy(entities),
+    sourceModel: indexed.model,
     summary,
     source: clonePlain(packageJson.source || {}),
     axisTransform: clonePlain(packageJson.axisTransform || {}),
@@ -51,50 +52,11 @@ function inferSourceSchema(packageJson) {
   return 'unknown';
 }
 
-function extractSourceItems(packageJson, sourceSchema) {
-  if (sourceSchema === SELECTED_PACKAGE_SCHEMA) {
-    const geometry = packageJson.geometry;
-    if (!isRecord(geometry)) throw new TypeError('Workspace package geometry must be an object.');
-    return [
-      ...arrayField(geometry.objects, 'geometry.objects'),
-      ...arrayField(geometry.supports, 'geometry.supports'),
-    ];
-  }
-
-  if (sourceSchema === MANAGED_STAGE_SCHEMA || Array.isArray(packageJson.selected)) {
-    const roots = Array.isArray(packageJson.selected)
-      ? packageJson.selected.map((entry) => entry?.item).filter(Boolean)
-      : arrayField(packageJson.objects, 'objects');
-    return flattenItems(roots);
-  }
-
-  throw new Error(`Unsupported workspace package schema: ${sourceSchema}.`);
-}
-
-function flattenItems(roots) {
-  const items = [];
-  const visit = (nodes) => {
-    nodes.forEach((node) => {
-      if (!isRecord(node)) return;
-      items.push(node);
-      if (Array.isArray(node.children)) visit(node.children);
-    });
-  };
-  visit(roots);
-  return items;
-}
-
-function normalizeEntity(item, index) {
+function normalizeEntity({ item, node }) {
   const entityType = resolveEntityType(item);
-  const entityId = resolveEntityId(item, index);
-  const name = stringValue(
-    item.name
-    || item.nodeName
-    || item.sourceAttributes?.NAME
-    || item.attributes?.NAME
-    || entityId,
-  );
-  const sourcePath = stringValue(item.sourcePath || item.path || item.sourceAttributes?.PATH);
+  const entityId = node.entityId;
+  const name = node.name;
+  const sourcePath = node.sourcePath;
 
   return freezeDeep({
     entityId,
@@ -102,20 +64,14 @@ function normalizeEntity(item, index) {
     entityType,
     selectionType: selectionTypeFor(entityType),
     sourcePath,
+    sourceNodeId: node.nodeId,
+    parentSourceNodeId: node.parentNodeId,
+    sourceChildIndex: node.childIndex,
+    sourceDepth: node.depth,
+    sourceRootGroup: node.rootGroup,
     category: isSupportType(entityType) ? 'support' : isPipeType(entityType) ? 'pipe' : 'component',
     properties: buildEntityProperties(item, { entityId, name, entityType, sourcePath }),
   });
-}
-
-function resolveEntityId(item, index) {
-  const candidate = stringValue(
-    item.sourceId
-    || item.id
-    || item.nodeId
-    || item.sourceAttributes?.ID
-    || item.attributes?.ID,
-  );
-  return candidate || `ENTITY-${index + 1}`;
 }
 
 function buildEntityProperties(item, identity) {
@@ -130,9 +86,11 @@ function buildEntityProperties(item, identity) {
   });
 }
 
-function summarizeEntities(entities) {
+function summarizeEntities(entities, sourceModel) {
   return freezeDeep({
     nodeCount: entities.length,
+    sourceNodeCount: sourceModel.summary.nodeCount,
+    sourceRootCount: sourceModel.summary.rootCount,
     pipes: entities.filter((entity) => entity.category === 'pipe').length,
     supports: entities.filter((entity) => entity.category === 'support').length,
     components: entities.filter((entity) => entity.category === 'component').length,
@@ -147,9 +105,4 @@ function assertUniqueEntityIds(entities) {
     }
     ids.add(entity.entityId);
   });
-}
-
-function arrayField(value, fieldName) {
-  if (!Array.isArray(value)) throw new TypeError(`Workspace field "${fieldName}" must be an array.`);
-  return value;
 }
