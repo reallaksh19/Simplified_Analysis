@@ -58,8 +58,9 @@ if (fs.existsSync(u7SpecPath)) {
     'data-panel="tree"',
     'data-panel="viewport"',
     'data-panel="properties"',
-    'data-entity-id="PIPE-102"',
-    'data-action="request-analysis"',
+    "EventBus.publish('viewport:entitySelected'",
+    'data-entity-id="SUP-201"',
+    'Run contextual analysis',
   ];
   const missingContracts = requiredContracts.filter((contract) => !specContent.includes(contract));
 
