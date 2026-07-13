@@ -110,15 +110,13 @@ test('direct selected notification updates consumers but cannot mutate Workspace
 
   await page.evaluate(() => {
     EventBus.publish('viewport:entitySelected', {
-      entityId: 'PIPE-PICK-SEGMENT',
+      entityId: 'DIRECT-COMPAT',
       type: 'pipe',
       properties: { compatibility: 'direct-notification' },
     });
   });
 
-  await expect(page.locator('[data-role="properties-content"]')).toContainText(
-    'PIPE-PICK-SEGMENT',
-  );
+  await expect(page.locator('[data-role="properties-content"]')).toContainText('DIRECT-COMPAT');
   await expect(page.locator('[data-role="properties-content"]')).toContainText(
     'direct-notification',
   );
