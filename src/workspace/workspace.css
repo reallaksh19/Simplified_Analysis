@@ -106,6 +106,18 @@
   outline: none;
 }
 
+.tree-entity--selected,
+.tree-entity[aria-current="true"] {
+  border-color: #fbbf24;
+  background: #1d2433;
+  box-shadow: inset 3px 0 0 #fbbf24;
+}
+
+.tree-entity--selected .tree-entity__type,
+.tree-entity[aria-current="true"] .tree-entity__type {
+  color: #fde68a;
+}
+
 .tree-entity__identity {
   overflow: hidden;
   text-overflow: ellipsis;
