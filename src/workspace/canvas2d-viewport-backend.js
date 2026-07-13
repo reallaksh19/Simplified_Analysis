@@ -149,28 +149,89 @@ export class Canvas2DViewportBackend {
     const color = selected ? '#fbbf24' : categoryColor(item.category);
     this.context.strokeStyle = color;
     this.context.fillStyle = color;
-    this.context.lineWidth = selected ? 4 : 2;
+    this.context.lineWidth = selected ? 4 : item.resolutionStatus === 'fallback' ? 2 : 3;
+    this.context.setLineDash(item.resolutionStatus === 'fallback' ? [6, 4] : []);
 
-    if (item.kind === 'segment') {
-      const start = projection(item.start);
-      const end = projection(item.end);
-      this.context.beginPath();
-      this.context.moveTo(start.x, start.y);
-      this.context.lineTo(end.x, end.y);
-      this.context.stroke();
-      return;
+    if (Array.isArray(item.path) && item.path.length > 1) {
+      this.drawPath(item.path, projection);
+    } else if (Array.isArray(item.legs) && item.legs.length) {
+      item.legs.forEach((leg) => this.drawSegment(leg.start, leg.end, projection));
+      this.drawMarker(item.center, projection, selected ? 7 : 5, 'circle');
+    } else if (item.start && item.end) {
+      this.drawSegment(item.start, item.end, projection);
+      this.drawBodySymbol(item, projection, selected);
+    } else if (item.center) {
+      this.drawBodySymbol(item, projection, selected);
     }
+    this.context.setLineDash([]);
+  }
 
-    const center = projection(item.center);
+  drawPath(path, projection) {
+    const first = projection(path[0]);
     this.context.beginPath();
-    this.context.arc(center.x, center.y, selected ? 6 : 4, 0, Math.PI * 2);
-    this.context.fill();
+    this.context.moveTo(first.x, first.y);
+    path.slice(1).forEach((point) => {
+      const screen = projection(point);
+      this.context.lineTo(screen.x, screen.y);
+    });
+    this.context.stroke();
+  }
+
+  drawSegment(start, end, projection) {
+    const a = projection(start);
+    const b = projection(end);
+    this.context.beginPath();
+    this.context.moveTo(a.x, a.y);
+    this.context.lineTo(b.x, b.y);
+    this.context.stroke();
+  }
+
+  drawBodySymbol(item, projection, selected) {
+    const center = item.center || midpoint(item.start, item.end);
+    if (!center) return;
+    const radius = selected ? 7 : 5;
+    if (item.kind === 'disc') return this.drawMarker(center, projection, radius, 'double-circle');
+    if (item.kind === 'valve-body') return this.drawMarker(center, projection, radius, 'diamond');
+    if (item.kind === 'support-marker') return this.drawMarker(center, projection, radius, 'square');
+    if (item.kind === 'frustum') return this.drawMarker(center, projection, radius, 'triangle');
+    if (!item.start || !item.end) this.drawMarker(center, projection, radius, 'circle');
+  }
+
+  drawMarker(center, projection, radius, shape) {
+    const point = projection(center);
+    this.context.beginPath();
+    if (shape === 'diamond') {
+      this.context.moveTo(point.x, point.y - radius);
+      this.context.lineTo(point.x + radius, point.y);
+      this.context.lineTo(point.x, point.y + radius);
+      this.context.lineTo(point.x - radius, point.y);
+      this.context.closePath();
+    } else if (shape === 'square') {
+      this.context.rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
+    } else if (shape === 'triangle') {
+      this.context.moveTo(point.x, point.y - radius);
+      this.context.lineTo(point.x + radius, point.y + radius);
+      this.context.lineTo(point.x - radius, point.y + radius);
+      this.context.closePath();
+    } else {
+      this.context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    }
+    this.context.stroke();
+    if (shape === 'double-circle') {
+      this.context.beginPath();
+      this.context.arc(point.x, point.y, Math.max(radius - 3, 1), 0, Math.PI * 2);
+      this.context.stroke();
+    }
   }
 
   updateHostMetadata() {
     if (!this.hostElement) return;
-    this.hostElement.dataset.renderableCount = String(this.model?.summary.renderableCount || 0);
-    this.hostElement.dataset.skippedCount = String(this.model?.summary.skippedCount || 0);
+    const summary = this.model?.summary || {};
+    this.hostElement.dataset.renderableCount = String(summary.renderableCount || 0);
+    this.hostElement.dataset.skippedCount = String(summary.skippedCount || 0);
+    this.hostElement.dataset.resolvedCount = String(summary.resolvedCount || 0);
+    this.hostElement.dataset.fallbackCount = String(summary.fallbackCount || 0);
+    this.hostElement.dataset.componentKinds = Object.keys(summary.byKind || {}).sort().join(',');
     this.hostElement.dataset.selectedEntityId = this.selectedEntityId;
   }
 
@@ -181,15 +242,17 @@ export class Canvas2DViewportBackend {
 }
 
 function clearHostMetadata(hostElement) {
-  delete hostElement.dataset.viewportBackend;
-  delete hostElement.dataset.renderableCount;
-  delete hostElement.dataset.skippedCount;
-  delete hostElement.dataset.selectedEntityId;
-  delete hostElement.dataset.lastPickEntityId;
+  ['viewportBackend', 'renderableCount', 'skippedCount', 'resolvedCount', 'fallbackCount',
+    'componentKinds', 'selectedEntityId', 'lastPickEntityId'].forEach((key) => delete hostElement.dataset[key]);
 }
 
 function categoryColor(category) {
   if (category === 'support') return '#f97316';
   if (category === 'pipe') return '#60a5fa';
   return '#a78bfa';
+}
+
+function midpoint(a, b) {
+  if (!a || !b) return null;
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
 }
