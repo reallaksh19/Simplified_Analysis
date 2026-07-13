@@ -119,6 +119,7 @@ function fixture() {
       component('ELBOW-1', 'BEND', {
         points: [point(1000, 0, 0, 168.3), point(1500, 500, 0, 168.3)],
         centrePoint: point(1000, 500, 0),
+        sourceAttributes: { PIPE_OD: 168.3 },
       }),
       component('TEE-1', 'TEE', {
         points: [point(1500, 500, 0), point(2500, 500, 0), point(2000, 1100, 0)],
