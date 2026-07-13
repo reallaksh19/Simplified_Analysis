@@ -58,6 +58,9 @@ jobs:
       - name: Certify W10 staged model support-load bridge
         run: node scripts/w10-staged-model-support-load-contract-check.mjs
 
+      - name: Certify W10.1 shared piping model contracts
+        run: npm run check:w10.1:static
+
       - name: Run full repository checks
         run: npm run check:full
 
