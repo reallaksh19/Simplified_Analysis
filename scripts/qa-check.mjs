@@ -17,7 +17,6 @@ function runCheck(name, cmd) {
 }
 
 let success = true;
-
 const hasPlaywright = fs.existsSync(path.join(process.cwd(), 'node_modules', 'playwright'));
 
 success &= runCheck('Syntax Check', 'npm run syntax:strict');
@@ -32,9 +31,7 @@ function findMathRandom(dir, problems = []) {
             findMathRandom(fullPath, problems);
         } else if (/\.(js|jsx|mjs|cjs)$/.test(entry.name) && !entry.name.includes('.test.') && !entry.name.includes('.spec.')) {
             const content = fs.readFileSync(fullPath, 'utf8');
-            if (content.includes('Math.random')) {
-                problems.push(fullPath);
-            }
+            if (content.includes('Math.random')) problems.push(fullPath);
         }
     }
     return problems;
@@ -96,6 +93,7 @@ const requiredE2EFiles = [
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
     'e2e/phase1-analysis-workspace.spec.js',
+    'e2e/phase2-workspace-dataset.spec.js',
 ];
 
 let e2eFilesOk = true;
@@ -109,20 +107,15 @@ for (const file of requiredE2EFiles) {
     }
 }
 
-if (!e2eFilesOk) {
-    success = false;
-} else {
-    console.log(`✅ Required E2E Files Check passed.`);
-}
+if (!e2eFilesOk) success = false;
+else console.log(`✅ Required E2E Files Check passed.`);
 
 if (skipE2E) {
     console.log(`\nℹ️ Browser E2E execution delegated to explicit CI steps.`);
 } else if (hasPlaywright) {
-    success &= runCheck('E2E Smoke Tests', 'npx playwright test e2e/smoke.spec.js e2e/u7-workflow-smoke.spec.js');
+    success &= runCheck('Workspace E2E Tests', 'npm run check:workspace-browser');
 } else {
     console.log(`\n⚠️ Playwright not found, skipping E2E tests.`);
 }
 
-if (!success) {
-    process.exit(1);
-}
+if (!success) process.exit(1);
