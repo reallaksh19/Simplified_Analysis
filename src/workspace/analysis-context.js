@@ -1,4 +1,5 @@
 import { connectedPipeComponent } from './analysis-connectivity.js';
+import { hasOverride, overrideValue } from './analysis-input-evidence.js';
 import { freezeDeep, stringValue } from './dataset-utils.js';
 
 const PIPE_REFERENCE_KEYS = [
@@ -9,6 +10,13 @@ const PIPE_REFERENCE_KEYS = [
 ];
 
 const LINE_KEYS = ['LINE_NO', 'LINENO', 'LINE_NUMBER', 'LINE_ID', 'LINE'];
+
+const SCREENING_ALIASES = Object.freeze({
+  alpha: ['ALPHA', 'ALPHA_PER_C', 'THERMAL_EXPANSION_COEFFICIENT', 'THERMAL_EXPANSION_COEFF'],
+  E: ['E_MPA', 'ELASTIC_MODULUS_MPA', 'YOUNGS_MODULUS_MPA', 'ELASTIC_MODULUS'],
+  od: ['PIPE_OD', 'PIPEOD', 'OD_MM', 'OUTSIDE_DIAMETER_MM', 'OUTSIDE_DIAMETER', 'OD'],
+  Sa: ['SA_MPA', 'ALLOWABLE_STRESS_MPA', 'ALLOWABLE_STRESS', 'SA'],
+});
 
 export function createAnalysisContext(workspaceState, targetId) {
   const snapshot = workspaceState.getSnapshot();
@@ -80,39 +88,30 @@ export function buildPipeScreeningInput(context) {
     && entity.properties?.geometry?.end
   ));
   const lineEntities = connectedPipeComponent(context.entity, candidates);
+  const parameterEvidence = screeningParameterEvidence(context);
+  const params = Object.fromEntries(
+    Object.entries(parameterEvidence).map(([key, evidence]) => [key, evidence.value]),
+  );
+  const missingParameters = Object.entries(params)
+    .filter(([, value]) => !Number.isFinite(value) || value <= 0)
+    .map(([field]) => field);
+
   if (lineEntities.length < 2) {
     return disabledScreening(
       'At least two connected pipe legs on the selected line are required.',
-      ['connectedLineSegments'],
+      ['connectedLineSegments', ...missingParameters],
+      { lineKey, lineEntities, params, parameterEvidence },
+    );
+  }
+  if (missingParameters.length) {
+    return disabledScreening(
+      `Explicit engineering inputs are missing: ${missingParameters.join(', ')}.`,
+      missingParameters,
+      { lineKey, lineEntities, params, parameterEvidence },
     );
   }
 
   const projected = projectLineEntities(lineEntities);
-  const params = {
-    deltaT: explicitDeltaT(context.entity),
-    alpha: firstNumber(context.entity, [
-      'ALPHA', 'ALPHA_PER_C', 'THERMAL_EXPANSION_COEFFICIENT', 'THERMAL_EXPANSION_COEFF',
-    ]),
-    E: firstNumber(context.entity, [
-      'E_MPA', 'ELASTIC_MODULUS_MPA', 'YOUNGS_MODULUS_MPA', 'ELASTIC_MODULUS',
-    ]),
-    od: firstNumber(context.entity, [
-      'PIPE_OD', 'PIPEOD', 'OD_MM', 'OUTSIDE_DIAMETER_MM', 'OUTSIDE_DIAMETER', 'OD',
-    ]),
-    Sa: firstNumber(context.entity, [
-      'SA_MPA', 'ALLOWABLE_STRESS_MPA', 'ALLOWABLE_STRESS', 'SA',
-    ]),
-  };
-  const missing = Object.entries(params)
-    .filter(([, value]) => !Number.isFinite(value) || value <= 0)
-    .map(([field]) => field);
-  if (missing.length) {
-    return disabledScreening(
-      `Explicit engineering inputs are missing: ${missing.join(', ')}.`,
-      missing,
-    );
-  }
-
   return freezeDeep({
     enabled: true,
     reason: '',
@@ -125,8 +124,10 @@ export function buildPipeScreeningInput(context) {
       diagnostics: [],
     },
     params,
+    parameterEvidence,
     sourceEntityIds: lineEntities.map((entity) => entity.entityId),
     projectionAxes: projected.axes,
+    connectedSegmentCount: lineEntities.length,
   });
 }
 
@@ -141,51 +142,76 @@ export function resolveLineKey(entity) {
 }
 
 export function firstNumber(entity, aliases) {
-  const value = firstValue(entity, aliases);
-  if (value === null || value === undefined || value === '') return null;
-  const number = Number(value);
+  const evidence = firstValueEvidence(entity, aliases);
+  if (!evidence.found || evidence.value === '') return null;
+  const number = Number(evidence.value);
   return Number.isFinite(number) ? number : null;
 }
 
 function firstString(entity, aliases) {
-  const value = firstValue(entity, aliases);
-  return stringValue(value);
+  const evidence = firstValueEvidence(entity, aliases);
+  return stringValue(evidence.found ? evidence.value : '');
 }
 
-function firstValue(entity, aliases) {
+function screeningParameterEvidence(context) {
+  return freezeDeep({
+    deltaT: deltaTEvidence(context),
+    alpha: numberEvidence(context, 'alpha', SCREENING_ALIASES.alpha),
+    E: numberEvidence(context, 'E', SCREENING_ALIASES.E),
+    od: numberEvidence(context, 'od', SCREENING_ALIASES.od),
+    Sa: numberEvidence(context, 'Sa', SCREENING_ALIASES.Sa),
+  });
+}
+
+function numberEvidence(context, key, aliases) {
+  if (hasOverride(context, key)) {
+    return evidence(Number(overrideValue(context, key)), 'override', `analysisSession.overrides.${key}`);
+  }
+  const found = firstValueEvidence(context.entity, aliases);
+  const value = found.found ? Number(found.value) : null;
+  return evidence(Number.isFinite(value) ? value : null, found.found ? 'source' : 'missing', found.path);
+}
+
+function deltaTEvidence(context) {
+  if (hasOverride(context, 'deltaT')) {
+    return evidence(Number(overrideValue(context, 'deltaT')), 'override', 'analysisSession.overrides.deltaT');
+  }
+  const direct = firstValueEvidence(context.entity, ['DELTA_T', 'DELTAT', 'TEMPERATURE_DIFFERENCE_C']);
+  if (direct.found && Number.isFinite(Number(direct.value))) {
+    return evidence(Number(direct.value), 'source', direct.path);
+  }
+  const operating = firstValueEvidence(context.entity, ['TEMP_EXP_C1', 'TEMP_C1', 'T1', 'OPERATING_TEMPERATURE_C']);
+  const reference = firstValueEvidence(context.entity, ['REFERENCE_TEMP_C', 'TREF', 'AMBIENT_TEMP_C']);
+  if (!operating.found || !reference.found) return evidence(null, 'missing', '');
+  const value = Math.abs(Number(operating.value) - Number(reference.value));
+  return evidence(Number.isFinite(value) ? value : null, 'derived', `${operating.path} - ${reference.path}`);
+}
+
+function firstValueEvidence(entity, aliases) {
   const wanted = new Set(aliases.map(normalizeKey));
   const roots = [
-    entity.properties?.sourceAttributes,
-    entity.properties?.attributes,
-    entity.properties?.enrichedAttributes,
-    entity.properties?.nativeParams,
+    ['properties.sourceAttributes', entity.properties?.sourceAttributes],
+    ['properties.attributes', entity.properties?.attributes],
+    ['properties.enrichedAttributes', entity.properties?.enrichedAttributes],
+    ['properties.nativeParams', entity.properties?.nativeParams],
   ];
-  for (const root of roots) {
-    const match = findValue(root, wanted, 0);
-    if (match.found) return match.value;
+  for (const [rootPath, root] of roots) {
+    const match = findValue(root, wanted, 0, rootPath);
+    if (match.found) return match;
   }
-  return null;
+  return { found: false, value: null, path: '' };
 }
 
-function findValue(value, wanted, depth) {
+function findValue(value, wanted, depth, path) {
   if (!value || typeof value !== 'object' || depth > 5) return { found: false };
   for (const [key, child] of Object.entries(value)) {
-    if (wanted.has(normalizeKey(key))) return { found: true, value: child };
+    if (wanted.has(normalizeKey(key))) return { found: true, value: child, path: `${path}.${key}` };
   }
-  for (const child of Object.values(value)) {
-    const nested = findValue(child, wanted, depth + 1);
+  for (const [key, child] of Object.entries(value)) {
+    const nested = findValue(child, wanted, depth + 1, `${path}.${key}`);
     if (nested.found) return nested;
   }
   return { found: false };
-}
-
-function explicitDeltaT(entity) {
-  const direct = firstNumber(entity, ['DELTA_T', 'DELTAT', 'TEMPERATURE_DIFFERENCE_C']);
-  if (direct !== null) return direct;
-  const operating = firstNumber(entity, ['TEMP_EXP_C1', 'TEMP_C1', 'T1', 'OPERATING_TEMPERATURE_C']);
-  const reference = firstNumber(entity, ['REFERENCE_TEMP_C', 'TREF', 'AMBIENT_TEMP_C']);
-  if (operating === null || reference === null) return null;
-  return Math.abs(operating - reference);
 }
 
 function projectLineEntities(entities) {
@@ -217,8 +243,23 @@ function projectLineEntities(entities) {
   return freezeDeep({ axes, nodes, segments });
 }
 
-function disabledScreening(reason, missing = []) {
-  return freezeDeep({ enabled: false, reason, missing, input: null, params: null });
+function disabledScreening(reason, missing = [], details = {}) {
+  return freezeDeep({
+    enabled: false,
+    reason,
+    missing,
+    input: null,
+    params: details.params || null,
+    parameterEvidence: details.parameterEvidence || {},
+    lineKey: details.lineKey || '',
+    sourceEntityIds: (details.lineEntities || []).map((entity) => entity.entityId),
+    connectedSegmentCount: (details.lineEntities || []).length,
+    projectionAxes: [],
+  });
+}
+
+function evidence(value, source, path) {
+  return freezeDeep({ value, source: value == null ? 'missing' : source, sourcePath: path || '' });
 }
 
 function normalizeKey(value) {
