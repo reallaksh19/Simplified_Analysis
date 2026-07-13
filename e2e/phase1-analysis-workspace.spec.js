@@ -39,7 +39,7 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
   await expect(propertiesPanel).toContainText('material');
   await expect(propertiesPanel).toContainText('Steel');
 
-  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(2);
+  expect(await page.evaluate(() => EventBus.listenerCount('viewport:entitySelected'))).toBe(3);
   expect(await page.evaluate(() => EventBus.listenerCount('viewport:selectionRequested'))).toBe(1);
 
   await page.evaluate(() => AnalysisWorkspace.destroy());
@@ -53,14 +53,18 @@ test('publishes selection without left-panel coupling and detaches on destroy', 
     'workspace:snapshotChanged',
     'viewport:selectionRequested',
     'viewport:entitySelected',
+    'analysis:capabilitiesChanged',
     'analysis:requested',
+    'analysis:started',
+    'analysis:completed',
+    'analysis:failed',
   ];
   for (const topic of topics) {
     expect(await page.evaluate((value) => EventBus.listenerCount(value), topic)).toBe(0);
   }
 });
 
-test('tree selection and contextual analysis remain event-driven', async ({ page }) => {
+test('tree selection remains event-driven when no analysis capability is ready', async ({ page }) => {
   await page.goto('/');
   await page.locator('[data-role="dataset-file"]').setInputFiles({
     name: 'support.json',
@@ -68,12 +72,11 @@ test('tree selection and contextual analysis remain event-driven', async ({ page
     buffer: Buffer.from(JSON.stringify(SUPPORT_PACKAGE)),
   });
 
-  await page.locator('[data-entity-id="SUP-201"]').click();
+  const support = page.locator('[data-entity-id="SUP-201"]');
+  await support.click();
+  await expect(support).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('[data-panel="properties"]')).toContainText('SUP-201');
   await expect(page.locator('[data-panel="properties"]')).toContainText('Guide');
-
-  await page.getByRole('button', { name: 'Run contextual analysis' }).click();
-  await expect(page.locator('[data-role="viewport-selection"]')).toHaveText(
-    'Requested: support-load · SUP-201',
-  );
+  await expect(page.locator('[data-role="viewport-selection"]')).toHaveText('Selection: SUP-201');
+  await expect(page.locator('[data-analysis-type="support-load"]')).toBeDisabled();
 });
