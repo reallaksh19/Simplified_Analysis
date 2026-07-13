@@ -8,11 +8,22 @@ export function renderWorkspaceLayout(rootElement) {
           <span class="panel-eyebrow">Analysis Workspace</span>
           <h1>Dataset Tree</h1>
         </header>
-        <section class="layer-summary" aria-label="Visible layers">
-          <span>Pipes</span>
-          <span>Supports</span>
+        <section class="dataset-toolbar" aria-label="Dataset actions">
+          <div class="dataset-toolbar__actions">
+            <button type="button" data-action="import-dataset">Import JSON</button>
+            <button type="button" data-action="clear-dataset" disabled>Clear</button>
+          </div>
+          <input data-role="dataset-file" type="file" accept=".json,application/json" hidden>
+          <output data-role="tree-status">No dataset loaded</output>
+          <p class="dataset-error" data-role="tree-error" hidden></p>
         </section>
-        <div class="tree-list" data-role="tree-list"></div>
+        <section class="layer-summary" aria-label="Dataset summary">
+          <span data-role="summary-pipes">Pipes 0</span>
+          <span data-role="summary-supports">Supports 0</span>
+        </section>
+        <div class="tree-list" data-role="tree-list">
+          <p class="panel-empty">Import a supported workspace JSON package.</p>
+        </div>
       </aside>
 
       <section class="workspace-panel viewport-panel" data-panel="viewport" aria-label="3D viewport">
@@ -26,7 +37,7 @@ export function renderWorkspaceLayout(rootElement) {
         <div class="viewport-stage" data-webgl-host aria-label="WebGL canvas mount point">
           <div class="viewport-placeholder">
             <strong>WebGL viewport host</strong>
-            <span>Phase 1 intentionally contains no rendering engine.</span>
+            <span>Phase 2 intentionally contains no rendering engine.</span>
           </div>
         </div>
         <footer class="viewport-footer" data-role="viewport-selection">Selection: none</footer>
