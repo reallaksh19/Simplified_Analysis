@@ -125,7 +125,7 @@ test('incomplete engineering data opens review and forced requests fail determin
     });
   });
   await expect(page.locator('[data-role="analysis-status"]')).toHaveText('support-load failed');
-  await expect(page.locator('[data-role="analysis-result"]')).toContainText('CAPABILITY_NOT_READY');
+  await expect(page.locator('[data-role="analysis-result"]')).toContainText('UNREVIEWED_ANALYSIS_SESSION');
 });
 
 test('selection change clears previous result and destroy removes analysis listeners', async ({ page }) => {
