@@ -1,5 +1,6 @@
 import { EventBus } from './event-bus.js';
 import { EVENT_TOPICS } from './event-topics.js';
+import { buildResolvedEngineeringGeometry } from './resolved-engineering-geometry.js';
 import { buildViewportRenderModel } from './viewport-render-model.js';
 import { ViewportRenderer } from './viewport-renderer.js';
 
@@ -11,6 +12,7 @@ export class ViewportPanel {
     this.renderer = renderer;
     this.unsubscribers = [];
     this.datasetReference = null;
+    this.resolvedGeometry = null;
     this.renderModel = null;
     this.handleClick = this.handleClick.bind(this);
     this.handleSelectionRequest = this.handleSelectionRequest.bind(this);
@@ -53,7 +55,8 @@ export class ViewportPanel {
 
     if (snapshot.dataset !== this.datasetReference) {
       this.datasetReference = snapshot.dataset;
-      this.renderModel = buildViewportRenderModel(snapshot.dataset);
+      this.resolvedGeometry = buildResolvedEngineeringGeometry(snapshot.dataset);
+      this.renderModel = buildViewportRenderModel(this.resolvedGeometry);
       this.renderer.renderModel(this.renderModel);
       this.statusElement.textContent = statusText(
         snapshot.dataset.datasetId,
@@ -95,6 +98,7 @@ export class ViewportPanel {
 
   clear() {
     this.datasetReference = null;
+    this.resolvedGeometry = null;
     this.renderModel = null;
     this.renderer.clear();
     this.statusElement.textContent = 'No dataset loaded';
@@ -106,6 +110,7 @@ export class ViewportPanel {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers = [];
     this.datasetReference = null;
+    this.resolvedGeometry = null;
     this.renderModel = null;
     this.renderer.setSelectionRequestHandler(null);
     this.renderer.destroy();
@@ -113,5 +118,12 @@ export class ViewportPanel {
 }
 
 function statusText(datasetId, backend, summary) {
-  return `${datasetId} · ${backend} · ${summary.renderableCount} rendered · ${summary.skippedCount} skipped`;
+  return [
+    datasetId,
+    backend,
+    `${summary.renderableCount} rendered`,
+    `${summary.resolvedCount || 0} resolved`,
+    `${summary.fallbackCount || 0} fallback`,
+    `${summary.skippedCount} skipped`,
+  ].join(' · ');
 }
