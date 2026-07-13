@@ -21,9 +21,8 @@ export class ViewportRenderer {
     }
 
     try {
-      const backend = new ThreeViewportBackend();
-      backend.mount(hostElement);
-      this.backend = backend;
+      this.backend = new ThreeViewportBackend();
+      this.backend.mount(hostElement);
       this.backendName = 'webgl';
     } catch (error) {
       this.lastError = error;
