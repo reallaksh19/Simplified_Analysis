@@ -55,6 +55,9 @@ jobs:
       - name: Certify Phase 9 analysis readiness contracts
         run: npm run check:phase9-workspace:static
 
+      - name: Certify W10 staged model support-load bridge
+        run: node scripts/w10-staged-model-support-load-contract-check.mjs
+
       - name: Run full repository checks
         run: npm run check:full
 
