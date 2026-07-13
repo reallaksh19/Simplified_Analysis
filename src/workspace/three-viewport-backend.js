@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import {
+  createThreeEngineeringObject,
+  disposeThreeEngineeringObject,
+  setThreeEngineeringSelection,
+} from './three-engineering-primitives.js';
 import { assertViewportRenderModel } from './viewport-render-model.js';
 
 const SELECTED_COLOR = 0xfbbf24;
@@ -80,12 +85,11 @@ export class ThreeViewportBackend {
     this.raycaster.params.Line.threshold = Math.max(model.bounds.radius * 0.015, 0.5);
 
     model.items.forEach((item) => {
-      const object = item.kind === 'segment'
-        ? createLine(item)
-        : createMarker(item, markerRadius);
+      const object = createThreeEngineeringObject(item, markerRadius);
       object.userData.entityId = item.entityId;
-      object.userData.baseColor = object.material.color.getHex();
-      object.userData.baseScale = object.scale.x;
+      object.traverse((child) => {
+        if (!child.userData.entityId) child.userData.entityId = item.entityId;
+      });
       this.objects.set(item.entityId, object);
       this.modelGroup.add(object);
     });
@@ -106,11 +110,7 @@ export class ThreeViewportBackend {
   setSelection(entityId) {
     this.selectedEntityId = String(entityId || '');
     this.objects.forEach((object, id) => {
-      const selected = id === this.selectedEntityId;
-      object.material.color.setHex(selected ? SELECTED_COLOR : object.userData.baseColor);
-      if (object.isMesh) {
-        object.scale.setScalar(selected ? object.userData.baseScale * 1.5 : object.userData.baseScale);
-      }
+      setThreeEngineeringSelection(object, id === this.selectedEntityId, SELECTED_COLOR);
     });
     this.updateHostMetadata();
     this.renderOnce();
@@ -207,17 +207,19 @@ export class ThreeViewportBackend {
     if (!this.modelGroup) return;
     [...this.modelGroup.children].forEach((object) => {
       this.modelGroup.remove(object);
-      object.geometry?.dispose?.();
-      if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose());
-      else object.material?.dispose?.();
+      disposeThreeEngineeringObject(object);
     });
     this.objects.clear();
   }
 
   updateHostMetadata() {
     if (!this.hostElement) return;
-    this.hostElement.dataset.renderableCount = String(this.model?.summary.renderableCount || 0);
-    this.hostElement.dataset.skippedCount = String(this.model?.summary.skippedCount || 0);
+    const summary = this.model?.summary || {};
+    this.hostElement.dataset.renderableCount = String(summary.renderableCount || 0);
+    this.hostElement.dataset.skippedCount = String(summary.skippedCount || 0);
+    this.hostElement.dataset.resolvedCount = String(summary.resolvedCount || 0);
+    this.hostElement.dataset.fallbackCount = String(summary.fallbackCount || 0);
+    this.hostElement.dataset.componentKinds = Object.keys(summary.byKind || {}).sort().join(',');
     this.hostElement.dataset.selectedEntityId = this.selectedEntityId;
   }
 
@@ -242,22 +244,6 @@ export class ThreeViewportBackend {
   }
 }
 
-function createLine(item) {
-  const geometry = new THREE.BufferGeometry().setFromPoints([vector(item.start), vector(item.end)]);
-  return new THREE.Line(
-    geometry,
-    new THREE.LineBasicMaterial({ color: categoryColor(item.category) }),
-  );
-}
-
-function createMarker(item, radius) {
-  const geometry = new THREE.SphereGeometry(radius, 16, 12);
-  const material = new THREE.MeshStandardMaterial({ color: categoryColor(item.category) });
-  const marker = new THREE.Mesh(geometry, material);
-  marker.position.copy(vector(item.center));
-  return marker;
-}
-
 function resolveEntityId(object) {
   let current = object;
   while (current) {
@@ -268,19 +254,6 @@ function resolveEntityId(object) {
 }
 
 function clearHostMetadata(hostElement) {
-  delete hostElement.dataset.viewportBackend;
-  delete hostElement.dataset.renderableCount;
-  delete hostElement.dataset.skippedCount;
-  delete hostElement.dataset.selectedEntityId;
-  delete hostElement.dataset.lastPickEntityId;
-}
-
-function vector(point) {
-  return new THREE.Vector3(point.x, point.y, point.z);
-}
-
-function categoryColor(category) {
-  if (category === 'support') return 0xf97316;
-  if (category === 'pipe') return 0x60a5fa;
-  return 0xa78bfa;
+  ['viewportBackend', 'renderableCount', 'skippedCount', 'resolvedCount', 'fallbackCount',
+    'componentKinds', 'selectedEntityId', 'lastPickEntityId'].forEach((key) => delete hostElement.dataset[key]);
 }
