@@ -43,6 +43,9 @@ jobs:
       - name: Certify Phase 5 analysis contracts
         run: npm run check:phase5-workspace:static
 
+      - name: Certify Phase 6 analysis session contracts
+        run: npm run check:phase6-workspace:static
+
       - name: Run full repository checks
         run: npm run check:full
 
