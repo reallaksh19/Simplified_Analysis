@@ -13,6 +13,7 @@ export class ViewportPanel {
     this.datasetReference = null;
     this.renderModel = null;
     this.handleClick = this.handleClick.bind(this);
+    this.handleSelectionRequest = this.handleSelectionRequest.bind(this);
   }
 
   init() {
@@ -20,6 +21,7 @@ export class ViewportPanel {
     this.statusElement = this.requireElement('[data-role="viewport-status"]');
     this.selectionElement = this.requireElement('[data-role="viewport-selection"]');
     this.hostElement = this.requireElement('[data-role="viewport-render-host"]');
+    this.renderer.setSelectionRequestHandler(this.handleSelectionRequest);
     this.renderer.mount(this.hostElement);
 
     this.unsubscribers = [
@@ -51,22 +53,26 @@ export class ViewportPanel {
 
   renderSnapshot(snapshot) {
     if (snapshot.status !== 'ready' || !snapshot.dataset) return;
-    if (snapshot.dataset === this.datasetReference) return;
 
-    this.datasetReference = snapshot.dataset;
-    this.renderModel = buildViewportRenderModel(snapshot.dataset);
-    this.renderer.renderModel(this.renderModel);
-    this.statusElement.textContent = statusText(
-      snapshot.dataset.datasetId,
-      this.renderer.backendName,
-      this.renderModel.summary,
-    );
-    this.selectionElement.textContent = 'Selection: none';
+    if (snapshot.dataset !== this.datasetReference) {
+      this.datasetReference = snapshot.dataset;
+      this.renderModel = buildViewportRenderModel(snapshot.dataset);
+      this.renderer.renderModel(this.renderModel);
+      this.statusElement.textContent = statusText(
+        snapshot.dataset.datasetId,
+        this.renderer.backendName,
+        this.renderModel.summary,
+      );
+    }
+    this.renderSelection(snapshot.selectedEntityId);
   }
 
   renderSelection(entityId) {
-    this.renderer.setSelection(entityId);
-    this.selectionElement.textContent = `Selection: ${entityId || 'Unknown'}`;
+    const selectedId = String(entityId || '');
+    this.renderer.setSelection(selectedId);
+    this.selectionElement.textContent = selectedId
+      ? `Selection: ${selectedId}`
+      : 'Selection: none';
   }
 
   renderImportFailure(message) {
@@ -74,6 +80,13 @@ export class ViewportPanel {
     this.statusElement.textContent = retained
       ? `Import failed · retained ${retained} rendered · ${message}`
       : `Import failed: ${message}`;
+  }
+
+  handleSelectionRequest(entityId) {
+    this.eventBus.publish(EVENT_TOPICS.VIEWPORT_SELECTION_REQUESTED, {
+      entityId,
+      source: 'viewport',
+    });
   }
 
   handleClick(event) {
@@ -97,6 +110,7 @@ export class ViewportPanel {
     this.unsubscribers = [];
     this.datasetReference = null;
     this.renderModel = null;
+    this.renderer.setSelectionRequestHandler(null);
     this.renderer.destroy();
   }
 }
