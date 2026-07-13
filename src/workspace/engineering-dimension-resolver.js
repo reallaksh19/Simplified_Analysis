@@ -3,8 +3,9 @@ import { freezeDeep, isRecord, stringValue } from './dataset-utils.js';
 const FIELD_ALIASES = Object.freeze({
   outerDiameterMm: [
     'outerDiameterMm', 'outsideDiameter', 'outsideDiameterMm', 'OUTSIDE_DIAMETER', 'OUTSIDE-DIAMETER',
-    'PIPE_OD', 'PIPE_OD_MM', 'OD', 'DIAMETER', 'BORE',
+    'PIPE_OD', 'PIPE_OD_MM', 'OD', 'DIAMETER',
   ],
+  nominalBoreMm: ['nominalBoreMm', 'nominalBore', 'NOMINAL_BORE', 'NOMINAL_BORE_MM', 'BORE'],
   wallThicknessMm: ['wallThicknessMm', 'wallThickness', 'WALL_THICKNESS_MM', 'WALL_THICKNESS', 'THICKNESS'],
   bendRadiusMm: ['bendRadiusMm', 'bendRadius', 'BEND_RADIUS_MM', 'BEND_RADIUS', 'RADIUS'],
   angleDeg: ['angleDeg', 'angle', 'ANGLE_DEG', 'ANGLE', 'BEND_ANGLE'],
@@ -14,7 +15,7 @@ const FIELD_ALIASES = Object.freeze({
   outletDiameterMm: [
     'outletDiameterMm', 'outletDiameter', 'smallEndDiameter', 'SMALL_END_DIAMETER', 'OD2', 'DIAMETER2', 'END2_DIAMETER',
   ],
-  branchDiameterMm: ['branchDiameterMm', 'branchDiameter', 'BRANCH_DIAMETER', 'BRANCH_OD', 'BRANCH_BORE'],
+  branchDiameterMm: ['branchDiameterMm', 'branchDiameter', 'BRANCH_DIAMETER', 'BRANCH_OD'],
   flangeOutsideDiameterMm: [
     'flangeOutsideDiameterMm', 'flangeOutsideDiameter', 'FLANGE_OUTSIDE_DIAMETER', 'FLANGE_OD', 'OD_FLANGE',
   ],
@@ -43,34 +44,13 @@ export function resolveEngineeringDimensions(entity) {
   });
 
   const geometryBore = positiveNumber(entity?.properties?.geometry?.boreMm);
-  if (values.outerDiameterMm === null && geometryBore !== null) {
-    values.outerDiameterMm = geometryBore;
-    evidence.outerDiameterMm = freezeDeep({
+  if (values.nominalBoreMm === null && geometryBore !== null) {
+    values.nominalBoreMm = geometryBore;
+    evidence.nominalBoreMm = freezeDeep({
       value: geometryBore,
       sourcePath: 'properties.geometry.boreMm',
       sourceKey: 'boreMm',
     });
-  }
-
-  if (values.inletDiameterMm === null && values.outerDiameterMm !== null) {
-    values.inletDiameterMm = values.outerDiameterMm;
-    evidence.inletDiameterMm = derivedEvidence(values.outerDiameterMm, 'outerDiameterMm');
-  }
-  if (values.outletDiameterMm === null && values.outerDiameterMm !== null) {
-    values.outletDiameterMm = values.outerDiameterMm;
-    evidence.outletDiameterMm = derivedEvidence(values.outerDiameterMm, 'outerDiameterMm');
-  }
-  if (values.branchDiameterMm === null && values.outerDiameterMm !== null) {
-    values.branchDiameterMm = values.outerDiameterMm;
-    evidence.branchDiameterMm = derivedEvidence(values.outerDiameterMm, 'outerDiameterMm');
-  }
-  if (values.flangeOutsideDiameterMm === null && values.outerDiameterMm !== null) {
-    values.flangeOutsideDiameterMm = values.outerDiameterMm;
-    evidence.flangeOutsideDiameterMm = derivedEvidence(values.outerDiameterMm, 'outerDiameterMm');
-  }
-  if (values.valveBodyDiameterMm === null && values.outerDiameterMm !== null) {
-    values.valveBodyDiameterMm = values.outerDiameterMm;
-    evidence.valveBodyDiameterMm = derivedEvidence(values.outerDiameterMm, 'outerDiameterMm');
   }
 
   return freezeDeep({ values, evidence });
@@ -135,10 +115,6 @@ function numberMaybe(value) {
 function positiveNumber(value) {
   const parsed = numberMaybe(value);
   return parsed !== null && parsed > 0 ? parsed : null;
-}
-
-function derivedEvidence(value, field) {
-  return freezeDeep({ value, sourcePath: `derived.${field}`, sourceKey: field });
 }
 
 function normalizeKey(value) {
