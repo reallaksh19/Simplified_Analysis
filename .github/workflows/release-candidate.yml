@@ -37,6 +37,8 @@ jobs:
         run: npm run check:phase9-workspace:static
       - name: Certify W10 staged model support-load bridge
         run: node scripts/w10-staged-model-support-load-contract-check.mjs
+      - name: Certify W10.1 shared piping model contracts
+        run: npm run check:w10.1:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e

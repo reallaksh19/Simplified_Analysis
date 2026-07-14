@@ -17,6 +17,7 @@ const requiredE2EFiles = [
   'e2e/phase7-analysis-ledger.spec.js',
   'e2e/phase8-engineering-geometry.spec.js',
   'e2e/phase9-analysis-readiness.spec.js',
+  'e2e/w10.1-shared-model-export.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -144,6 +145,16 @@ checkSpecContracts('e2e/phase9-analysis-readiness.spec.js', [
   'data-readiness-analysis-type',
   'UNREVIEWED_ANALYSIS_SESSION',
   'getAnalysisSession',
+]);
+
+checkSpecContracts('e2e/w10.1-shared-model-export.spec.js', [
+  'shared-piping-model/v1',
+  'Export Shared Model',
+  'getSharedModel',
+  'sharedModel:exportRequested',
+  '__sharedModelUrlAudit',
+  'clear-dataset',
+  'AnalysisWorkspace.destroy()',
 ]);
 
 console.log();
