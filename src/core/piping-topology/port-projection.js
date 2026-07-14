@@ -200,7 +200,12 @@ function validateUniqueRows(rows, key, label, errors) {
 
 function assertSharedModel(model) {
   const validation = validateSharedPipingModel(model);
-  if (!validation.ok) throw new TypeError(`Port projection requires shared-piping-model/v1: ${validation.errors.join(' ')}`);
+  const blockers = validation.errors.filter((error) => !isRecoverablePositionError(error));
+  if (blockers.length) throw new TypeError(`Port projection requires shared-piping-model/v1: ${blockers.join(' ')}`);
+}
+
+function isRecoverablePositionError(error) {
+  return /^Shared model port .+ position is required\.$/.test(error);
 }
 
 function cloneRecord(value) {
