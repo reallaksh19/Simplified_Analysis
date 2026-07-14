@@ -67,6 +67,9 @@ jobs:
       - name: Certify W10.3 support attachment and restraint capability
         run: npm run check:w10.3:static
 
+      - name: Certify W10.4 reusable model loads
+        run: npm run check:w10.4:static
+
       - name: Run full repository checks
         run: npm run check:full
 
