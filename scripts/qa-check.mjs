@@ -25,6 +25,7 @@ success &= runCheck('W10.1 Shared Model Static Check', 'npm run check:w10.1:stat
 success &= runCheck('W10.2 Topology Static Check', 'npm run check:w10.2:static');
 success &= runCheck('W10.3 Support/Restraint Static Check', 'npm run check:w10.3:static');
 success &= runCheck('W10.4 Model Load Static Check', 'npm run check:w10.4:static');
+success &= runCheck('W10.5 Support Load Screening Static Check', 'npm run check:w10.5:static');
 
 console.log(`\n--- Running Math.random Check ---`);
 function findMathRandom(dir, problems = []) {
@@ -109,6 +110,7 @@ const requiredE2EFiles = [
     'e2e/w10.2-topology-workspace.spec.js',
     'e2e/w10.3-support-restraint-workspace.spec.js',
     'e2e/w10.4-model-load-workspace.spec.js',
+    'e2e/w10.5-support-load-screening-workspace.spec.js',
 ];
 
 let e2eFilesOk = true;

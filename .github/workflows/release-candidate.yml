@@ -45,6 +45,8 @@ jobs:
         run: npm run check:w10.3:static
       - name: Certify W10.4 reusable model loads
         run: npm run check:w10.4:static
+      - name: Certify W10.5 topology-local tributary screening
+        run: npm run check:w10.5:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e

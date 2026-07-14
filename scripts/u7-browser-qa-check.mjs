@@ -21,6 +21,7 @@ const requiredE2EFiles = [
   'e2e/w10.2-topology-workspace.spec.js',
   'e2e/w10.3-support-restraint-workspace.spec.js',
   'e2e/w10.4-model-load-workspace.spec.js',
+  'e2e/w10.5-support-load-screening-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -190,6 +191,18 @@ checkSpecContracts('e2e/w10.4-model-load-workspace.spec.js', [
   'getLoadPrimitiveSet',
   'modelLoad:exportRequested',
   '__modelLoadUrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.5-support-load-screening-workspace.spec.js', [
+  'tributary-support-load-screening/v1',
+  'Rebuild Vertical Load Paths',
+  'Run Tributary Screening',
+  'Export Support Load Screening',
+  'getVerticalLoadPathModel',
+  'getSupportLoadScreening',
+  'supportLoadScreening:exportRequested',
+  '__w105UrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 
