@@ -77,7 +77,16 @@ jobs:
         run: npm run check:full
 
       - name: Run QA static checks
-        run: npm run check:qa -- --skip-e2e
+        run: set -o pipefail; npm run check:qa -- --skip-e2e 2>&1 | tee w10.2-qa.log
+
+      - name: Upload W10.2 QA diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w10.2-qa-diagnostics-u0
+          path: w10.2-qa.log
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
