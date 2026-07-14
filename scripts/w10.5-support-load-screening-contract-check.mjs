@@ -13,6 +13,7 @@ import {
   buildCycleFixture,
   buildDisconnectedFixture,
   buildStraightFixture,
+  buildUnavailableStationFixture,
   runFixture,
 } from './w10.5-screening-fixtures.mjs';
 
@@ -168,13 +169,15 @@ function checkSupportEvidenceDetails() {
     supports: [
       { key: 'SUP-A', stationM: 0, verticalState: 'RESTRAINED' },
       { key: 'SUP-B', stationM: 1, verticalState: 'RESTRAINED' },
-      { key: 'SUP-UNATTACHED', stationM: 0.25, verticalState: 'RESTRAINED', unattached: true },
-      { key: 'SUP-NO-STATION', stationM: 0.5, verticalState: 'RESTRAINED', missingPosition: true, attachedComponentKey: 'COMP-1' },
+      { key: 'SUP-UNATTACHED', stationM: 0.25, verticalState: 'RESTRAINED', unattached: true, lineId: 'OTHER-LINE' },
     ],
   }).pathFoundation.pathModel.paths[0];
   assert.equal(extraBlocked.qualification, 'READY');
   assert.equal(extraBlocked.blockers.includes(AUDIT_CODES.SUPPORT_UNATTACHED), true);
-  assert.equal(extraBlocked.blockers.includes(AUDIT_CODES.SUPPORT_STATION_UNAVAILABLE), true);
+
+  const stationPath = buildUnavailableStationFixture().pathFoundation.pathModel.paths[0];
+  assert.equal(stationPath.qualification, 'READY');
+  assert.equal(stationPath.blockers.includes(AUDIT_CODES.SUPPORT_STATION_UNAVAILABLE), true);
 
   const disconnected = buildDisconnectedFixture().pathFoundation.pathModel;
   assert.equal(disconnected.paths.every((path) => path.blockers.includes(AUDIT_CODES.SUPPORT_PATH_MISMATCH)), true);
