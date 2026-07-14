@@ -7,7 +7,7 @@ import {
   SUPPORT_EVIDENCE_SPECS,
 } from '../property-specs.js';
 import { createSharedPipingModel } from '../shared-piping-model.js';
-import { collectSupportEvidence } from '../../support-restraints/support-evidence-collector.js';
+import { collectSupportEvidence } from '../support-evidence.js';
 
 const WORKSPACE_DATASET_SCHEMA = 'analysis-workspace-dataset/v1';
 const CONTAINER_TYPES = new Set(['BRANCH', 'GROUP', 'MODEL', 'ROOT', 'FOLDER', 'SYSTEM', 'ZONE']);
