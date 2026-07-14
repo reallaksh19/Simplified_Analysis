@@ -7,8 +7,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sharedEvidenceFiles = ['src/core/shared-piping-model/support-evidence.js'];
 const runtimeFiles = [
   ...walk('src/core/support-restraints'),
+  ...sharedEvidenceFiles,
   ...walk('src/workspace').filter((file) => path.basename(file).startsWith('support-restraint-')),
 ];
 const missionFiles = [
@@ -21,6 +23,7 @@ console.log('\n--- W10.3 Support/Restraint Source Guards ---');
 missionFiles.forEach(checkSizeAndExports);
 runtimeFiles.forEach(checkDeterminism);
 walk('src/core/support-restraints').forEach(checkCoreBoundary);
+checkSharedModelDependencyDirection();
 checkSpatialAlgorithm();
 checkRequiredExports();
 checkChangedPaths();
@@ -61,6 +64,13 @@ function checkCoreBoundary(relativePath) {
   assert.doesNotMatch(source, /sourceSnapshot\s*\.\s*sourcePackage/, `${relativePath} traverses raw source snapshots.`);
 }
 
+function checkSharedModelDependencyDirection() {
+  const adapter = read('src/core/shared-piping-model/adapters/workspace-dataset-to-shared.js');
+  const collector = read('src/core/shared-piping-model/support-evidence.js');
+  assert.doesNotMatch(adapter, /support-restraints\//, 'Shared-model adapter imports a downstream support-restraints module.');
+  assert.doesNotMatch(collector, /support-restraints\//, 'Shared-model evidence collector imports a downstream support-restraints module.');
+}
+
 function checkSpatialAlgorithm() {
   const source = read('src/core/support-restraints/attachment-resolver.js');
   assert.match(source, /spatialIndex\.query/, 'Geometric projection does not use the spatial index.');
@@ -89,6 +99,7 @@ function checkChangedPaths() {
   if (!changed.length) return;
   const allowedExact = new Set([
     'src/core/shared-piping-model/property-specs.js',
+    'src/core/shared-piping-model/support-evidence.js',
     'src/core/shared-piping-model/adapters/workspace-dataset-to-shared.js',
     'src/core/shared-piping-model/index.js',
     'src/core/piping-topology/index.js',
