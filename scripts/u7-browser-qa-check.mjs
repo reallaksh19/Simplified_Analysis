@@ -22,6 +22,7 @@ const requiredE2EFiles = [
   'e2e/w10.3-support-restraint-workspace.spec.js',
   'e2e/w10.4-model-load-workspace.spec.js',
   'e2e/w10.5-support-load-screening-workspace.spec.js',
+  'e2e/w10.6-vertical-beam-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -203,6 +204,18 @@ checkSpecContracts('e2e/w10.5-support-load-screening-workspace.spec.js', [
   'getSupportLoadScreening',
   'supportLoadScreening:exportRequested',
   '__w105UrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.6-vertical-beam-workspace.spec.js', [
+  'vertical-beam-solution/v1',
+  'Rebuild Vertical Beam Model',
+  'Solve Vertical Stiffness',
+  'Export Vertical Beam Solution',
+  'getFlexuralPropertyProjection',
+  'getVerticalBeamModel',
+  'verticalBeam:exportRequested',
+  '__w106UrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 
