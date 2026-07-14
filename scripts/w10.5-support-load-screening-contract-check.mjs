@@ -195,7 +195,7 @@ function checkSupportEvidenceDetails() {
 
 function checkOverhangAndCaseIsolation() {
   const overhang = runFixture(buildStraightFixture({
-    lengthsM: [2],
+    lengthsM: [0.5, 1, 0.5],
     supports: [
       { key: 'SUP-A', stationM: 0.5, verticalState: 'RESTRAINED' },
       { key: 'SUP-B', stationM: 1.5, verticalState: 'RESTRAINED' },
