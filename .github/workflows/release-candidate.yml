@@ -47,8 +47,18 @@ jobs:
         run: npm run check:w10.4:static
       - name: Certify W10.5 topology-local tributary screening
         run: npm run check:w10.5:static
-      - name: Certify W10.6 explicit flexural evidence
-        run: node scripts/w10.6-flexural-property-contract-check.mjs
+      - name: Certify W10.6 flexural aliases
+        run: node scripts/w10.6-flexural-property-contract-check.mjs aliases
+      - name: Certify W10.6 flexural precedence
+        run: node scripts/w10.6-flexural-property-contract-check.mjs precedence
+      - name: Certify W10.6 invalid flexural evidence
+        run: node scripts/w10.6-flexural-property-contract-check.mjs invalid
+      - name: Certify W10.6 circular-section derivation
+        run: node scripts/w10.6-flexural-property-contract-check.mjs circular
+      - name: Certify W10.6 unsupported component policy
+        run: node scripts/w10.6-flexural-property-contract-check.mjs unsupported
+      - name: Certify W10.6 flexural immutability
+        run: node scripts/w10.6-flexural-property-contract-check.mjs immutability
       - name: Certify W10.6 beam contracts
         run: node scripts/w10.6-vertical-beam-contract-check.mjs
       - name: Certify W10.6 engineering benchmarks
