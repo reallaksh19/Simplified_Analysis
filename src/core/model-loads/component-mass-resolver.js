@@ -9,7 +9,8 @@ import {
 import { evidenceNumber } from './units.js';
 
 export function resolveComponentCaseMass(component, loadCaseId, compositionProfile) {
-  if (component.diagnostics?.some((row) => row.code === AUDIT_CODES.UNIT_BLOCKED)) return blocked(AUDIT_CODES.UNIT_BLOCKED);
+  const projectionBlocker = blockingProjectionCode(component.diagnostics);
+  if (projectionBlocker) return blocked(projectionBlocker);
   const classification = classifyLoadComponent(component.type, compositionProfile);
   if (classification === 'LINEAR') return resolveLinear(component, loadCaseId);
   if (classification === 'LUMPED') return resolveLumped(component);
@@ -45,10 +46,11 @@ function resolveLumped(component) {
   const pointMass = evidenceNumber(evidence.componentWeightKg);
   const directLinear = evidenceNumber(evidence.unitPipeWeightKgPerM);
   if (isNegative(pointMass) || isNegative(directLinear)) return blocked(AUDIT_CODES.INVALID_NEGATIVE_VALUE);
-  if (pointMass !== null && directLinear !== null && directLinear !== 0) return blocked(AUDIT_CODES.DOUBLE_COUNT_CONFLICT);
-  if (pointMass === null && directLinear !== null) return validLinearGeometry(component)
-    ? explicitLinear(directLinear, evidence.unitPipeWeightKgPerM)
-    : blocked(AUDIT_CODES.MISSING_GEOMETRY);
+  if (directLinear !== null && directLinear !== 0) {
+    return blocked(pointMass !== null
+      ? AUDIT_CODES.DOUBLE_COUNT_CONFLICT
+      : AUDIT_CODES.LUMPED_LINEAR_MASS_CONFLICT);
+  }
   if (pointMass === null) return blocked(AUDIT_CODES.MISSING_COMPONENT_MASS);
   if (!component.geometry.applicationPoint) return blocked(AUDIT_CODES.MISSING_COMPONENT_COG);
   return deepFreeze({
@@ -128,6 +130,12 @@ function resolveFluid(component, loadCaseId) {
   return derivedMass(`${loadCaseId}_FLUID`, result);
 }
 
+function blockingProjectionCode(diagnostics = []) {
+  return diagnostics.find((row) => [
+    AUDIT_CODES.UNIT_BLOCKED,
+    AUDIT_CODES.GEOMETRY_LENGTH_CONFLICT,
+  ].includes(row.code))?.code || null;
+}
 function explicitLinear(value, evidence) {
   return deepFreeze({ ok: true, mode: 'DISTRIBUTED', massPerLengthKgM: value,
     massSourceBreakdown: [{ sourceId: 'EXPLICIT_LINEAR_MASS', massPerLengthKgM: value, sourceEvidence: evidence }],
