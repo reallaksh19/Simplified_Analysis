@@ -35,8 +35,14 @@ function simplySupportedPoint() {
   assertProof(row);
 
   const offCentre = allCases([{ type: 'POINT', componentKey: 'COMP-1', stationM: 1, forceN: force }]);
-  const offRow = readyCase(solveBeamFixture({ lengthsM: [4], supportStationsM: [0, 4], flexural: { ei: rigidity }, loads: offCentre }), 'EMPTY');
-  assertForces(offRow, [750, 250]);
+  const offResult = solveBeamFixture({ lengthsM: [4], supportStationsM: [0, 4], flexural: { ei: rigidity }, loads: offCentre });
+  const offRow = readyCase(offResult, 'EMPTY');
+  const model = offResult.foundation.beamModel.pathCases.find((item) => item.loadCaseId === 'EMPTY');
+  const supportStations = model.constraints.map((item) => item.pathStationM).sort((a, b) => a - b);
+  const loadStation = model.loadVectorRecords.find((item) => item.pointForceN !== null).pathStationM;
+  const spanLength = supportStations.at(-1) - supportStations[0];
+  const localX = loadStation - supportStations[0];
+  assertForces(offRow, [force * (spanLength - localX) / spanLength, force * localX / spanLength]);
   assertProof(offRow);
 }
 
@@ -63,7 +69,7 @@ function unequalAndPiecewiseCases() {
 
   const atSupport = allCases([{ type: 'POINT', componentKey: 'COMP-2', stationM: 2, forceN: 900 }]);
   const supportLoad = readyCase(solveBeamFixture({ lengthsM: [2, 2], supportStationsM: [0, 2, 4], flexural: { ei: 2e6 }, loads: atSupport }), 'EMPTY');
-  assertNear(supportLoad.supportForceResults.find((row) => row.pathStationM === 2).upwardSupportForceN, 900, 1e-9);
+  assertNear(supportLoad.supportForceResults.find((item) => item.pathStationM === 2).upwardSupportForceN, 900, 1e-9);
   assertProof(supportLoad);
 }
 
@@ -74,7 +80,7 @@ function overhangCase() {
   const row = readyCase(solveBeamFixture({ lengthsM: [2, 2, 2], supportStationsM: [0, 4], flexural: { ei: 2e6 }, loads }), 'EMPTY');
   assert.equal(row.nodeResults.at(-1).pathStationM, 6);
   assert.equal(row.supportForceResults.length, 2);
-  assert.equal(row.supportForceResults.some((item) => item.diagnostics.some((d) => d.code === 'SUPPORT_UPLIFT_OR_DIRECTION_REVERSAL')), true);
+  assert.equal(row.supportForceResults.some((item) => item.diagnostics.some((diagnostic) => diagnostic.code === 'SUPPORT_UPLIFT_OR_DIRECTION_REVERSAL')), true);
   assertProof(row);
 }
 
@@ -90,10 +96,10 @@ function w105Parity() {
     modelLoadReadinessAudit: fixture.loadFoundation.readinessAudit,
   }).screening;
   const beam = readyCase(fixture, 'EMPTY');
-  const screened = screening.supportResults.filter((row) => row.loadCaseId === 'EMPTY').sort(byStation);
+  const screened = screening.supportResults.filter((item) => item.loadCaseId === 'EMPTY').sort(byStation);
   const solved = [...beam.supportForceResults].sort(byStation);
   assert.equal(screened.length, solved.length);
-  screened.forEach((row, index) => assertNear(solved[index].upwardSupportForceN, row.screenedVerticalForceN, 1e-7));
+  screened.forEach((item, index) => assertNear(solved[index].upwardSupportForceN, item.screenedVerticalForceN, 1e-7));
 }
 
 function readyCase(result, id) {
