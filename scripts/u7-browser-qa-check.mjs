@@ -18,6 +18,7 @@ const requiredE2EFiles = [
   'e2e/phase8-engineering-geometry.spec.js',
   'e2e/phase9-analysis-readiness.spec.js',
   'e2e/w10.1-shared-model-export.spec.js',
+  'e2e/w10.2-topology-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -154,6 +155,17 @@ checkSpecContracts('e2e/w10.1-shared-model-export.spec.js', [
   'sharedModel:exportRequested',
   '__sharedModelUrlAudit',
   'clear-dataset',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.2-topology-workspace.spec.js', [
+  'piping-port-topology-graph/v1',
+  'Rebuild Exact Topology',
+  'Rebuild With Tolerance',
+  'Export Topology Graph',
+  'getTopologyGraph',
+  'getTopologyAudit',
+  '__topologyUrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 

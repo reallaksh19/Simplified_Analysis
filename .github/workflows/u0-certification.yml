@@ -61,6 +61,9 @@ jobs:
       - name: Certify W10.1 shared piping model contracts
         run: npm run check:w10.1:static
 
+      - name: Certify W10.2 shared component-port topology
+        run: npm run check:w10.2:static
+
       - name: Run full repository checks
         run: npm run check:full
 
