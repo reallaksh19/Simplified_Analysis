@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const BASE = 'e3311b77701fb8ce3ca92555aad1d7deef3edcb3';
 const root = process.cwd();
+ensureBaseCommit();
 const changed = lines(git('diff', '--name-only', BASE, 'HEAD'));
 const selected = process.argv[2] || 'all';
 const checks = Object.freeze({
@@ -96,6 +97,13 @@ function allowed(file) {
   return newRoots.some((prefix) => file.startsWith(prefix)) || existing.has(file);
 }
 
+function ensureBaseCommit() {
+  try {
+    execFileSync('git', ['cat-file', '-e', `${BASE}^{commit}`], { cwd: root, stdio: 'ignore' });
+  } catch {
+    execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', BASE], { cwd: root, stdio: 'ignore' });
+  }
+}
 function functionRanges(source) {
   const rows = source.split(/\r?\n/), result = [];
   rows.forEach((line, index) => {
