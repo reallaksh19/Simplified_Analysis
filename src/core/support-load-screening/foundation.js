@@ -17,6 +17,7 @@ export function buildVerticalLoadPathFoundation(inputs, options = {}) {
 }
 
 export function runTributarySupportLoadScreening(pathFoundation, inputs) {
+  assertScreeningCompatibility(pathFoundation, inputs);
   const screening = buildTributarySupportLoadScreening(
     pathFoundation.pathModel,
     inputs.loadCaseSet,
@@ -26,4 +27,18 @@ export function runTributarySupportLoadScreening(pathFoundation, inputs) {
   );
   const audit = createSupportLoadScreeningAudit(screening);
   return deepFreeze({ ...pathFoundation, screening, audit });
+}
+
+function assertScreeningCompatibility(pathFoundation, inputs) {
+  const profileHash = pathFoundation?.profile?.semanticHash;
+  const pathModel = pathFoundation?.pathModel;
+  if (!profileHash || pathModel?.profile?.semanticHash !== profileHash) {
+    throw new TypeError('Screening profile does not match vertical load paths.');
+  }
+  if (inputs?.loadPrimitiveSet?.datasetId !== pathModel.datasetId) {
+    throw new TypeError('Primitive set does not match vertical load paths.');
+  }
+  if (inputs?.modelLoadReadinessAudit?.datasetId !== pathModel.datasetId) {
+    throw new TypeError('Readiness audit does not match vertical load paths.');
+  }
 }
