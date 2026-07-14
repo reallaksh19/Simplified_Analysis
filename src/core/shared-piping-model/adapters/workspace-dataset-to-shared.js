@@ -1,8 +1,13 @@
 import { createDiagnostic, DIAGNOSTIC_SEVERITY, normalizeDiagnosticRows } from '../diagnostics.js';
 import { collectEvidence, normalizeGeometryEvidence, normalizePoint } from '../evidence.js';
 import { deepFreeze, isPlainRecord, stringValue } from '../immutable.js';
-import { COMPATIBILITY_EVIDENCE_SPECS, ENGINEERING_PROPERTY_SPECS } from '../property-specs.js';
+import {
+  COMPATIBILITY_EVIDENCE_SPECS,
+  ENGINEERING_PROPERTY_SPECS,
+  SUPPORT_EVIDENCE_SPECS,
+} from '../property-specs.js';
 import { createSharedPipingModel } from '../shared-piping-model.js';
+import { collectSupportEvidence } from '../../support-restraints/support-evidence-collector.js';
 
 const WORKSPACE_DATASET_SCHEMA = 'analysis-workspace-dataset/v1';
 const CONTAINER_TYPES = new Set(['BRANCH', 'GROUP', 'MODEL', 'ROOT', 'FOLDER', 'SYSTEM', 'ZONE']);
@@ -60,6 +65,7 @@ function workspaceSupport(entity, evidence, diagnostics) {
     position: supportPosition(entity, geometry),
     engineeringProperties: evidence.engineering.values,
     compatibilityEvidence: evidence.compatibility.values,
+    ...(Object.keys(evidence.support.values).length ? { supportEvidence: evidence.support.values } : {}),
     sourceReferences: entitySourceReferences(entity),
     diagnostics,
   });
@@ -79,8 +85,15 @@ function collectEntityEvidence(entity) {
   const roots = entityRoots(entity);
   const engineering = collectEvidence(ENGINEERING_PROPERTY_SPECS, roots, entity.entityId);
   const compatibility = collectEvidence(COMPATIBILITY_EVIDENCE_SPECS, roots, entity.entityId);
-  const diagnostics = [...engineering.diagnostics, ...compatibility.diagnostics];
-  return { engineering, compatibility, diagnostics };
+  const support = entity.category === 'support'
+    ? collectSupportEvidence(SUPPORT_EVIDENCE_SPECS, roots, entity.entityId)
+    : deepFreeze({ values: {}, diagnostics: [] });
+  const diagnostics = [
+    ...engineering.diagnostics,
+    ...compatibility.diagnostics,
+    ...support.diagnostics,
+  ];
+  return { engineering, compatibility, support, diagnostics };
 }
 
 function entityRoots(entity) {
