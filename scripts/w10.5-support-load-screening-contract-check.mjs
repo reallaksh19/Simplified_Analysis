@@ -203,7 +203,8 @@ function checkOverhangAndCaseIsolation() {
   }));
   assert.equal(caseRecord(overhang, 'EMPTY').blockers.includes(AUDIT_CODES.OVERHANG_LOAD_UNSUPPORTED), true);
   const pointOverhang = runFixture(buildStraightFixture({
-    lengthsM: [2], componentTypes: ['VALVE'], componentMassKg: 10, cogFraction: 0.1,
+    lengthsM: [0.5, 1, 0.5], componentTypes: ['VALVE', 'PIPE', 'PIPE'],
+    componentMassKg: 10, cogFraction: 0.2,
     supports: [
       { key: 'SUP-A', stationM: 0.5, verticalState: 'RESTRAINED' },
       { key: 'SUP-B', stationM: 1.5, verticalState: 'RESTRAINED' },
