@@ -99,6 +99,20 @@ assert(caseOf(unknown, 'EMPTY').blockers.includes('UNSUPPORTED_COMPONENT_TYPE'))
 const negative = build(component('PIPE-NEG', 'PIPE', { engineeringProperties: pipeEvidence({ unitPipeWeightKgPerM: evidence(-1, 'kg/m', 'NEG') }) }));
 assert(caseOf(negative, 'EMPTY').blockers.includes('INVALID_NEGATIVE_VALUE'));
 
+const lengthConflict = build(component('PIPE-LENGTH-CONFLICT', 'PIPE', {
+  compatibilityEvidence: { sourceLengthMm: evidence(2000, 'mm', 'DECLARED_LENGTH') },
+  engineeringProperties: pipeEvidence(),
+}));
+assert(caseOf(lengthConflict, 'EMPTY').blockers.includes('GEOMETRY_LENGTH_CONFLICT'));
+assert.equal(lengthConflict.loadPrimitiveSet.primitives.some((row) => row.componentKey === 'PIPE-LENGTH-CONFLICT'), false);
+
+const lumpedLinear = build(component('VALVE-LINEAR-MASS', 'VALVE', {
+  center: { x: 500, y: 0, z: 0 },
+  engineeringProperties: { unitPipeWeightKgPerM: evidence(5, 'kg/m', 'INVALID_LINEAR_VALVE_MASS') },
+}));
+assert(caseOf(lumpedLinear, 'EMPTY').blockers.includes('LUMPED_LINEAR_MASS_CONFLICT'));
+assert.equal(lumpedLinear.loadPrimitiveSet.primitives.some((row) => row.componentKey === 'VALVE-LINEAR-MASS'), false);
+
 const reversedCases = createDefaultLoadCaseSet(['OPE', 'EMPTY', 'HYD']);
 assert.equal(reversedCases.semanticHash, createDefaultLoadCaseSet().semanticHash);
 const reorderedModel = sharedModel([directPipe, valve]);
