@@ -19,6 +19,7 @@ const requiredE2EFiles = [
   'e2e/phase9-analysis-readiness.spec.js',
   'e2e/w10.1-shared-model-export.spec.js',
   'e2e/w10.2-topology-workspace.spec.js',
+  'e2e/w10.3-support-restraint-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -166,6 +167,17 @@ checkSpecContracts('e2e/w10.2-topology-workspace.spec.js', [
   'getTopologyGraph',
   'getTopologyAudit',
   '__topologyUrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.3-support-restraint-workspace.spec.js', [
+  'support-restraint-export/v1',
+  'Rebuild With Projection',
+  'Export Support/Restraint Model',
+  'getSupportAttachmentModel',
+  'getRestraintCapabilityModel',
+  'supportRestraint:exportRequested',
+  '__supportRestraintUrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 

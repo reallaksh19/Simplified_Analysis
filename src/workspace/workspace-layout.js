@@ -56,6 +56,7 @@ export function renderWorkspaceLayout(rootElement) {
         </header>
         <div data-role="shared-model-summary"></div>
         <div data-role="topology-summary"></div>
+        <div data-role="support-restraint-summary"></div>
         <div data-role="model-support-load-summary"></div>
         <div class="properties-content" data-role="properties-content">
           <p class="panel-empty">Select an entity to inspect its properties.</p>

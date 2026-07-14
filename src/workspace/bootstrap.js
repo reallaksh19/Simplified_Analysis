@@ -12,6 +12,9 @@ import { assessModelSupportLoadReadiness } from './model-support-load-readiness.
 import { PropertiesPanel } from './properties-panel.js';
 import { SharedModelController } from './shared-model-controller.js';
 import { SharedModelPanel } from './shared-model-panel.js';
+import { SupportRestraintController } from './support-restraint-controller.js';
+import { SupportRestraintPanel } from './support-restraint-panel.js';
+import { SupportRestraintStore } from './support-restraint-store.js';
 import { TopologyController } from './topology-controller.js';
 import { TopologyPanel } from './topology-panel.js';
 import { TopologyStore } from './topology-store.js';
@@ -27,12 +30,19 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   AnalysisSessions.clear();
   AnalysisLedger.clear();
   TopologyStore.clear();
+  SupportRestraintStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const datasetController = new DatasetController(EventBus, WorkspaceState);
   const sharedModelController = new SharedModelController(EventBus, WorkspaceState, rootElement.ownerDocument);
   const topologyController = new TopologyController(EventBus, TopologyStore, rootElement.ownerDocument);
+  const supportRestraintController = new SupportRestraintController(
+    EventBus,
+    SupportRestraintStore,
+    TopologyStore,
+    rootElement.ownerDocument,
+  );
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
   const sessionController = new AnalysisSessionController(
     EventBus,
@@ -61,6 +71,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.querySelector('[data-role="topology-summary"]'),
     EventBus,
   );
+  const supportRestraintPanel = new SupportRestraintPanel(
+    rootElement.querySelector('[data-role="support-restraint-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -74,6 +88,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     datasetController,
     sharedModelController,
     topologyController,
+    supportRestraintController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
@@ -82,6 +97,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     viewportPanel,
     sharedModelPanel,
     topologyPanel,
+    supportRestraintPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -102,6 +118,18 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     getTopologyAudit() {
       return TopologyStore.getAudit();
+    },
+    getSupportAttachmentModel() {
+      return SupportRestraintStore.getAttachmentModel();
+    },
+    getSupportAttachmentAudit() {
+      return SupportRestraintStore.getAttachmentAudit();
+    },
+    getRestraintCapabilityModel() {
+      return SupportRestraintStore.getRestraintModel();
+    },
+    getRestraintCapabilityAudit() {
+      return SupportRestraintStore.getRestraintAudit();
     },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
@@ -133,6 +161,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      SupportRestraintStore.clear();
       TopologyStore.clear();
       AnalysisLedger.clear();
       AnalysisSessions.clear();

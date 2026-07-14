@@ -24,6 +24,42 @@ export const COMPATIBILITY_EVIDENCE_SPECS = Object.freeze({
   supportType: text(['SUPPORT_TYPE', 'SUPPORTTYPE']),
 });
 
+export const SUPPORT_EVIDENCE_SPECS = Object.freeze({
+  attachedPortReferences: text([
+    'ATTACHED_PORT_REFERENCE', 'ATTACHED_PORT_REF', 'ATTACHED_PORT_ID',
+    'SUPPORT_PORT_REFERENCE', 'CONNECTED_PORT_ID',
+  ]),
+  attachedComponentReferences: text([
+    'ATTACHED_COMPONENT_REFERENCE', 'ATTACHED_COMPONENT_REF',
+    'ATTACHED_COMPONENT_ID', 'SUPPORTING_COMPONENT_REFERENCE',
+  ]),
+  supportedSourceEntityReferences: text([
+    'SUPPORTED_SOURCE_ENTITY_REFERENCE', 'SUPPORTED_SOURCE_ENTITY_ID',
+    'SUPPORTED_ENTITY_ID', 'SUPPORTED_OBJECT_ID', 'SUPPORTED_COMPONENT_ID',
+  ]),
+  supportTypes: text(['SUPPORT_TYPE', 'SUPPORTTYPE']),
+  verticalCapabilities: text([
+    'VERTICAL_CAPABILITY', 'SUPPORT_VERTICAL_CAPABILITY', 'VERTICAL_RESTRAINT',
+  ]),
+  lateralCapabilities: text([
+    'LATERAL_CAPABILITY', 'SUPPORT_LATERAL_CAPABILITY', 'LATERAL_RESTRAINT',
+  ]),
+  longitudinalCapabilities: text([
+    'LONGITUDINAL_CAPABILITY', 'AXIAL_CAPABILITY',
+    'LINE_STOP_CAPABILITY', 'LONGITUDINAL_RESTRAINT',
+  ]),
+  rotationalCapabilities: text([
+    'ROTATIONAL_CAPABILITY', 'ROTATION_CAPABILITY', 'ROTATIONAL_RESTRAINT',
+  ]),
+  verticalGaps: numeric('mm', ['VERTICAL_GAP_MM', 'GAP_VERTICAL_MM']),
+  lateralGaps: numeric('mm', ['LATERAL_GAP_MM', 'GAP_LATERAL_MM']),
+  longitudinalGaps: numeric('mm', ['LONGITUDINAL_GAP_MM', 'AXIAL_GAP_MM', 'GAP_LONGITUDINAL_MM']),
+  stiffnessValues: numeric('N/mm', ['RESTRAINT_STIFFNESS_N_PER_MM', 'STIFFNESS_N_PER_MM']),
+  springRateValues: numeric('N/mm', ['SPRING_RATE_N_PER_MM', 'SPRING_STIFFNESS_N_PER_MM']),
+  frictionValues: numeric('', ['FRICTION_COEFFICIENT', 'COEFFICIENT_OF_FRICTION', 'MU']),
+  multiAttachmentFlags: text(['ALLOW_MULTIPLE_ATTACHMENTS', 'MULTI_ATTACHMENT']),
+});
+
 function numeric(unit, aliases) {
   return Object.freeze({ kind: 'number', unit, aliases: Object.freeze(aliases) });
 }
