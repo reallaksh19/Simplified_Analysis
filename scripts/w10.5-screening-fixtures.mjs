@@ -1,4 +1,4 @@
-import { createSharedPipingModel } from '../src/core/shared-piping-model/index.js';
+import { createSharedPipingModel, deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
 import { buildPipingPortTopologyGraph } from '../src/core/piping-topology/index.js';
 import {
   buildRestraintCapabilityModel,
@@ -58,6 +58,26 @@ export function buildDisconnectedFixture() {
     supportAtPort('SB-1', 'LINE-B:port:end', point(11, 0, 0, 'm')),
   ];
   return buildFromSharedModel(buildSharedModel(components, supports, 'm', 'W10.5-DISCONNECTED'));
+}
+
+export function buildUnavailableStationFixture() {
+  const fixture = buildStraightFixture({
+    lengthsM: [1],
+    supports: [
+      { key: 'SUP-A', stationM: 0, verticalState: 'RESTRAINED' },
+      { key: 'SUP-B', stationM: 1, verticalState: 'RESTRAINED' },
+      { key: 'SUP-NO-STATION', stationM: 0.5, verticalState: 'RESTRAINED', attachedComponentKey: 'COMP-1' },
+    ],
+  });
+  const attachmentModel = withoutAttachmentStation(fixture.attachmentModel, 'SUP-NO-STATION');
+  const restraintModel = buildRestraintCapabilityModel(attachmentModel);
+  const pathFoundation = buildVerticalLoadPathFoundation({
+    sharedModel: fixture.sharedModel,
+    topologyGraph: fixture.topologyGraph,
+    attachmentModel,
+    restraintModel,
+  });
+  return { ...fixture, attachmentModel, restraintModel, pathFoundation };
 }
 
 export function runFixture(fixture) {
@@ -226,6 +246,19 @@ function buildSharedModel(components, supports, lengthUnit, datasetId) {
     sourceReferences: { nodes: [] },
     diagnostics: [],
   });
+}
+
+function withoutAttachmentStation(model, supportKey) {
+  const attachment = model.attachments.find((row) => row.supportKey === supportKey);
+  const targets = model.targets.map((row) => row.targetId === attachment.targetId
+    ? { ...row, pointCanonical: null, startCanonical: null, endCanonical: null }
+    : row);
+  const attachments = model.attachments.map((row) => row.supportKey === supportKey
+    ? { ...row, projectedPointCanonical: null, distanceCanonical: null, segmentParameter: null }
+    : row);
+  const base = { ...model, targets, attachments };
+  delete base.semanticHash;
+  return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
 
 function port(componentKey, role, position) {
