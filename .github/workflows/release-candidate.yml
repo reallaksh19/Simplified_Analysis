@@ -59,8 +59,18 @@ jobs:
         run: node scripts/w10.6-flexural-property-contract-check.mjs unsupported
       - name: Certify W10.6 flexural immutability
         run: node scripts/w10.6-flexural-property-contract-check.mjs immutability
-      - name: Certify W10.6 beam contracts
-        run: node scripts/w10.6-vertical-beam-contract-check.mjs
+      - name: Certify W10.6 model and reference integrity
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs models
+      - name: Certify W10.6 support boundaries
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs boundaries
+      - name: Certify W10.6 case isolation and moment policy
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs isolation
+      - name: Certify W10.6 primitive path mismatch
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs mismatch
+      - name: Certify W10.6 linear solver failures
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs linear
+      - name: Certify W10.6 upstream immutability
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs immutability
       - name: Certify W10.6 engineering benchmarks
         run: node scripts/w10.6-engineering-benchmark-check.mjs
       - name: Certify W10.6 fixed-seed properties
