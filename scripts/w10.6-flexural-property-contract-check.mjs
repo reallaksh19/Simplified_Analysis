@@ -3,14 +3,21 @@ import { ENGINEERING_PROPERTY_SPECS } from '../src/core/shared-piping-model/prop
 import { AUDIT_CODES, FLEXURAL_BASIS } from '../src/core/vertical-beam-solver/index.js';
 import { buildBeamFixture } from './w10.6-beam-fixtures.mjs';
 
-console.log('\n--- W10.6 Flexural Property Contract Checks ---\n');
-checkAliases();
-checkPrecedence();
-checkInvalidAndMissingEvidence();
-checkCircularDerivation();
-checkUnsupportedTypes();
-checkImmutabilityAndStability();
-console.log('✅ W10.6 flexural-property contract checks passed.\n');
+const selected = process.argv[2] || 'all';
+const checks = Object.freeze({
+  aliases: checkAliases,
+  precedence: checkPrecedence,
+  invalid: checkInvalidAndMissingEvidence,
+  circular: checkCircularDerivation,
+  unsupported: checkUnsupportedTypes,
+  immutability: checkImmutabilityAndStability,
+});
+
+console.log(`\n--- W10.6 Flexural Property Contract Checks · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.6 flexural-property check: ${selected}`);
+console.log(`✅ W10.6 flexural-property ${selected} check passed.\n`);
 
 function checkAliases() {
   assert.deepEqual(ENGINEERING_PROPERTY_SPECS.elasticModulusMpa.aliases, [
