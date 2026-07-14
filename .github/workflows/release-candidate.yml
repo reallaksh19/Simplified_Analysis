@@ -39,6 +39,8 @@ jobs:
         run: node scripts/w10-staged-model-support-load-contract-check.mjs
       - name: Certify W10.1 shared piping model contracts
         run: npm run check:w10.1:static
+      - name: Certify W10.2 shared component-port topology
+        run: npm run check:w10.2:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
