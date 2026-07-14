@@ -10,14 +10,20 @@ import {
 } from '../src/core/vertical-beam-solver/index.js';
 import { buildBeamFixture, solveBeamFixture } from './w10.6-beam-fixtures.mjs';
 
-console.log('\n--- W10.6 Vertical Beam Contract Checks ---\n');
-checkModelsAndReferences();
-checkSupportBoundaries();
-checkCaseIsolationAndMomentBlocking();
-checkPrimitiveMismatch();
-checkLinearSolverFailures();
-checkUpstreamImmutability();
-console.log('✅ W10.6 vertical-beam contract checks passed.\n');
+const selected = process.argv[2] || 'all';
+const checks = Object.freeze({
+  models: checkModelsAndReferences,
+  boundaries: checkSupportBoundaries,
+  isolation: checkCaseIsolationAndMomentBlocking,
+  mismatch: checkPrimitiveMismatch,
+  linear: checkLinearSolverFailures,
+  immutability: checkUpstreamImmutability,
+});
+console.log(`\n--- W10.6 Vertical Beam Contract Checks · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.6 beam-contract check: ${selected}`);
+console.log(`✅ W10.6 vertical-beam ${selected} check passed.\n`);
 
 function checkModelsAndReferences() {
   const fixture = solveBeamFixture({ lengthsM: [2, 2], supportStationsM: [0, 4], flexural: { ei: 2e6 } });
