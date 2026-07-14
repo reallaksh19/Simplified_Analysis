@@ -73,8 +73,20 @@ jobs:
       - name: Certify W10.5 topology-local tributary screening
         run: npm run check:w10.5:static
 
-      - name: Certify W10.6 explicit-EI vertical beam solver
-        run: npm run check:w10.6:static
+      - name: Certify W10.6 explicit flexural evidence
+        run: node scripts/w10.6-flexural-property-contract-check.mjs
+
+      - name: Certify W10.6 beam contracts
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs
+
+      - name: Certify W10.6 engineering benchmarks
+        run: node scripts/w10.6-engineering-benchmark-check.mjs
+
+      - name: Certify W10.6 fixed-seed properties
+        run: node scripts/w10.6-vertical-beam-property-check.mjs
+
+      - name: Certify W10.6 source boundaries
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs
 
       - name: Run full repository checks
         run: npm run check:full
