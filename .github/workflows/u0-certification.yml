@@ -62,7 +62,16 @@ jobs:
         run: npm run check:w10.1:static
 
       - name: Certify W10.2 shared component-port topology
-        run: npm run check:w10.2:static
+        run: npm run check:w10.2:static 2>&1 | tee w10.2-static.log
+
+      - name: Upload W10.2 static diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w10.2-static-diagnostics-u0
+          path: w10.2-static.log
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Run full repository checks
         run: npm run check:full
