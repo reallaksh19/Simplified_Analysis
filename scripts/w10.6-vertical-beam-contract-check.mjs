@@ -86,7 +86,8 @@ function checkPrimitiveMismatch() {
   const fixture = buildBeamFixture({ lengthsM: [4], supportStationsM: [0, 4], flexural: { ei: 2e6 } });
   const primitive = {
     primitiveId: 'fixture-load:EMPTY:orphan', loadCaseId: 'EMPTY', componentKey: 'MISSING-COMPONENT',
-    primitiveType: 'POINT_GRAVITY_LOAD', applicationPoint: { x: 2, y: 0, z: 0 }, pointForceN: 100,
+    primitiveType: 'POINT_GRAVITY_LOAD', applicationPoint: { x: 2, y: 0, z: 0 },
+    pointMassKg: 100 / 9.80665, pointForceN: 100,
     semanticDirection: 'GRAVITY_DOWN', globalVector: null, sourceEvidence: { fixture: true }, diagnostics: [],
   };
   const primitiveSet = rehash({
