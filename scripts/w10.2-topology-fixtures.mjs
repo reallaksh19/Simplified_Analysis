@@ -23,7 +23,7 @@ export function component(componentKey, ports, options = {}) {
   const normalizedPorts = ports.map((port, index) => ({
     portKey: port.portKey || `${componentKey}:port:${port.role || index + 1}`,
     role: port.role || `port-${index + 1}`,
-    position: port.position,
+    position: fixturePosition(port.position),
     sourceReference: port.sourceReference || null,
   }));
   return {
@@ -121,6 +121,11 @@ export function translatedComponents(components, delta) {
       })),
     },
   }));
+}
+
+function fixturePosition(value) {
+  if (!value || !Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) return null;
+  return value;
 }
 
 function identity(value = {}) {
