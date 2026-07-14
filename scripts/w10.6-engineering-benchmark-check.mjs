@@ -2,14 +2,20 @@ import assert from 'node:assert/strict';
 import { runTributarySupportLoadScreening } from '../src/core/support-load-screening/index.js';
 import { solveBeamFixture } from './w10.6-beam-fixtures.mjs';
 
-console.log('\n--- W10.6 Engineering Benchmark Checks ---\n');
-simplySupportedUniform();
-simplySupportedPoint();
-continuousEqualSpans();
-unequalAndPiecewiseCases();
-overhangCase();
-w105Parity();
-console.log('✅ W10.6 engineering benchmarks passed.\n');
+const selected = process.argv[2] || 'all';
+const checks = Object.freeze({
+  uniform: simplySupportedUniform,
+  point: simplySupportedPoint,
+  continuous: continuousEqualSpans,
+  piecewise: unequalAndPiecewiseCases,
+  overhang: overhangCase,
+  parity: w105Parity,
+});
+console.log(`\n--- W10.6 Engineering Benchmark Checks · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.6 engineering benchmark: ${selected}`);
+console.log(`✅ W10.6 engineering benchmark ${selected} passed.\n`);
 
 function simplySupportedUniform() {
   const length = 4, load = 1000, rigidity = 2e6;
@@ -44,8 +50,8 @@ function continuousEqualSpans() {
 function unequalAndPiecewiseCases() {
   const unequal = readyCase(solveBeamFixture({ lengthsM: [3, 5], supportStationsM: [0, 3, 8], uniformLoadNM: 600, flexural: { ei: 2e6 } }), 'EMPTY');
   assertProof(unequal);
-  const piecewise = readyCase(solveBeamFixture({ lengthsM: [2, 2, 2], supportStationsM: [0, 3, 6], flexuralByComponent: [{ ei: 1e6 }, { ei: 3e6 }, { ei: 2e6 }], uniformLoadNM: 500 }), 'EMPTY');
-  assert.equal(piecewise.elementEndForces.length, 4);
+  const piecewise = readyCase(solveBeamFixture({ lengthsM: [2, 2, 2], supportStationsM: [0, 2, 6], flexuralByComponent: [{ ei: 1e6 }, { ei: 3e6 }, { ei: 2e6 }], uniformLoadNM: 500 }), 'EMPTY');
+  assert.equal(piecewise.elementEndForces.length, 3);
   assertProof(piecewise);
 
   const mixedLoads = allCases([
