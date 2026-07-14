@@ -9,12 +9,13 @@ import { buildRestraintCapabilityModel, buildSupportAttachmentModel } from '../s
 import { buildVerticalBeamFoundation, runVerticalBeamSolution } from '../src/core/vertical-beam-solver/index.js';
 
 const TO_SOURCE = Object.freeze({ m: 1, mm: 1000, cm: 100, in: 39.37007874015748, ft: 3.280839895013123 });
+const FIXTURE_GRAVITY_M_S2 = 9.80665;
 
 export function buildBeamFixture(options = {}) {
   const datasetId = options.datasetId || 'W10.6-FIXTURE';
   const lengthUnit = options.lengthUnit || 'm';
   const intervals = normalizeIntervals(options);
-  const components = intervals.map((row, index) => componentRecord(row, index, lengthUnit, options));
+  const components = intervals.map((row) => componentRecord(row, lengthUnit, options));
   const supports = (options.supportStationsM || [intervals[0].startM, intervals.at(-1).endM])
     .map((station, index) => supportRecord(station, index, intervals, lengthUnit, options));
   const sourceComponents = options.reverseInputOrder ? [...components].reverse() : components;
@@ -60,7 +61,7 @@ function normalizeIntervals(options) {
   });
 }
 
-function componentRecord(interval, index, unit, options) {
+function componentRecord(interval, unit, options) {
   const physicalStart = point(interval.startM, unit, options.translation || {});
   const physicalEnd = point(interval.endM, unit, options.translation || {});
   const [start, end] = options.reverseComponentGeometry ? [physicalEnd, physicalStart] : [physicalStart, physicalEnd];
@@ -135,7 +136,8 @@ function loadPrimitive(row, index, caseId, intervals, options) {
   if (row.type === 'POINT') return deepFreeze({
     primitiveId: `fixture-load:${caseId}:${index}:point`, loadCaseId: caseId,
     componentKey: row.componentKey, primitiveType: 'POINT_GRAVITY_LOAD',
-    applicationPoint: canonicalPoint(row.stationM, options.translation), pointForceN: row.forceN,
+    applicationPoint: canonicalPoint(row.stationM, options.translation),
+    pointMassKg: row.forceN / FIXTURE_GRAVITY_M_S2, pointForceN: row.forceN,
     semanticDirection: 'GRAVITY_DOWN', globalVector: null, sourceEvidence: { fixture: true }, diagnostics: [],
   });
   if (row.type === 'MOMENT') return deepFreeze({
@@ -148,7 +150,9 @@ function loadPrimitive(row, index, caseId, intervals, options) {
     primitiveId: `fixture-load:${caseId}:${index}:distributed`, loadCaseId: caseId,
     componentKey: row.componentKey, primitiveType: 'DISTRIBUTED_GRAVITY_LOAD',
     startPoint: canonicalPoint(interval.startM, options.translation), endPoint: canonicalPoint(interval.endM, options.translation),
-    sourceLengthM: interval.endM - interval.startM, forcePerLengthNM: row.forcePerLengthNM,
+    sourceLengthM: interval.endM - interval.startM,
+    massPerLengthKgM: row.forcePerLengthNM / FIXTURE_GRAVITY_M_S2,
+    forcePerLengthNM: row.forcePerLengthNM,
     semanticDirection: 'GRAVITY_DOWN', globalVector: null, sourceEvidence: { fixture: true }, diagnostics: [],
   });
 }
