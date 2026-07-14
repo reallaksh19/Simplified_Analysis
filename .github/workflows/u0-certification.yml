@@ -41,7 +41,7 @@ jobs:
         run: npm run check:phase4-workspace:static
 
       - name: Certify Phase 5 analysis contracts
-        run: npm run check:phase5-workspace:static
+        run: npm run check:phase5-analysis-capability:static
 
       - name: Certify Phase 6 analysis session contracts
         run: npm run check:phase6-workspace:static
@@ -71,19 +71,7 @@ jobs:
         run: npm run check:w10.4:static
 
       - name: Certify W10.5 topology-local tributary screening
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run check:w10.5:static 2>&1 | tee w10.5-static.log
-
-      - name: Upload W10.5 static diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: w10.5-static-log-node22
-          path: w10.5-static.log
-          if-no-files-found: ignore
-          retention-days: 1
+        run: npm run check:w10.5:static
 
       - name: Run full repository checks
         run: npm run check:full
