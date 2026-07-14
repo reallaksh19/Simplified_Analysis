@@ -98,7 +98,7 @@ test('prepares independent cases, rebuilds explicitly, and exports deterministic
   ]);
   const content = fs.readFileSync(await download.path(), 'utf8');
   const exported = JSON.parse(content);
-  expect(download.suggestedFilename()).toBe('model-load-w10.4-browser.json');
+  expect(download.suggestedFilename()).toBe('model-load-w10-4-browser.json');
   expect(exported.schema).toBe('model-load-export/v1');
   expect(exported.loadCaseSet.semanticHash).toBe(initial.cases.semanticHash);
   expect(exported.loadPrimitiveSet.semanticHash).toBe(initial.primitives.semanticHash);
