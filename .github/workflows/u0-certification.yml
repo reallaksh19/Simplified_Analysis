@@ -41,7 +41,7 @@ jobs:
         run: npm run check:phase4-workspace:static
 
       - name: Certify Phase 5 analysis contracts
-        run: npm run check:phase5-analysis-capability:static
+        run: npm run check:phase5-workspace:static
 
       - name: Certify Phase 6 analysis session contracts
         run: npm run check:phase6-workspace:static
