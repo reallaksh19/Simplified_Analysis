@@ -15,6 +15,9 @@ import { assessModelSupportLoadReadiness } from './model-support-load-readiness.
 import { PropertiesPanel } from './properties-panel.js';
 import { SharedModelController } from './shared-model-controller.js';
 import { SharedModelPanel } from './shared-model-panel.js';
+import { SupportLoadScreeningController } from './support-load-screening-controller.js';
+import { SupportLoadScreeningPanel } from './support-load-screening-panel.js';
+import { SupportLoadScreeningStore } from './support-load-screening-store.js';
 import { SupportRestraintController } from './support-restraint-controller.js';
 import { SupportRestraintPanel } from './support-restraint-panel.js';
 import { SupportRestraintStore } from './support-restraint-store.js';
@@ -35,6 +38,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   TopologyStore.clear();
   SupportRestraintStore.clear();
   ModelLoadStore.clear();
+  SupportLoadScreeningStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -48,6 +52,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.ownerDocument,
   );
   const modelLoadController = new ModelLoadController(EventBus, ModelLoadStore, rootElement.ownerDocument);
+  const supportLoadScreeningController = new SupportLoadScreeningController(
+    EventBus,
+    SupportLoadScreeningStore,
+    rootElement.ownerDocument,
+  );
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
   const sessionController = new AnalysisSessionController(
     EventBus,
@@ -84,6 +93,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.querySelector('[data-role="model-load-summary"]'),
     EventBus,
   );
+  const supportLoadScreeningPanel = new SupportLoadScreeningPanel(
+    rootElement.querySelector('[data-role="support-load-screening-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -99,6 +112,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     topologyController,
     supportRestraintController,
     modelLoadController,
+    supportLoadScreeningController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
@@ -109,6 +123,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     topologyPanel,
     supportRestraintPanel,
     modelLoadPanel,
+    supportLoadScreeningPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -151,6 +166,15 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getModelLoadReadinessAudit() {
       return ModelLoadStore.getReadinessAudit();
     },
+    getVerticalLoadPathModel() {
+      return SupportLoadScreeningStore.getPathModel();
+    },
+    getSupportLoadScreening() {
+      return SupportLoadScreeningStore.getScreening();
+    },
+    getSupportLoadScreeningAudit() {
+      return SupportLoadScreeningStore.getAudit();
+    },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
@@ -181,6 +205,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      SupportLoadScreeningStore.clear();
       ModelLoadStore.clear();
       SupportRestraintStore.clear();
       TopologyStore.clear();
