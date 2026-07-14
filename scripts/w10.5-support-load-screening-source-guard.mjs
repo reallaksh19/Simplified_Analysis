@@ -20,6 +20,7 @@ assert(coreFiles.length >= 13, 'Expected W10.5 core modules.');
 for (const file of [...coreFiles, ...workspaceFiles]) checkModule(file, coreFiles.includes(file));
 checkDomainEvidence();
 checkChangedPaths();
+await import('./w10.5-owner-regression-check.mjs');
 console.log(`✅ W10.5 source guards passed for ${coreFiles.length} core and ${workspaceFiles.length} Workspace modules.`);
 
 function checkModule(file, core) {
@@ -60,6 +61,17 @@ function checkDomainEvidence() {
   const engine = readCore('screening-engine.js');
   assert(engine.includes('OVERHANG_LOAD_UNSUPPORTED'));
   assert(engine.includes('EXPLICIT_POINT_MOMENT') || engine.includes('PRIMITIVE_TYPES.MOMENT'));
+  const projection = readCore('primitive-projection.js');
+  assert(
+    projection.indexOf('const interval = intervals.get(primitive.componentKey)')
+      < projection.indexOf('profile.eligiblePrimitiveTypes.includes(primitive.primitiveType)'),
+    'Primitive validation must occur only after path membership is established.',
+  );
+  const foundation = readCore('foundation.js');
+  assert(foundation.includes('Primitive set does not match vertical load paths.'));
+  assert(foundation.includes('Screening profile does not match vertical load paths.'));
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+  assert(packageJson.devDependencies?.['@eslint/js'], 'W10.5 must not remove the existing @eslint/js dependency.');
 }
 
 function checkChangedPaths() {
