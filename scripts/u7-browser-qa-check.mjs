@@ -20,6 +20,7 @@ const requiredE2EFiles = [
   'e2e/w10.1-shared-model-export.spec.js',
   'e2e/w10.2-topology-workspace.spec.js',
   'e2e/w10.3-support-restraint-workspace.spec.js',
+  'e2e/w10.4-model-load-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -178,6 +179,17 @@ checkSpecContracts('e2e/w10.3-support-restraint-workspace.spec.js', [
   'getRestraintCapabilityModel',
   'supportRestraint:exportRequested',
   '__supportRestraintUrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.4-model-load-workspace.spec.js', [
+  'model-load-export/v1',
+  'Rebuild Model Loads',
+  'Export Load Case/Primitive Model',
+  'getLoadCaseSet',
+  'getLoadPrimitiveSet',
+  'modelLoad:exportRequested',
+  '__modelLoadUrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 

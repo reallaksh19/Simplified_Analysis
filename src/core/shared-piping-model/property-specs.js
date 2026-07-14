@@ -60,6 +60,14 @@ export const SUPPORT_EVIDENCE_SPECS = Object.freeze({
   multiAttachmentFlags: text(['ALLOW_MULTIPLE_ATTACHMENTS', 'MULTI_ATTACHMENT']),
 });
 
+export const LOAD_EVIDENCE_SPECS = Object.freeze({
+  componentCogX: numeric('', ['COG_X', 'CENTER_OF_GRAVITY_X', 'CENTRE_OF_GRAVITY_X']),
+  componentCogY: numeric('', ['COG_Y', 'CENTER_OF_GRAVITY_Y', 'CENTRE_OF_GRAVITY_Y']),
+  componentCogZ: numeric('', ['COG_Z', 'CENTER_OF_GRAVITY_Z', 'CENTRE_OF_GRAVITY_Z']),
+  explicitPointMomentNm: numeric('N*m', ['POINT_MOMENT_NM', 'EXPLICIT_MOMENT_NM', 'MOMENT_NM']),
+  momentAxis: text(['POINT_MOMENT_AXIS', 'MOMENT_AXIS', 'AXIS_EVIDENCE']),
+});
+
 function numeric(unit, aliases) {
   return Object.freeze({ kind: 'number', unit, aliases: Object.freeze(aliases) });
 }
