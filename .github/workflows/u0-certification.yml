@@ -73,6 +73,9 @@ jobs:
       - name: Certify W10.5 topology-local tributary screening
         run: npm run check:w10.5:static
 
+      - name: Certify W10.6 explicit-EI vertical beam solver
+        run: npm run check:w10.6:static
+
       - name: Run full repository checks
         run: npm run check:full
 
