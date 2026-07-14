@@ -12,6 +12,9 @@ import { assessModelSupportLoadReadiness } from './model-support-load-readiness.
 import { PropertiesPanel } from './properties-panel.js';
 import { SharedModelController } from './shared-model-controller.js';
 import { SharedModelPanel } from './shared-model-panel.js';
+import { TopologyController } from './topology-controller.js';
+import { TopologyPanel } from './topology-panel.js';
+import { TopologyStore } from './topology-store.js';
 import { TreePanel } from './tree-panel.js';
 import { ViewportPanel } from './viewport-panel.js';
 import { renderWorkspaceLayout } from './workspace-layout.js';
@@ -23,11 +26,13 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   WorkspaceState.clearDataset();
   AnalysisSessions.clear();
   AnalysisLedger.clear();
+  TopologyStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const datasetController = new DatasetController(EventBus, WorkspaceState);
   const sharedModelController = new SharedModelController(EventBus, WorkspaceState, rootElement.ownerDocument);
+  const topologyController = new TopologyController(EventBus, TopologyStore, rootElement.ownerDocument);
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
   const sessionController = new AnalysisSessionController(
     EventBus,
@@ -52,6 +57,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.querySelector('[data-role="shared-model-summary"]'),
     EventBus,
   );
+  const topologyPanel = new TopologyPanel(
+    rootElement.querySelector('[data-role="topology-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -64,6 +73,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   const controllers = [
     datasetController,
     sharedModelController,
+    topologyController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
@@ -71,6 +81,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     treePanel,
     viewportPanel,
     sharedModelPanel,
+    topologyPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -85,6 +96,12 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getSharedModel() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' ? snapshot.dataset?.sharedModel || null : null;
+    },
+    getTopologyGraph() {
+      return TopologyStore.getGraph();
+    },
+    getTopologyAudit() {
+      return TopologyStore.getAudit();
     },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
@@ -116,6 +133,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      TopologyStore.clear();
       AnalysisLedger.clear();
       AnalysisSessions.clear();
       WorkspaceState.clearDataset();
