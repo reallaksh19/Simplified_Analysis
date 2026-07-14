@@ -27,6 +27,10 @@ assert.deepEqual(gravityFiles, ['gravity-profile.js'], 'Standard gravity must be
 const resolver = fs.readFileSync(path.join(sourceDir, 'component-mass-resolver.js'), 'utf8');
 assert(resolver.includes('DOUBLE_COUNT_CONFLICT'));
 assert(resolver.includes('directMass !== null'));
+assert(resolver.includes('LUMPED_LINEAR_MASS_CONFLICT'), 'Lumped components can bypass lumped load treatment.');
+const projection = fs.readFileSync(path.join(sourceDir, 'load-source-projection.js'), 'utf8');
+assert(projection.includes('GEOMETRY_LENGTH_CONFLICT'), 'Declared and geometric lengths are not consistency checked.');
+assert.match(projection, /sourceLengthM\s*=\s*distanceM\(start, end\)/, 'Distributed length is not owned by referenced geometry.');
 const primitive = fs.readFileSync(path.join(sourceDir, 'primitive-builder.js'), 'utf8');
 assert(primitive.includes('globalVector: null'));
 assert(primitive.includes('MASS_TO_WEIGHT_FORCE_V1') || primitive.includes('massToWeightForce'));
