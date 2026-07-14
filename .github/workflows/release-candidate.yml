@@ -71,8 +71,18 @@ jobs:
         run: node scripts/w10.6-vertical-beam-contract-check.mjs linear
       - name: Certify W10.6 upstream immutability
         run: node scripts/w10.6-vertical-beam-contract-check.mjs immutability
-      - name: Certify W10.6 engineering benchmarks
-        run: node scripts/w10.6-engineering-benchmark-check.mjs
+      - name: Certify W10.6 simply supported uniform benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs uniform
+      - name: Certify W10.6 point-load benchmarks
+        run: node scripts/w10.6-engineering-benchmark-check.mjs point
+      - name: Certify W10.6 continuous-span benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs continuous
+      - name: Certify W10.6 unequal and piecewise benchmarks
+        run: node scripts/w10.6-engineering-benchmark-check.mjs piecewise
+      - name: Certify W10.6 overhang benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs overhang
+      - name: Certify W10.6 W10.5 parity
+        run: node scripts/w10.6-engineering-benchmark-check.mjs parity
       - name: Certify W10.6 fixed-seed properties
         run: node scripts/w10.6-vertical-beam-property-check.mjs
       - name: Certify W10.6 source boundaries
