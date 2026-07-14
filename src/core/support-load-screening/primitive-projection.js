@@ -7,11 +7,11 @@ export function projectPrimitivesToPath(path, primitiveSet, loadCaseId, profile)
   const candidates = primitiveSet.primitives.filter((row) => row.loadCaseId === loadCaseId);
   const eligible = [], blocked = [], excluded = [];
   candidates.forEach((primitive) => {
+    const interval = intervals.get(primitive.componentKey);
+    if (!interval) return;
     if (primitive.primitiveType === PRIMITIVE_TYPES.MOMENT) return excluded.push(primitive.primitiveId);
     if (!profile.eligiblePrimitiveTypes.includes(primitive.primitiveType)) return blocked.push(blockedPrimitive(primitive, AUDIT_CODES.LOAD_PRIMITIVE_PATH_MISMATCH));
     if (primitive.semanticDirection !== 'GRAVITY_DOWN' || primitive.globalVector !== null) return blocked.push(blockedPrimitive(primitive, AUDIT_CODES.LOAD_PRIMITIVE_PATH_MISMATCH));
-    const interval = intervals.get(primitive.componentKey);
-    if (!interval) return;
     const projected = primitive.primitiveType === PRIMITIVE_TYPES.POINT
       ? projectPointPrimitive(primitive, interval, profile)
       : projectDistributedPrimitive(primitive, interval, profile);
