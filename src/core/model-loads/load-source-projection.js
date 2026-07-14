@@ -5,7 +5,7 @@ import {
   validateSharedPipingModel,
 } from '../shared-piping-model/index.js';
 import { validatePipingPortTopologyGraph } from '../piping-topology/index.js';
-import { LOAD_SOURCE_PROJECTION_SCHEMA } from './constants.js';
+import { AUDIT_CODES, LOAD_SOURCE_PROJECTION_SCHEMA } from './constants.js';
 import { distanceM, lengthFactorToM, normalizeLengthUnit, pointToMeters } from './units.js';
 
 export function projectEngineeringLoadSources(sharedModel, topologyGraph) {
@@ -54,21 +54,30 @@ function projectComponent(component, lengthUnit, factor) {
     position: pointToMeters(port.position, lengthUnit),
     sourceReference: port.sourceReference || null,
   }));
-  const sourceLengthM = lengthFromEvidence(component, factor) ?? distanceM(start, end);
-  const diagnostics = [];
-  if (factor === null) diagnostics.push(diagnostic('UNIT_BLOCKED', component.componentKey));
-  if (!start || !end || !(sourceLengthM > 0)) diagnostics.push(diagnostic('MISSING_GEOMETRY', component.componentKey));
+  const sourceLengthM = distanceM(start, end);
+  const declaredLengthM = lengthFromEvidence(component, factor);
+  const diagnostics = projectionDiagnostics(component.componentKey, factor, start, end, sourceLengthM, declaredLengthM);
   return deepFreeze({
     componentKey: component.componentKey,
     sourceEntityId: component.sourceEntityId ?? null,
     type: stringValue(component.type).toUpperCase() || 'UNKNOWN',
     identity: component.identity || {},
-    geometry: { start, end, center, ports, applicationPoint: cog || center, sourceLengthM },
+    geometry: { start, end, center, ports, applicationPoint: cog || center, sourceLengthM, declaredLengthM },
     engineeringProperties: component.engineeringProperties || {},
     loadEvidence: component.loadEvidence || {},
     sourceReferences: component.sourceReferences || {},
     diagnostics,
   });
+}
+
+function projectionDiagnostics(componentKey, factor, start, end, sourceLengthM, declaredLengthM) {
+  const diagnostics = [];
+  if (factor === null) diagnostics.push(diagnostic(AUDIT_CODES.UNIT_BLOCKED, componentKey));
+  if (!start || !end || !(sourceLengthM > 0)) diagnostics.push(diagnostic(AUDIT_CODES.MISSING_GEOMETRY, componentKey));
+  if (lengthsConflict(sourceLengthM, declaredLengthM)) {
+    diagnostics.push(diagnostic(AUDIT_CODES.GEOMETRY_LENGTH_CONFLICT, componentKey));
+  }
+  return diagnostics;
 }
 
 function explicitCenter(geometry) {
@@ -80,7 +89,15 @@ function lengthFromEvidence(component, factor) {
   const evidence = component.compatibilityEvidence?.sourceLengthMm;
   if (!evidence || factor === null) return null;
   const unitFactor = lengthFactorToM(evidence.unit || 'mm');
-  return unitFactor === null ? null : Number(evidence.value) * unitFactor;
+  const value = Number(evidence.value);
+  return unitFactor === null || !Number.isFinite(value) ? null : value * unitFactor;
+}
+
+function lengthsConflict(sourceLengthM, declaredLengthM) {
+  if (declaredLengthM === null) return false;
+  if (!(declaredLengthM > 0) || !(sourceLengthM > 0)) return true;
+  const scale = Math.max(1, Math.abs(sourceLengthM), Math.abs(declaredLengthM));
+  return Math.abs(sourceLengthM - declaredLengthM) > (scale * 1e-9);
 }
 
 function diagnostic(code, componentKey) {
