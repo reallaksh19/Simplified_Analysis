@@ -41,6 +41,8 @@ jobs:
         run: npm run check:w10.1:static
       - name: Certify W10.2 shared component-port topology
         run: npm run check:w10.2:static
+      - name: Certify W10.3 support attachment and restraint capability
+        run: npm run check:w10.3:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
