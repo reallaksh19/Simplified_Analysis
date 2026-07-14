@@ -4,6 +4,7 @@ import { deepFreeze, isPlainRecord, stringValue } from '../immutable.js';
 import {
   COMPATIBILITY_EVIDENCE_SPECS,
   ENGINEERING_PROPERTY_SPECS,
+  LOAD_EVIDENCE_SPECS,
   SUPPORT_EVIDENCE_SPECS,
 } from '../property-specs.js';
 import { createSharedPipingModel } from '../shared-piping-model.js';
@@ -14,10 +15,11 @@ const CONTAINER_TYPES = new Set(['BRANCH', 'GROUP', 'MODEL', 'ROOT', 'FOLDER', '
 
 export function buildSharedPipingModelFromWorkspaceDataset(dataset) {
   assertWorkspaceDataset(dataset);
-  const state = { components: [], supports: [], diagnostics: initialDiagnostics(dataset) };
+  const units = workspaceUnits(dataset);
+  const state = { components: [], supports: [], diagnostics: initialDiagnostics(dataset), units };
   dataset.entities.forEach((entity) => addWorkspaceEntity(entity, state));
   return createSharedPipingModel({
-    project: workspaceProject(dataset), units: workspaceUnits(dataset),
+    project: workspaceProject(dataset), units,
     sourceSnapshotRef: snapshotReference(dataset.sourceSnapshot),
     components: state.components, supports: state.supports,
     sourceReferences: { nodes: sourceNodeReferences(dataset.sourceModel) },
@@ -35,11 +37,12 @@ function addWorkspaceEntity(entity, state) {
   const diagnostics = [...evidence.diagnostics, ...sourceDiagnostics];
   state.diagnostics.push(...diagnostics);
   if (entity.category === 'support') state.supports.push(workspaceSupport(entity, evidence, diagnostics));
-  else state.components.push(workspaceComponent(entity, evidence, diagnostics));
+  else state.components.push(workspaceComponent(entity, evidence, diagnostics, state.units.length));
 }
 
-function workspaceComponent(entity, evidence, diagnostics) {
+function workspaceComponent(entity, evidence, diagnostics, lengthUnit) {
   const geometry = normalizeGeometryEvidence(entity.properties?.geometry, entity.sourcePath);
+  const loadEvidence = componentLoadEvidence(evidence.load.values, lengthUnit);
   return deepFreeze({
     componentKey: entity.entityId,
     sourceEntityId: entity.sourceEntityId ?? null,
@@ -49,6 +52,7 @@ function workspaceComponent(entity, evidence, diagnostics) {
     geometry: { ...geometry, ports: componentPorts(entity.entityId, geometry) },
     engineeringProperties: evidence.engineering.values,
     compatibilityEvidence: evidence.compatibility.values,
+    ...(Object.keys(loadEvidence).length ? { loadEvidence } : {}),
     sourceReferences: entitySourceReferences(entity),
     diagnostics,
   });
@@ -71,6 +75,21 @@ function workspaceSupport(entity, evidence, diagnostics) {
   });
 }
 
+function componentLoadEvidence(values, lengthUnit) {
+  const result = {};
+  if (values.explicitPointMomentNm) result.explicitPointMomentNm = values.explicitPointMomentNm;
+  if (values.momentAxis) result.momentAxis = values.momentAxis;
+  const axes = [values.componentCogX, values.componentCogY, values.componentCogZ];
+  if (axes.every(Boolean)) result.componentCog = deepFreeze({
+    value: { x: axes[0].value, y: axes[1].value, z: axes[2].value },
+    unit: lengthUnit,
+    sourceKind: 'COMPOSITE_EXPLICIT_SOURCE_EVIDENCE',
+    sourcePath: axes.map((axis) => axis.sourcePath).join('|'),
+    axes: { x: axes[0], y: axes[1], z: axes[2] },
+  });
+  return deepFreeze(result);
+}
+
 function supportPosition(entity, geometry) {
   const properties = entity.properties || {};
   return geometry.center
@@ -88,12 +107,16 @@ function collectEntityEvidence(entity) {
   const support = entity.category === 'support'
     ? collectSupportEvidence(SUPPORT_EVIDENCE_SPECS, roots, entity.entityId)
     : deepFreeze({ values: {}, diagnostics: [] });
+  const load = entity.category === 'support'
+    ? deepFreeze({ values: {}, diagnostics: [] })
+    : collectEvidence(LOAD_EVIDENCE_SPECS, roots, entity.entityId);
   const diagnostics = [
     ...engineering.diagnostics,
     ...compatibility.diagnostics,
     ...support.diagnostics,
+    ...load.diagnostics,
   ];
-  return { engineering, compatibility, support, diagnostics };
+  return { engineering, compatibility, support, load, diagnostics };
 }
 
 function entityRoots(entity) {
