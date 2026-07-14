@@ -43,8 +43,8 @@ function checkPrecedence() {
   assert.equal(directI.qualification, 'READY');
   assert.equal(directI.resolutionBasis, FLEXURAL_BASIS.EXPLICIT_E_I);
   assert.equal(directI.elasticModulusPa, 2e11);
-  assert.equal(directI.secondMomentAreaM4, 1.25e-5);
-  assert.equal(directI.flexuralRigidityNm2, 2.5e6);
+  assert.ok(close(directI.secondMomentAreaM4, 1.25e-5, 1e-15));
+  assert.ok(close(directI.flexuralRigidityNm2, 2.5e6, 1e-12));
 }
 
 function checkInvalidAndMissingEvidence() {
