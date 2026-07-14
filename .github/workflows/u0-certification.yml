@@ -92,7 +92,19 @@ jobs:
         run: node scripts/w10.6-flexural-property-contract-check.mjs immutability
 
       - name: Certify W10.6 model and reference integrity
-        run: node scripts/w10.6-vertical-beam-contract-check.mjs models
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/w10.6-vertical-beam-contract-check.mjs models 2>&1 | tee w10.6-model-integrity.log
+
+      - name: Upload W10.6 model integrity diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w10.6-model-integrity-log
+          path: w10.6-model-integrity.log
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Certify W10.6 support boundaries
         run: node scripts/w10.6-vertical-beam-contract-check.mjs boundaries
