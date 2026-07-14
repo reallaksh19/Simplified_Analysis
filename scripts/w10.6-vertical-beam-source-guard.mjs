@@ -5,18 +5,28 @@ import path from 'node:path';
 
 const BASE = 'e3311b77701fb8ce3ca92555aad1d7deef3edcb3';
 const root = process.cwd();
-console.log('\n--- W10.6 Source Boundary Guards ---\n');
 const changed = lines(git('diff', '--name-only', BASE, 'HEAD'));
-assert.ok(changed.length > 0, 'W10.6 guard requires changed files.');
-changed.forEach((file) => assert.equal(allowed(file), true, `Forbidden W10.6 path changed: ${file}`));
-assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
-checkDependencies();
-checkAllNewJavaScript();
-checkRuntimeFiles();
-checkPropertyAliases();
-console.log('✅ W10.6 source boundary guards passed.\n');
+const selected = process.argv[2] || 'all';
+const checks = Object.freeze({
+  paths: checkChangedPaths,
+  dependencies: checkDependencies,
+  sizes: checkJavaScriptSizes,
+  runtime: checkRuntimeFiles,
+  aliases: checkPropertyAliases,
+});
+console.log(`\n--- W10.6 Source Boundary Guards · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.6 source-boundary check: ${selected}`);
+console.log(`✅ W10.6 source boundary ${selected} check passed.\n`);
 
-function checkAllNewJavaScript() {
+function checkChangedPaths() {
+  assert.ok(changed.length > 0, 'W10.6 guard requires changed files.');
+  changed.forEach((file) => assert.equal(allowed(file), true, `Forbidden W10.6 path changed: ${file}`));
+  assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
+}
+
+function checkJavaScriptSizes() {
   changed.filter((file) => /\.(?:js|mjs)$/.test(file) && fs.existsSync(path.join(root, file))).forEach((file) => {
     const lineCount = fs.readFileSync(path.join(root, file), 'utf8').split(/\r?\n/).length - 1;
     assert.ok(lineCount < 300, `${file} has ${lineCount} lines.`);
