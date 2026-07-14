@@ -13,6 +13,9 @@ export const ENGINEERING_PROPERTY_SPECS = Object.freeze({
   fluidDensityHydKgM3: numeric('kg/m3', ['FLUID_DENSITY_HYD_KG_M3', 'FLUIDDENSITYHYDKGM3']),
   fluidWeightOpeKgPerM: numeric('kg/m', ['FLUID_WT_OPE_KG_M', 'FLUID_WEIGHT_OPE_KG_PER_M', 'FLUIDWEIGHTOPEKGPM']),
   fluidWeightHydKgPerM: numeric('kg/m', ['FLUID_WT_HYD_KG_M', 'FLUID_WEIGHT_HYD_KG_PER_M', 'FLUIDWEIGHTHYDKGPM']),
+  elasticModulusMpa: numeric('MPa', ['ELASTIC_MODULUS_MPA', 'YOUNGS_MODULUS_MPA', 'YOUNG_MODULUS_MPA', 'MODULUS_OF_ELASTICITY_MPA']),
+  secondMomentAreaMm4: numeric('mm4', ['SECOND_MOMENT_AREA_MM4', 'AREA_MOMENT_OF_INERTIA_MM4']),
+  flexuralRigidityNm2: numeric('N*m2', ['FLEXURAL_RIGIDITY_N_M2', 'EI_N_M2']),
 });
 
 export const COMPATIBILITY_EVIDENCE_SPECS = Object.freeze({
