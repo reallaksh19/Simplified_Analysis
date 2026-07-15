@@ -3,7 +3,7 @@ import { createModelLoadReadinessAudit } from '../src/core/model-loads/index.js'
 import { deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
 import {
   assembleVerticalBeamSystem, AUDIT_CODES, buildVerticalBeamFoundation,
-  runVerticalBeamSolution, solveScaledPartialPivot,
+  createEulerBernoulliVerticalPathProfile, runVerticalBeamSolution, solveScaledPartialPivot,
   validateFlexuralPropertyProjection, validateVerticalBeamModel,
   validateVerticalBeamSolution, validateVerticalBeamSolverAudit,
   validateVerticalBeamSolverProfile,
@@ -14,6 +14,7 @@ import { buildBeamFixture, solveBeamFixture } from './w10.6-beam-fixtures.mjs';
 const selected = process.argv[2] || 'all';
 const checks = Object.freeze({
   models: checkModelsAndReferences,
+  profile: checkProfileToleranceValidation,
   boundaries: checkSupportBoundaries,
   isolation: checkCaseIsolationAndMomentBlocking,
   mismatch: checkPrimitiveMismatch,
@@ -46,6 +47,48 @@ function checkModelsAndReferences() {
   assert.equal(assembly.formulaId, 'VERTICAL_BEAM_GLOBAL_ASSEMBLY_V1');
   assert.equal(solution.pathCases.every((row) => row.semanticHash), true);
   checkStoreContractLinks(fixture);
+}
+
+function checkProfileToleranceValidation() {
+  const defaults = createEulerBernoulliVerticalPathProfile();
+  assert.equal(validateVerticalBeamSolverProfile(defaults).ok, true);
+  const partial = createEulerBernoulliVerticalPathProfile({
+    forceEquilibriumTolerancePolicy: { absoluteTolerance: 1e-6 },
+  });
+  assert.equal(partial.forceEquilibriumTolerancePolicy.absoluteTolerance, 1e-6);
+  assert.equal(partial.forceEquilibriumTolerancePolicy.relativeTolerance, 1e-10);
+
+  const invalidValues = [-1, Number.NaN, Number.POSITIVE_INFINITY, 'not-a-number', undefined];
+  ['pivotAbsoluteTolerance', 'pivotRelativeTolerance'].forEach((key) => {
+    invalidValues.forEach((value) => assert.throws(
+      () => createEulerBernoulliVerticalPathProfile({ [key]: value }),
+      TypeError,
+    ));
+  });
+  const policyKeys = [
+    'geometryTolerancePolicy', 'forceEquilibriumTolerancePolicy',
+    'momentEquilibriumTolerancePolicy', 'matrixResidualTolerancePolicy',
+    'supportDisplacementTolerancePolicy',
+  ];
+  policyKeys.forEach((policyKey) => {
+    ['absoluteTolerance', 'relativeTolerance'].forEach((field) => {
+      invalidValues.forEach((value) => assert.throws(
+        () => createEulerBernoulliVerticalPathProfile({ [policyKey]: { [field]: value } }),
+        TypeError,
+      ));
+    });
+    assert.throws(() => createEulerBernoulliVerticalPathProfile({ [policyKey]: null }), TypeError);
+  });
+  assert.throws(() => createEulerBernoulliVerticalPathProfile(null), TypeError);
+
+  const invalidProfile = rehash({
+    ...structuredClone(defaults),
+    numericalSolverPolicy: {
+      ...structuredClone(defaults.numericalSolverPolicy),
+      pivotAbsoluteTolerance: -1,
+    },
+  });
+  assert.equal(validateVerticalBeamSolverProfile(invalidProfile).ok, false);
 }
 
 function checkSupportBoundaries() {
