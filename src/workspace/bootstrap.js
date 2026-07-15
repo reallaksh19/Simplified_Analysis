@@ -25,6 +25,9 @@ import { TopologyController } from './topology-controller.js';
 import { TopologyPanel } from './topology-panel.js';
 import { TopologyStore } from './topology-store.js';
 import { TreePanel } from './tree-panel.js';
+import { VerticalBeamController } from './vertical-beam-controller.js';
+import { VerticalBeamPanel } from './vertical-beam-panel.js';
+import { VerticalBeamStore } from './vertical-beam-store.js';
 import { ViewportPanel } from './viewport-panel.js';
 import { renderWorkspaceLayout } from './workspace-layout.js';
 import { WorkspaceState } from './workspace-state.js';
@@ -39,6 +42,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   SupportRestraintStore.clear();
   ModelLoadStore.clear();
   SupportLoadScreeningStore.clear();
+  VerticalBeamStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -55,6 +59,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   const supportLoadScreeningController = new SupportLoadScreeningController(
     EventBus,
     SupportLoadScreeningStore,
+    rootElement.ownerDocument,
+  );
+  const verticalBeamController = new VerticalBeamController(
+    EventBus,
+    VerticalBeamStore,
     rootElement.ownerDocument,
   );
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
@@ -97,6 +106,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.querySelector('[data-role="support-load-screening-summary"]'),
     EventBus,
   );
+  const verticalBeamPanel = new VerticalBeamPanel(
+    rootElement.querySelector('[data-role="vertical-beam-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -113,6 +126,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     supportRestraintController,
     modelLoadController,
     supportLoadScreeningController,
+    verticalBeamController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
@@ -124,6 +138,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     supportRestraintPanel,
     modelLoadPanel,
     supportLoadScreeningPanel,
+    verticalBeamPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -175,6 +190,18 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getSupportLoadScreeningAudit() {
       return SupportLoadScreeningStore.getAudit();
     },
+    getFlexuralPropertyProjection() {
+      return VerticalBeamStore.getFlexuralProjection();
+    },
+    getVerticalBeamModel() {
+      return VerticalBeamStore.getBeamModel();
+    },
+    getVerticalBeamSolution() {
+      return VerticalBeamStore.getSolution();
+    },
+    getVerticalBeamSolverAudit() {
+      return VerticalBeamStore.getAudit();
+    },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
@@ -205,6 +232,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      VerticalBeamStore.clear();
       SupportLoadScreeningStore.clear();
       ModelLoadStore.clear();
       SupportRestraintStore.clear();

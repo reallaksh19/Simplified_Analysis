@@ -47,6 +47,54 @@ jobs:
         run: npm run check:w10.4:static
       - name: Certify W10.5 topology-local tributary screening
         run: npm run check:w10.5:static
+      - name: Certify W10.6 flexural aliases
+        run: node scripts/w10.6-flexural-property-contract-check.mjs aliases
+      - name: Certify W10.6 flexural precedence
+        run: node scripts/w10.6-flexural-property-contract-check.mjs precedence
+      - name: Certify W10.6 invalid flexural evidence
+        run: node scripts/w10.6-flexural-property-contract-check.mjs invalid
+      - name: Certify W10.6 circular-section derivation
+        run: node scripts/w10.6-flexural-property-contract-check.mjs circular
+      - name: Certify W10.6 unsupported component policy
+        run: node scripts/w10.6-flexural-property-contract-check.mjs unsupported
+      - name: Certify W10.6 flexural immutability
+        run: node scripts/w10.6-flexural-property-contract-check.mjs immutability
+      - name: Certify W10.6 model and reference integrity
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs models
+      - name: Certify W10.6 support boundaries
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs boundaries
+      - name: Certify W10.6 case isolation and moment policy
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs isolation
+      - name: Certify W10.6 primitive path mismatch
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs mismatch
+      - name: Certify W10.6 linear solver failures
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs linear
+      - name: Certify W10.6 upstream immutability
+        run: node scripts/w10.6-vertical-beam-contract-check.mjs immutability
+      - name: Certify W10.6 simply supported uniform benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs uniform
+      - name: Certify W10.6 point-load benchmarks
+        run: node scripts/w10.6-engineering-benchmark-check.mjs point
+      - name: Certify W10.6 continuous-span benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs continuous
+      - name: Certify W10.6 unequal and piecewise benchmarks
+        run: node scripts/w10.6-engineering-benchmark-check.mjs piecewise
+      - name: Certify W10.6 overhang benchmark
+        run: node scripts/w10.6-engineering-benchmark-check.mjs overhang
+      - name: Certify W10.6 W10.5 parity
+        run: node scripts/w10.6-engineering-benchmark-check.mjs parity
+      - name: Certify W10.6 fixed-seed properties
+        run: node scripts/w10.6-vertical-beam-property-check.mjs
+      - name: Certify W10.6 changed paths and lockfile
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs paths
+      - name: Certify W10.6 dependency boundary
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs dependencies
+      - name: Certify W10.6 JavaScript sizes
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs sizes
+      - name: Certify W10.6 runtime source boundaries
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs runtime
+      - name: Certify W10.6 explicit aliases
+        run: node scripts/w10.6-vertical-beam-source-guard.mjs aliases
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
