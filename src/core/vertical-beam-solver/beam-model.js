@@ -77,7 +77,7 @@ function initialBlockers(path, caseId, flexuralRows, readiness, integrity, loads
   const caseAudit = readiness.cases.find((row) => row.loadCaseId === caseId);
   const blockedComponents = new Set(caseAudit?.blockedComponentIds || []);
   const localCaseBlocked = !caseAudit || path.orderedComponentKeys.some((key) => blockedComponents.has(key));
-  const integrityBlocked = integrity.rows.some((row) => row.loadCaseId === caseId && (row.blockAllPaths || row.pathIds.includes(path.pathId)));
+  const integrityBlocked = integrity.rows.some((row) => row.loadCaseId === caseId && row.pathIds.includes(path.pathId));
   return uniqueSorted([
     ...(path.qualification === QUALIFICATION.READY ? [] : [AUDIT_CODES.PATH_NOT_QUALIFIED]),
     ...(path.qualifiedSupportKeys.length >= 2 ? [] : [AUDIT_CODES.INSUFFICIENT_VERTICAL_SUPPORTS]),
