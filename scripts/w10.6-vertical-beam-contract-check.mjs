@@ -8,6 +8,7 @@ import {
   validateVerticalBeamSolution, validateVerticalBeamSolverAudit,
   validateVerticalBeamSolverProfile,
 } from '../src/core/vertical-beam-solver/index.js';
+import { VerticalBeamStore } from '../src/workspace/vertical-beam-store.js';
 import { buildBeamFixture, solveBeamFixture } from './w10.6-beam-fixtures.mjs';
 
 const selected = process.argv[2] || 'all';
@@ -44,6 +45,7 @@ function checkModelsAndReferences() {
   assert.equal(assembly.matrix.every((row, i) => row.every((value, j) => close(value, assembly.matrix[j][i], 1e-10))), true);
   assert.equal(assembly.formulaId, 'VERTICAL_BEAM_GLOBAL_ASSEMBLY_V1');
   assert.equal(solution.pathCases.every((row) => row.semanticHash), true);
+  checkStoreContractLinks(fixture);
 }
 
 function checkSupportBoundaries() {
@@ -83,13 +85,14 @@ function checkCaseIsolationAndMomentBlocking() {
 }
 
 function checkPrimitiveMismatch() {
-  const fixture = buildBeamFixture({ lengthsM: [4], supportStationsM: [0, 4], flexural: { ei: 2e6 } });
-  const primitive = {
-    primitiveId: 'fixture-load:EMPTY:orphan', loadCaseId: 'EMPTY', componentKey: 'MISSING-COMPONENT',
-    primitiveType: 'POINT_GRAVITY_LOAD', applicationPoint: { x: 2, y: 0, z: 0 },
-    pointMassKg: 100 / 9.80665, pointForceN: 100,
-    semanticDirection: 'GRAVITY_DOWN', globalVector: null, sourceEvidence: { fixture: true }, diagnostics: [],
-  };
+  const fixture = buildBeamFixture({
+    intervals: [
+      { key: 'PATH-A-COMPONENT', startM: 0, endM: 1 },
+      { key: 'PATH-B-COMPONENT', startM: 10, endM: 11 },
+    ],
+    supportStationsM: [0, 1, 10, 11], flexural: { ei: 2e6 },
+  });
+  const primitive = orphanPrimitive();
   const primitiveSet = rehash({
     ...fixture.loadFoundation.loadPrimitiveSet,
     primitives: [...fixture.loadFoundation.loadPrimitiveSet.primitives, primitive],
@@ -100,9 +103,12 @@ function checkPrimitiveMismatch() {
     loadCaseSet: fixture.loadFoundation.loadCaseSet, loadPrimitiveSet: primitiveSet,
     modelLoadReadinessAudit: readiness,
   });
-  const empty = foundation.beamModel.pathCases.find((row) => row.loadCaseId === 'EMPTY');
-  assert.equal(empty.blockers.includes(AUDIT_CODES.LOAD_PRIMITIVE_PATH_MISMATCH), true);
-  assert.equal(foundation.beamModel.pathCases.find((row) => row.loadCaseId === 'OPE').qualification, 'READY');
+  const emptyCases = foundation.beamModel.pathCases.filter((row) => row.loadCaseId === 'EMPTY');
+  assert.equal(emptyCases.length, 2);
+  assert.equal(emptyCases.every(isReady), true);
+  assert.equal(foundation.beamModel.pathCases.every(isReady), true);
+  assert.equal(foundation.beamModel.diagnostics.some((row) => row.scope === primitive.primitiveId
+    && row.code === AUDIT_CODES.LOAD_PRIMITIVE_PATH_MISMATCH), true);
 }
 
 function checkLinearSolverFailures() {
@@ -126,6 +132,48 @@ function checkUpstreamImmutability() {
   assert.equal(solved.solution.beamModelSemanticHash, fixture.foundation.beamModel.semanticHash);
 }
 
+function checkStoreContractLinks(first) {
+  const changedProfile = solveBeamFixture({
+    datasetId: 'W10.6-STORE-PROFILE', lengthsM: [2, 2], supportStationsM: [0, 4],
+    flexural: { ei: 2e6 }, profileOptions: { pivotRelativeTolerance: 1e-10 },
+  });
+  const changedDataset = solveBeamFixture({
+    datasetId: 'W10.6-STORE-DATASET', lengthsM: [2, 2], supportStationsM: [0, 4], flexural: { ei: 2e6 },
+  });
+  VerticalBeamStore.clear();
+  setStoreFoundation(first);
+  const baseline = VerticalBeamStore.getSnapshot();
+  expectFoundationRejection(first.foundation.profile, changedProfile.foundation.flexuralProjection, changedProfile.foundation.beamModel, baseline);
+  expectFoundationRejection(changedProfile.foundation.profile, changedProfile.foundation.flexuralProjection, first.foundation.beamModel, baseline);
+  expectFoundationRejection(first.foundation.profile, first.foundation.flexuralProjection, changedDataset.foundation.beamModel, baseline);
+  VerticalBeamStore.setSolution(first.solved.solution, first.solved.audit);
+  const solved = VerticalBeamStore.getSnapshot();
+  assert.throws(() => VerticalBeamStore.setSolution(first.solved.solution, changedDataset.solved.audit), /audit does not match/i);
+  assertStoreSnapshot(solved);
+  VerticalBeamStore.clear();
+}
+
+function expectFoundationRejection(profile, projection, model, baseline) {
+  assert.throws(() => VerticalBeamStore.setFoundation(profile, projection, model), /does not match/i);
+  assertStoreSnapshot(baseline);
+}
+function setStoreFoundation(fixture) {
+  VerticalBeamStore.setFoundation(
+    fixture.foundation.profile, fixture.foundation.flexuralProjection, fixture.foundation.beamModel,
+  );
+}
+function assertStoreSnapshot(expected) {
+  const actual = VerticalBeamStore.getSnapshot();
+  Object.keys(expected).forEach((key) => assert.strictEqual(actual[key], expected[key]));
+}
+function orphanPrimitive() {
+  return {
+    primitiveId: 'fixture-load:EMPTY:orphan', loadCaseId: 'EMPTY', componentKey: 'MISSING-COMPONENT',
+    primitiveType: 'POINT_GRAVITY_LOAD', applicationPoint: { x: 2, y: 0, z: 0 },
+    pointMassKg: 100 / 9.80665, pointForceN: 100,
+    semanticDirection: 'GRAVITY_DOWN', globalVector: null, sourceEvidence: { fixture: true }, diagnostics: [],
+  };
+}
 function assertModelReferences(row) {
   const nodeIds = new Set(row.nodes.map((item) => item.nodeId));
   const dofIds = new Set(row.dofMap.map((item) => item.dofId));
