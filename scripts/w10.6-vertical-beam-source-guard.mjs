@@ -48,9 +48,14 @@ function checkRuntimeFiles() {
     checkFunctions(relative, source);
     if (relative.startsWith('src/core/vertical-beam-solver/')) checkCoreImports(relative, source);
   });
-  const profile = fs.readFileSync(path.join(root, 'src/core/vertical-beam-solver/profile.js'), 'utf8');
+  const profile = readSource('src/core/vertical-beam-solver/profile.js');
   assert.match(profile, /penaltyStiffness:\s*false/);
   assert.equal(/penalty(?:Factor|Value|Coefficient)\s*[:=]/i.test(profile), false);
+  assert.doesNotMatch(readSource('src/core/vertical-beam-solver/load-projection.js'), /blockAllPaths/);
+  assert.doesNotMatch(readSource('src/core/vertical-beam-solver/beam-model.js'), /\.blockAllPaths/);
+  const store = readSource('src/workspace/vertical-beam-store.js');
+  ['profileSemanticHash', 'flexuralProjectionSemanticHash', 'solutionSemanticHash']
+    .forEach((field) => assert.match(store, new RegExp(field)));
 }
 
 function checkCoreImports(relative, source) {
@@ -118,6 +123,7 @@ function functionRanges(source) {
   });
   return result;
 }
+function readSource(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 function count(value, character) { return [...value].filter((item) => item === character).length; }
 function walk(directory) { if (!fs.existsSync(directory)) return []; return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => entry.isDirectory() ? walk(path.join(directory, entry.name)) : entry.name.endsWith('.js') ? [path.join(directory, entry.name)] : []); }
 function git(...args) { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }); }
