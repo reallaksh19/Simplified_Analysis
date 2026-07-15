@@ -31,22 +31,39 @@ export function projectBeamLoads(path, primitiveSet, loadCaseId, profile) {
 }
 
 export function primitivePathIntegrity(pathModel, primitiveSet) {
-  const memberships = new Map();
-  pathModel.paths.forEach((path) => path.orderedComponentKeys.forEach((key) => {
-    const rows = memberships.get(key) || []; rows.push(path.pathId); memberships.set(key, rows);
-  }));
-  const rows = primitiveSet.primitives.filter((primitive) => primitive.primitiveType !== 'EXPLICIT_POINT_MOMENT')
-    .filter((primitive) => (memberships.get(primitive.componentKey) || []).length !== 1)
-    .map((primitive) => {
-      const pathIds = memberships.get(primitive.componentKey) || [];
-      return deepFreeze({ primitiveId: primitive.primitiveId, loadCaseId: primitive.loadCaseId, componentKey: primitive.componentKey, pathIds, blockAllPaths: pathIds.length === 0 });
-    });
+  const memberships = componentPathMemberships(pathModel);
+  const mismatches = primitiveSet.primitives
+    .filter((primitive) => primitive.primitiveType !== 'EXPLICIT_POINT_MOMENT')
+    .map((primitive) => mismatchRecord(primitive, memberships))
+    .filter(Boolean)
+    .sort((a, b) => a.primitiveId.localeCompare(b.primitiveId));
   return deepFreeze({
-    rows: rows.sort((a, b) => a.primitiveId.localeCompare(b.primitiveId)),
-    diagnostics: rows.map((row) => diagnostic(
+    rows: mismatches.filter((row) => row.pathIds.length > 0),
+    diagnostics: mismatches.map((row) => diagnostic(
       AUDIT_CODES.LOAD_PRIMITIVE_PATH_MISMATCH, row.primitiveId,
       'Primitive component does not belong to exactly one qualified topology-local path.', row, 'WARNING',
     )),
+  });
+}
+
+function componentPathMemberships(pathModel) {
+  const memberships = new Map();
+  pathModel.paths.forEach((path) => path.orderedComponentKeys.forEach((key) => {
+    const rows = memberships.get(key) || [];
+    rows.push(path.pathId);
+    memberships.set(key, rows);
+  }));
+  return memberships;
+}
+
+function mismatchRecord(primitive, memberships) {
+  const pathIds = memberships.get(primitive.componentKey) || [];
+  if (pathIds.length === 1) return null;
+  return deepFreeze({
+    primitiveId: primitive.primitiveId,
+    loadCaseId: primitive.loadCaseId,
+    componentKey: primitive.componentKey,
+    pathIds: [...pathIds].sort(),
   });
 }
 
