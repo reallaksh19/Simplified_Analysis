@@ -55,9 +55,14 @@ function continuousEqualSpans() {
 
 function unequalAndPiecewiseCases() {
   const unequal = readyCase(solveBeamFixture({ lengthsM: [3, 5], supportStationsM: [0, 3, 8], uniformLoadNM: 600, flexural: { ei: 2e6 } }), 'EMPTY');
+  assertForces(unequal, [425, 3160, 1215]);
+  assertNear(nodeAt(unequal, 3).rotationRad, 3.75e-4, 1e-12);
   assertProof(unequal);
+
   const piecewise = readyCase(solveBeamFixture({ lengthsM: [2, 2, 2], supportStationsM: [0, 2, 6], flexuralByComponent: [{ ei: 1e6 }, { ei: 3e6 }, { ei: 2e6 }], uniformLoadNM: 500 }), 'EMPTY');
   assert.equal(piecewise.elementEndForces.length, 3);
+  assertForces(piecewise, [201.21951219512195, 1948.170731707317, 850.609756097561]);
+  assertNear(nodeAt(piecewise, 4).verticalDisplacementM, 4.62059621e-4, 1e-11);
   assertProof(piecewise);
 
   const mixedLoads = allCases([
@@ -117,6 +122,11 @@ function assertProof(row) {
   assert.equal(row.momentEquilibrium.pass, true);
   assert.equal(row.matrixResidual.pass, true);
   assert.equal(row.supportDisplacementResidual.pass, true);
+}
+function nodeAt(row, stationM) {
+  const node = row.nodeResults.find((item) => item.pathStationM === stationM);
+  assert.ok(node, `Missing node result at station ${stationM} m.`);
+  return node;
 }
 function allCases(rows) { return { EMPTY: structuredClone(rows), OPE: structuredClone(rows), HYD: structuredClone(rows) }; }
 function byStation(a, b) { return a.pathStationM - b.pathStationM; }

@@ -5,6 +5,7 @@ import {
 } from './constants.js';
 
 export function createEulerBernoulliVerticalPathProfile(options = {}) {
+  assertOptions(options);
   const base = {
     schema: VERTICAL_BEAM_SOLVER_PROFILE_SCHEMA,
     profileId: PROFILE_ID,
@@ -30,14 +31,14 @@ export function createEulerBernoulliVerticalPathProfile(options = {}) {
       assemblyFormulaId: 'VERTICAL_BEAM_GLOBAL_ASSEMBLY_V1',
       solverFormulaId: 'SCALED_PARTIAL_PIVOT_LINEAR_SOLVE_V1',
       constraintMethod: 'FREE_CONSTRAINED_DOF_PARTITION',
-      pivotAbsoluteTolerance: numberOption(options.pivotAbsoluteTolerance, 1e-14),
-      pivotRelativeTolerance: numberOption(options.pivotRelativeTolerance, 1e-12),
+      pivotAbsoluteTolerance: numericOption(options, 'pivotAbsoluteTolerance', 1e-14, 'pivot absolute tolerance'),
+      pivotRelativeTolerance: numericOption(options, 'pivotRelativeTolerance', 1e-12, 'pivot relative tolerance'),
     },
-    geometryTolerancePolicy: tolerance(options.geometryTolerancePolicy, 1e-9, 1e-9, 'm'),
-    forceEquilibriumTolerancePolicy: tolerance(options.forceEquilibriumTolerancePolicy, 1e-7, 1e-10, 'N'),
-    momentEquilibriumTolerancePolicy: tolerance(options.momentEquilibriumTolerancePolicy, 1e-7, 1e-10, 'N*m'),
-    matrixResidualTolerancePolicy: tolerance(options.matrixResidualTolerancePolicy, 1e-8, 1e-10, 'N'),
-    supportDisplacementTolerancePolicy: tolerance(options.supportDisplacementTolerancePolicy, 1e-12, 1e-10, 'm'),
+    geometryTolerancePolicy: toleranceOption(options, 'geometryTolerancePolicy', 1e-9, 1e-9, 'm', 'geometry'),
+    forceEquilibriumTolerancePolicy: toleranceOption(options, 'forceEquilibriumTolerancePolicy', 1e-7, 1e-10, 'N', 'force'),
+    momentEquilibriumTolerancePolicy: toleranceOption(options, 'momentEquilibriumTolerancePolicy', 1e-7, 1e-10, 'N*m', 'moment'),
+    matrixResidualTolerancePolicy: toleranceOption(options, 'matrixResidualTolerancePolicy', 1e-8, 1e-10, 'N', 'matrix'),
+    supportDisplacementTolerancePolicy: toleranceOption(options, 'supportDisplacementTolerancePolicy', 1e-12, 1e-10, 'm', 'displacement'),
   };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
@@ -48,6 +49,9 @@ export function validateVerticalBeamSolverProfile(profile) {
   if (profile?.profileId !== PROFILE_ID) errors.push('Unsupported vertical-beam solver profile ID.');
   if (!stringValue(profile?.profileVersion)) errors.push('Vertical-beam solver profile version is required.');
   if (profile?.kinematicModel !== 'EULER_BERNOULLI') errors.push('Vertical-beam kinematic model must be Euler-Bernoulli.');
+  validateNumeric(profile?.numericalSolverPolicy?.pivotAbsoluteTolerance, 'pivot absolute tolerance', errors);
+  validateNumeric(profile?.numericalSolverPolicy?.pivotRelativeTolerance, 'pivot relative tolerance', errors);
+  validateTolerance(profile?.geometryTolerancePolicy, 'geometry', errors);
   validateTolerance(profile?.forceEquilibriumTolerancePolicy, 'force', errors);
   validateTolerance(profile?.momentEquilibriumTolerancePolicy, 'moment', errors);
   validateTolerance(profile?.matrixResidualTolerancePolicy, 'matrix', errors);
@@ -56,15 +60,32 @@ export function validateVerticalBeamSolverProfile(profile) {
   return deepFreeze({ ok: errors.length === 0, errors });
 }
 
-function tolerance(value, absoluteDefault, relativeDefault, unit) {
+function assertOptions(options) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError('Vertical-beam solver profile options must be an object.');
+  }
+}
+function toleranceOption(options, key, absoluteDefault, relativeDefault, unit, label) {
+  const value = own(options, key) ? options[key] : {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`Invalid ${label} tolerance policy.`);
   return deepFreeze({
-    absoluteTolerance: numberOption(value?.absoluteTolerance, absoluteDefault),
-    relativeTolerance: numberOption(value?.relativeTolerance, relativeDefault), unit,
+    absoluteTolerance: numericOption(value, 'absoluteTolerance', absoluteDefault, `${label} absolute tolerance`),
+    relativeTolerance: numericOption(value, 'relativeTolerance', relativeDefault, `${label} relative tolerance`),
+    unit,
   });
 }
-function numberOption(value, fallback) { return Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : fallback; }
-function validateTolerance(value, label, errors) {
-  if (!Number.isFinite(value?.absoluteTolerance) || value.absoluteTolerance < 0) errors.push(`Invalid ${label} absolute tolerance.`);
-  if (!Number.isFinite(value?.relativeTolerance) || value.relativeTolerance < 0) errors.push(`Invalid ${label} relative tolerance.`);
+function numericOption(options, key, fallback, label) {
+  if (!own(options, key)) return fallback;
+  const value = options[key];
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new TypeError(`Invalid ${label}.`);
+  return value;
 }
+function validateTolerance(value, label, errors) {
+  validateNumeric(value?.absoluteTolerance, `${label} absolute tolerance`, errors);
+  validateNumeric(value?.relativeTolerance, `${label} relative tolerance`, errors);
+}
+function validateNumeric(value, label, errors) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) errors.push(`Invalid ${label}.`);
+}
+function own(value, key) { return Object.prototype.hasOwnProperty.call(value, key); }
 function withoutHash(value) { const { semanticHash: _semanticHash, ...rest } = value || {}; return rest; }
