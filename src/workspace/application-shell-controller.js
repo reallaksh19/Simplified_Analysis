@@ -10,7 +10,7 @@ export class ApplicationShellController {
     this.#renderNavigation();
     this.#root.querySelector('[data-role="application-navigation"]').addEventListener('click', this.#onClick);
     this.#unsubscribers.push(this.#bus.subscribe('applicationView:changed', () => this.#renderViews()));
-    this.#unsubscribers.push(this.#bus.subscribe('workspaceConsumerContext:changed', () => { this.#renderNavigation(); this.#renderViews(); }));
+    this.#unsubscribers.push(this.#bus.subscribe('workspaceConsumerContext:changed', () => this.#renderViews()));
     this.#renderViews();
   }
   destroy() {
@@ -30,15 +30,17 @@ export class ApplicationShellController {
   }
   #button(id, label, active) {
     const readiness = this.#consumer.getReadiness(id);
-    const disabled = readiness.readinessState === 'NOT_IMPLEMENTED';
-    const reason = disabled ? `${label} is not implemented in the current runtime.` : readiness.readinessState !== 'AVAILABLE' ? `${label} is unavailable: ${readiness.readinessState}.` : '';
-    return `<button type="button" role="tab" data-consumer-id="${id}" aria-selected="${active === id}" aria-disabled="${disabled}" ${disabled ? 'disabled' : ''} title="${escapeHtml(reason)}">${label}</button>`;
+    const disabled = readiness.readinessState !== 'AVAILABLE';
+    const reason = readiness.readinessState === 'NOT_IMPLEMENTED'
+      ? `${label} is not implemented in the current runtime.`
+      : disabled ? `${label} is unavailable: ${readiness.readinessState}.` : '';
+    const reasonId = `consumer-reason-${id.toLowerCase().replaceAll('_', '-')}`;
+    return `<span class="application-navigation__item"><button type="button" role="tab" data-consumer-id="${id}" aria-selected="${active === id}" aria-disabled="${disabled}" aria-describedby="${reasonId}" ${disabled ? 'disabled' : ''}>${label}</button><span id="${reasonId}" class="sr-only">${escapeHtml(reason)}</span></span>`;
   }
   #renderViews() {
     const active = this.#consumer.getViewState()?.activeViewId ?? 'WORKSPACE';
-    const workspace = this.#root.querySelector('[data-application-view="WORKSPACE"]');
-    const reports = this.#root.querySelector('[data-application-view="REPORTS"]');
-    workspace.hidden = active !== 'WORKSPACE'; reports.hidden = active !== 'REPORTS';
+    this.#root.querySelector('[data-application-view="WORKSPACE"]').hidden = active !== 'WORKSPACE';
+    this.#root.querySelector('[data-application-view="REPORTS"]').hidden = active !== 'REPORTS';
     this.#renderNavigation();
   }
 }
