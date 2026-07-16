@@ -68,7 +68,7 @@ function blockersFor(state, invalid, missing) {
 }
 
 function readinessDiagnostics(state, invalid, missing) {
-  if (state === READINESS_STATES.NOT_IMPLEMENTED) return [diagnostic('CONSUMER_NOT_IMPLEMENTED', 'Current-runtime implementation is not available.')];
+  if (state === READINESS_STATES.NOT_IMPLEMENTED) return [diagnostic('CONSUMER_NOT_IMPLEMENTED', 'This consumer is not implemented in the current runtime.')];
   if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS) return invalid.map((key) => diagnostic('INVALID_REQUIRED_CONTRACT', `Required contract ${key} is invalid or stale.`, key));
   if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS) return missing.length
     ? missing.map((key) => diagnostic('MISSING_REQUIRED_CONTRACT', `Required contract ${key} is unavailable.`, key))
