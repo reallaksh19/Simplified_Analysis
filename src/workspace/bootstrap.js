@@ -5,6 +5,7 @@ import { AnalysisLedger } from './analysis-ledger-store.js';
 import { AnalysisSessionController } from './analysis-session-controller.js';
 import { AnalysisSessions } from './analysis-session-store.js';
 import { ApplicationShellController } from './application-shell-controller.js';
+import { ApplicationShellStyles } from './application-shell-styles.js';
 import { DatasetController } from './dataset-controller.js';
 import { EventBus } from './event-bus.js';
 import { ModelCalculationController } from './model-calculation-controller.js';
@@ -46,9 +47,12 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
   const controllers = buildControllers(rootElement, capabilityRegistry);
   const consumerController = new WorkspaceConsumerController(EventBus, createConsumerReaders());
-  const applicationShell = new ApplicationShellController(rootElement, EventBus, consumerController);
-  const reportsPanel = new ReportsConsumerPanel(rootElement.querySelector('[data-role="reports-view"]'), EventBus, consumerController);
-  controllers.push(consumerController, applicationShell, reportsPanel);
+  controllers.push(
+    new ApplicationShellStyles(rootElement.ownerDocument),
+    consumerController,
+    new ApplicationShellController(rootElement, EventBus, consumerController),
+    new ReportsConsumerPanel(rootElement.querySelector('[data-role="reports-view"]'), EventBus, consumerController),
+  );
   controllers.forEach((controller) => controller.init());
   globalThis.EventBus = EventBus;
 
