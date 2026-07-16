@@ -17,6 +17,12 @@ jobs:
       - run: npm ci
 
       - run: npx playwright install chromium --with-deps
+      - name: Certify W10.7 package and ledger contracts
+        run: node scripts/w10.7-model-calculation-contract-check.mjs
+      - name: Certify W10.7 deterministic properties
+        run: node scripts/w10.7-model-calculation-property-check.mjs
+      - name: Certify W10.7 source and scope boundaries
+        run: node scripts/w10.7-model-calculation-source-guard.mjs
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
       - name: Certify Phase 2 dataset contracts
@@ -93,11 +99,11 @@ jobs:
         run: node scripts/w10.6-vertical-beam-source-guard.mjs runtime
       - name: Certify W10.6 explicit aliases
         run: node scripts/w10.6-vertical-beam-source-guard.mjs aliases
-      - name: Certify W10.7 model calculation package and archive
-        run: npm run check:w10.7:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
+      - name: Certify W10.7 Workspace capability
+        run: npm run check:w10.7:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report
