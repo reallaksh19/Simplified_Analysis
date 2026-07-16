@@ -22,6 +22,12 @@ jobs:
         run: node scripts/w10.7-model-calculation-property-check.mjs
       - name: Certify W10.7 source and scope boundaries
         run: node scripts/w10.7-model-calculation-source-guard.mjs
+      - name: Certify W10.8 consumer contracts
+        run: node scripts/w10.8-workspace-consumer-contract-check.mjs
+      - name: Certify W10.8 deterministic properties
+        run: node scripts/w10.8-workspace-consumer-property-check.mjs
+      - name: Certify W10.8 source and scope boundaries
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
@@ -104,6 +110,8 @@ jobs:
         run: npm run check:qa -- --skip-e2e
       - name: Certify W10.7 Workspace capability
         run: npm run check:w10.7:browser
+      - name: Certify W10.8 application shell and Reports consumer
+        run: npm run check:w10.8:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report
