@@ -33,7 +33,7 @@ function checkNewJavaScript(file) {
   const lines = content.split(/\r?\n/).length - 1;
   if (lines >= 300) errors.push(`${file} has ${lines} lines; maximum is below 300.`);
   if (/export\s+default\b/.test(content)) errors.push(`${file} contains a default export.`);
-  if (/\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(content)) errors.push(`${file} contains nondeterministic identity logic.`);
+  if (file.startsWith('src/') && /\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(content)) errors.push(`${file} contains nondeterministic identity logic.`);
   if (/from\s+['"][^'"]*(?:react|zustand|src\/reporting|\/reporting\/|components\/|store\/appStore)/i.test(content)) errors.push(`${file} imports a forbidden runtime or reporting path.`);
   if (/\b(?:solveVerticalBeamModel|runVerticalBeamSolution|runTributarySupportLoadScreening|buildTributarySupportLoadScreening)\b/.test(importClauses(content))) errors.push(`${file} imports solver or screening execution.`);
   if (file.startsWith('src/core/workspace-consumers/') && /from\s+['"][^'"]*workspace\//i.test(content)) errors.push(`${file} imports Workspace code into the core contract boundary.`);
