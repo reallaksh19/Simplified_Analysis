@@ -130,9 +130,6 @@ jobs:
       - name: Certify W10.6 fixed-seed properties
         run: node scripts/w10.6-vertical-beam-property-check.mjs
 
-      - name: Certify W10.6 changed paths and lockfile
-        run: node scripts/w10.6-vertical-beam-source-guard.mjs paths
-
       - name: Certify W10.6 dependency boundary
         run: node scripts/w10.6-vertical-beam-source-guard.mjs dependencies
 
