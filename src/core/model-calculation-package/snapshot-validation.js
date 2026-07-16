@@ -15,15 +15,21 @@ const SCREENING_CACHE = new WeakMap();
 const BEAM_CACHE = new WeakMap();
 
 export function validateAndNormalizeSnapshots(mode, screeningInput, beamInput) {
-  assertMode(mode);
+  assertRequiredSnapshots(mode, screeningInput, beamInput);
   const needsScreening = mode !== PACKAGE_MODES.BEAM;
   const needsBeam = mode !== PACKAGE_MODES.SCREENING;
-  if (needsScreening && !screeningInput) throw new TypeError('Completed screening snapshot is required.');
-  if (needsBeam && !beamInput) throw new TypeError('Completed vertical-beam snapshot is required.');
-  if (needsScreening && needsBeam) { assertRawCombinedDataset(screeningInput, beamInput); assertRawCombinedPathLink(screeningInput, beamInput); }
+  if (needsScreening && needsBeam) assertRawCombinedCompatibility(screeningInput, beamInput);
   const screening = needsScreening ? screeningSnapshot(screeningInput) : null;
   const targetPathHash = screening?.pathModel.semanticHash || null;
   const beam = needsBeam ? beamSnapshot(beamInput, targetPathHash) : null;
+  if (screening && beam) assertCombinedCompatibility(screening, beam);
+  return deepFreeze({ screening, beam });
+}
+
+export function validatePackagedSnapshots(mode, screening, beam) {
+  assertRequiredSnapshots(mode, screening, beam);
+  if (screening) assertPackagedScreening(screening);
+  if (beam) assertPackagedBeam(beam);
   if (screening && beam) assertCombinedCompatibility(screening, beam);
   return deepFreeze({ screening, beam });
 }
@@ -34,8 +40,7 @@ export function screeningSnapshot(input) {
   assertScreeningContracts(input);
   assertScreeningLinks(input);
   const normalized = normalizeScreeningSnapshot(input);
-  assertScreeningContracts(normalized);
-  assertScreeningLinks(normalized);
+  assertPackagedScreening(normalized);
   if (input && typeof input === 'object') SCREENING_CACHE.set(input, normalized);
   return normalized;
 }
@@ -47,24 +52,34 @@ export function beamSnapshot(input, targetPathHash = null) {
   assertBeamContracts(input);
   assertBeamLinks(input);
   const normalized = normalizeVerticalBeamSnapshot(input, targetPathHash);
-  assertBeamContracts(normalized);
-  assertBeamLinks(normalized);
-  if (input && typeof input === 'object') {
-    const rows = BEAM_CACHE.get(input) || new Map(); rows.set(cacheKey, normalized); BEAM_CACHE.set(input, rows);
-  }
+  assertPackagedBeam(normalized);
+  cacheBeam(input, cacheKey, normalized);
   return normalized;
 }
 
 export function assertCombinedCompatibility(screening, beam) {
   if (screening.pathModel.datasetId !== beam.beamModel.datasetId) throw new TypeError('Combined calculation snapshots use different datasets.');
-  if (beam.flexuralProjection.pathModelSemanticHash !== screening.pathModel.semanticHash) throw new TypeError('Combined calculation snapshots use different vertical path models.');
+  if (beam.flexuralProjection.pathModelSemanticHash !== screening.pathModel.semanticHash) throw new TypeError('Combined calculation snapshots use different normalized vertical path models.');
+  if (beam.sourceSemanticHashes.pathModelSemanticHash !== screening.sourceSemanticHashes.pathModelSemanticHash) throw new TypeError('Combined calculation snapshots use different source vertical path models.');
   assertEqualSets(caseKeys(screening.screening.pathCases), caseKeys(beam.solution.pathCases), 'path/load-case IDs');
-  const screeningResult = screening.screening, beamModel = beam.beamModel;
-  ['loadCaseSetSemanticHash', 'primitiveSetSemanticHash', 'readinessAuditSemanticHash'].forEach((field) => {
-    if (screeningResult[field] !== beamModel[field]) throw new TypeError(`Combined calculation snapshots have incompatible ${field}.`);
-  });
+  assertLoadContractLinks(screening.screening, beam.beamModel);
 }
 
+function assertPackagedScreening(snapshot) {
+  assertScreeningContracts(snapshot);
+  assertScreeningLinks(snapshot);
+  assertSourceHashes(snapshot.sourceSemanticHashes, [
+    'profileSemanticHash', 'pathModelSemanticHash', 'resultSemanticHash', 'auditSemanticHash',
+  ], 'screening');
+}
+function assertPackagedBeam(snapshot) {
+  assertBeamContracts(snapshot);
+  assertBeamLinks(snapshot);
+  assertSourceHashes(snapshot.sourceSemanticHashes, [
+    'profileSemanticHash', 'flexuralProjectionSemanticHash', 'beamModelSemanticHash',
+    'solutionSemanticHash', 'auditSemanticHash', 'pathModelSemanticHash',
+  ], 'vertical-beam');
+}
 function assertScreeningContracts(snapshot) {
   const checks = [
     [validateVerticalLoadPathProfile, snapshot?.profile, 'screening profile'],
@@ -104,18 +119,33 @@ function assertBeamLinks(snapshot) {
   if (audit.solutionSemanticHash !== solution.semanticHash) throw new TypeError('Beam audit does not match the beam solution.');
   if (!Array.isArray(solution.pathCases)) throw new TypeError('Completed explicit vertical-beam solve is required.');
 }
-function assertRawCombinedDataset(screening, beam) {
+function assertRawCombinedCompatibility(screening, beam) {
   const screeningId = screening?.pathModel?.datasetId;
   const beamId = beam?.beamModel?.datasetId;
   if (!screeningId || screeningId !== beamId) throw new TypeError('Combined calculation snapshots use different datasets.');
-}
-function assertRawCombinedPathLink(screening, beam) {
   const screeningHash = screening?.pathModel?.semanticHash;
-  const projectionHash = beam?.flexuralProjection?.pathModelSemanticHash;
-  const modelHash = beam?.beamModel?.pathModelSemanticHash;
-  if (!screeningHash || projectionHash !== screeningHash || modelHash !== screeningHash) {
+  if (!screeningHash || beam?.flexuralProjection?.pathModelSemanticHash !== screeningHash
+    || beam?.beamModel?.pathModelSemanticHash !== screeningHash) {
     throw new TypeError('Combined calculation snapshots use different vertical path models.');
   }
+}
+function assertLoadContractLinks(screening, beamModel) {
+  ['loadCaseSetSemanticHash', 'primitiveSetSemanticHash', 'readinessAuditSemanticHash'].forEach((field) => {
+    if (screening[field] !== beamModel[field]) throw new TypeError(`Combined calculation snapshots have incompatible ${field}.`);
+  });
+}
+function assertRequiredSnapshots(mode, screening, beam) {
+  assertMode(mode);
+  if (mode !== PACKAGE_MODES.BEAM && !screening) throw new TypeError('Completed screening snapshot is required.');
+  if (mode !== PACKAGE_MODES.SCREENING && !beam) throw new TypeError('Completed vertical-beam snapshot is required.');
+}
+function assertSourceHashes(value, fields, label) {
+  if (!value || typeof value !== 'object') throw new TypeError(`${label} source semantic hashes are required.`);
+  fields.forEach((field) => { if (!stringValue(value[field])) throw new TypeError(`${label} source semantic hash ${field} is required.`); });
+}
+function cacheBeam(input, key, value) {
+  if (!input || typeof input !== 'object') return;
+  const rows = BEAM_CACHE.get(input) || new Map(); rows.set(key, value); BEAM_CACHE.set(input, rows);
 }
 function assertDatasetIds(values, label) {
   const ids = new Set(values.map((row) => stringValue(row?.datasetId)).filter(Boolean));
