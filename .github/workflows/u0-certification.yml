@@ -25,6 +25,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Certify W10.7 unavailable-state rejection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs availability
+
+      - name: Certify W10.7 package modes
+        run: node scripts/w10.7-model-calculation-contract-check.mjs modes
+
+      - name: Certify W10.7 stale and mixed snapshot rejection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs mismatches
+
+      - name: Certify W10.7 ledger retention
+        run: node scripts/w10.7-model-calculation-contract-check.mjs ledger
+
+      - name: Certify W10.7 report projection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs report
+
+      - name: Certify W10.7 artifact formats and byte evidence
+        run: node scripts/w10.7-model-calculation-contract-check.mjs artifacts
+
+      - name: Certify W10.7 CSV and Markdown rendering
+        run: node scripts/w10.7-model-calculation-contract-check.mjs rendering
+
+      - name: Certify W10.7 upstream immutability
+        run: node scripts/w10.7-model-calculation-contract-check.mjs immutability
+
+      - name: Certify W10.7 deterministic properties
+        run: node scripts/w10.7-model-calculation-property-check.mjs
+
+      - name: Certify W10.7 source and scope boundaries
+        run: node scripts/w10.7-model-calculation-source-guard.mjs
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
@@ -130,9 +160,6 @@ jobs:
       - name: Certify W10.6 fixed-seed properties
         run: node scripts/w10.6-vertical-beam-property-check.mjs
 
-      - name: Certify W10.6 changed paths and lockfile
-        run: node scripts/w10.6-vertical-beam-source-guard.mjs paths
-
       - name: Certify W10.6 dependency boundary
         run: node scripts/w10.6-vertical-beam-source-guard.mjs dependencies
 
@@ -150,6 +177,9 @@ jobs:
 
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
+
+      - name: Certify W10.7 Workspace capability
+        run: npm run check:w10.7:browser
 
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser

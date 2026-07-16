@@ -60,6 +60,7 @@ export function renderWorkspaceLayout(rootElement) {
         <div data-role="model-load-summary"></div>
         <div data-role="support-load-screening-summary"></div>
         <div data-role="vertical-beam-summary"></div>
+        <div data-role="model-calculation-summary"></div>
         <div data-role="model-support-load-summary"></div>
         <div class="properties-content" data-role="properties-content">
           <p class="panel-empty">Select an entity to inspect its properties.</p>

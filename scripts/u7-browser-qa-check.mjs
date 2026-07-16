@@ -23,6 +23,7 @@ const requiredE2EFiles = [
   'e2e/w10.4-model-load-workspace.spec.js',
   'e2e/w10.5-support-load-screening-workspace.spec.js',
   'e2e/w10.6-vertical-beam-workspace.spec.js',
+  'e2e/w10.7-model-calculation-workspace.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -216,6 +217,21 @@ checkSpecContracts('e2e/w10.6-vertical-beam-workspace.spec.js', [
   'getVerticalBeamModel',
   'verticalBeam:exportRequested',
   '__w106UrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.7-model-calculation-workspace.spec.js', [
+  'model-calculation-package/v1',
+  'model-calculation-ledger/v1',
+  'Create Calculation Package',
+  'Select Archived Package',
+  'Export Package JSON',
+  'Export Report CSV',
+  'Export Report Markdown',
+  'getModelCalculationLedger',
+  'getActiveModelCalculationPackage',
+  'getActiveModelCalculationReport',
+  '__w107UrlAudit',
   'AnalysisWorkspace.destroy()',
 ]);
 

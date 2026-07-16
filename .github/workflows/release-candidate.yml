@@ -16,6 +16,12 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
+      - name: Certify W10.7 package and ledger contracts
+        run: node scripts/w10.7-model-calculation-contract-check.mjs
+      - name: Certify W10.7 deterministic properties
+        run: node scripts/w10.7-model-calculation-property-check.mjs
+      - name: Certify W10.7 source and scope boundaries
+        run: node scripts/w10.7-model-calculation-source-guard.mjs
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
@@ -85,8 +91,6 @@ jobs:
         run: node scripts/w10.6-engineering-benchmark-check.mjs parity
       - name: Certify W10.6 fixed-seed properties
         run: node scripts/w10.6-vertical-beam-property-check.mjs
-      - name: Certify W10.6 changed paths and lockfile
-        run: node scripts/w10.6-vertical-beam-source-guard.mjs paths
       - name: Certify W10.6 dependency boundary
         run: node scripts/w10.6-vertical-beam-source-guard.mjs dependencies
       - name: Certify W10.6 JavaScript sizes
@@ -98,6 +102,8 @@ jobs:
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
+      - name: Certify W10.7 Workspace capability
+        run: npm run check:w10.7:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report

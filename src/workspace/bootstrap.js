@@ -6,6 +6,9 @@ import { AnalysisSessionController } from './analysis-session-controller.js';
 import { AnalysisSessions } from './analysis-session-store.js';
 import { DatasetController } from './dataset-controller.js';
 import { EventBus } from './event-bus.js';
+import { ModelCalculationController } from './model-calculation-controller.js';
+import { ModelCalculationPanel } from './model-calculation-panel.js';
+import { ModelCalculationStore } from './model-calculation-store.js';
 import { ModelLoadController } from './model-load-controller.js';
 import { ModelLoadPanel } from './model-load-panel.js';
 import { ModelLoadStore } from './model-load-store.js';
@@ -43,6 +46,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   ModelLoadStore.clear();
   SupportLoadScreeningStore.clear();
   VerticalBeamStore.clear();
+  ModelCalculationStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -64,6 +68,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   const verticalBeamController = new VerticalBeamController(
     EventBus,
     VerticalBeamStore,
+    rootElement.ownerDocument,
+  );
+  const modelCalculationController = new ModelCalculationController(
+    EventBus,
+    ModelCalculationStore,
     rootElement.ownerDocument,
   );
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
@@ -110,6 +119,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     rootElement.querySelector('[data-role="vertical-beam-summary"]'),
     EventBus,
   );
+  const modelCalculationPanel = new ModelCalculationPanel(
+    rootElement.querySelector('[data-role="model-calculation-summary"]'),
+    EventBus,
+  );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
     rootElement.querySelector('[data-role="model-support-load-summary"]'),
     EventBus,
@@ -127,6 +140,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     modelLoadController,
     supportLoadScreeningController,
     verticalBeamController,
+    modelCalculationController,
     modelSupportLoadController,
     sessionController,
     analysisCoordinator,
@@ -139,6 +153,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     modelLoadPanel,
     supportLoadScreeningPanel,
     verticalBeamPanel,
+    modelCalculationPanel,
     modelSupportLoadPanel,
     propertiesPanel,
   ];
@@ -202,6 +217,15 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getVerticalBeamSolverAudit() {
       return VerticalBeamStore.getAudit();
     },
+    getModelCalculationLedger() {
+      return ModelCalculationStore.getLedger();
+    },
+    getActiveModelCalculationPackage() {
+      return ModelCalculationStore.getActivePackage();
+    },
+    getActiveModelCalculationReport() {
+      return ModelCalculationStore.getActiveReport();
+    },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
@@ -232,6 +256,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
+      ModelCalculationStore.clear();
       VerticalBeamStore.clear();
       SupportLoadScreeningStore.clear();
       ModelLoadStore.clear();
