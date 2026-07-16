@@ -39,8 +39,14 @@ jobs:
         run: node scripts/w10.7-model-calculation-contract-check.mjs immutability
       - name: Certify W10.7 deterministic properties
         run: node scripts/w10.7-model-calculation-property-check.mjs
-      - name: Certify W10.7 source and scope boundaries
-        run: node scripts/w10.7-model-calculation-source-guard.mjs
+      - name: Certify W10.7 dependency boundary
+        run: node scripts/w10.7-model-calculation-source-guard.mjs dependencies
+      - name: Certify W10.7 JavaScript sizes
+        run: node scripts/w10.7-model-calculation-source-guard.mjs sizes
+      - name: Certify W10.7 runtime boundaries
+        run: node scripts/w10.7-model-calculation-source-guard.mjs runtime
+      - name: Certify W10.7 contract surfaces
+        run: node scripts/w10.7-model-calculation-source-guard.mjs contracts
       - name: Certify W10.8 consumer contracts
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs
       - name: Certify W10.8 deterministic properties
