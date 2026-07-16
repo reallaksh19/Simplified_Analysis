@@ -11,14 +11,20 @@ import {
 import { canonicalPrettyStringify, semanticHash } from '../src/core/shared-piping-model/index.js';
 import { buildCalculationFixture } from './w10.7-fixtures.mjs';
 
-console.log('\n--- W10.7 model calculation contracts ---\n');
-checkEmptyAvailability();
-checkPackageModes();
-checkMismatches();
-checkLedger();
-checkReportsAndExports();
-checkUpstreamImmutability();
-console.log('✅ W10.7 model calculation contracts passed.\n');
+const selected = process.argv[2] || 'all';
+const checks = Object.freeze({
+  availability: checkEmptyAvailability,
+  modes: checkPackageModes,
+  mismatches: checkMismatches,
+  ledger: checkLedger,
+  exports: checkReportsAndExports,
+  immutability: checkUpstreamImmutability,
+});
+console.log(`\n--- W10.7 model calculation contracts · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.7 contract check: ${selected}`);
+console.log(`✅ W10.7 model calculation contracts ${selected} passed.\n`);
 
 function checkEmptyAvailability() {
   assert.throws(() => createModelCalculationPackage({ packageMode: PACKAGE_MODES.SCREENING }), /screening snapshot/i);
