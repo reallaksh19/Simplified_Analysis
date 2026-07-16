@@ -9,42 +9,65 @@ ensureBaseCommit();
 const changed = gitLines(['diff', '--name-only', BASE_SHA, 'HEAD']);
 const added = new Set(gitLines(['diff', '--name-only', '--diff-filter=A', BASE_SHA, 'HEAD']));
 const errors = [];
+const checks = Object.freeze({
+  paths: checkChangedPaths,
+  javascript: checkJavaScriptStandards,
+  imports: checkImportBoundaries,
+  runtime: checkProductionBoundaries,
+  dependencies: checkDependencies,
+  integration: checkRequiredIntegration,
+});
+const selected = process.argv[2] || 'all';
 
-changed.forEach(checkAllowedPath);
-changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file)).forEach(checkNewJavaScript);
-checkProductionBoundaries();
-checkDependencies();
-checkRequiredIntegration();
+console.log(`\n--- W10.8 source guard · ${selected} ---\n`);
+if (selected === 'all') Object.values(checks).forEach((check) => check());
+else if (checks[selected]) checks[selected]();
+else throw new TypeError(`Unknown W10.8 source-guard check: ${selected}.`);
 
 if (errors.length) {
-  console.error(`W10.8 source guard failed with ${errors.length} error(s):`);
+  console.error(`W10.8 source guard ${selected} failed with ${errors.length} error(s):`);
   errors.forEach((error) => console.error(` - ${error}`));
   process.exit(1);
 }
-console.log(`✅ W10.8 source guard passed for ${changed.length} changed file(s).`);
+console.log(`✅ W10.8 source guard ${selected} passed for ${changed.length} changed file(s).`);
 
-function checkAllowedPath(file) {
-  if (!ALLOWED.some((rule) => rule.test(file))) errors.push(`Disallowed W10.8 changed path: ${file}`);
-  if (file === 'package-lock.json') errors.push('package-lock.json must not change.');
+function checkChangedPaths() {
+  changed.forEach((file) => {
+    if (!ALLOWED.some((rule) => rule.test(file))) errors.push(`Disallowed W10.8 changed path: ${file}`);
+    if (file === 'package-lock.json') errors.push('package-lock.json must not change.');
+  });
 }
 
-function checkNewJavaScript(file) {
-  const content = read(file);
-  const lines = content.split(/\r?\n/).length - 1;
-  if (lines >= 300) errors.push(`${file} has ${lines} lines; maximum is below 300.`);
-  if (/export\s+default\b/.test(content)) errors.push(`${file} contains a default export.`);
-  if (file.startsWith('src/') && /\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(content)) errors.push(`${file} contains nondeterministic identity logic.`);
-  if (/from\s+['"][^'"]*(?:react|zustand|src\/reporting|\/reporting\/|components\/|store\/appStore)/i.test(content)) errors.push(`${file} imports a forbidden runtime or reporting path.`);
-  if (/\b(?:solveVerticalBeamModel|runVerticalBeamSolution|runTributarySupportLoadScreening|buildTributarySupportLoadScreening)\b/.test(importClauses(content))) errors.push(`${file} imports solver or screening execution.`);
-  if (file.startsWith('src/core/workspace-consumers/') && /from\s+['"][^'"]*workspace\//i.test(content)) errors.push(`${file} imports Workspace code into the core contract boundary.`);
+function checkJavaScriptStandards() {
+  addedJavaScript().forEach((file) => {
+    const content = read(file);
+    const lines = content.split(/\r?\n/).length - 1;
+    if (lines >= 300) errors.push(`${file} has ${lines} lines; maximum is below 300.`);
+    if (/export\s+default\b/.test(content)) errors.push(`${file} contains a default export.`);
+    if (file.startsWith('src/') && hasNondeterministicIdentity(content)) {
+      errors.push(`${file} contains nondeterministic identity logic.`);
+    }
+  });
+}
+
+function checkImportBoundaries() {
+  addedJavaScript().forEach((file) => {
+    const content = read(file);
+    if (forbiddenRuntimeImport(content)) errors.push(`${file} imports a forbidden runtime or reporting path.`);
+    if (forbiddenExecutionImport(content)) errors.push(`${file} imports solver or screening execution.`);
+    if (coreImportsWorkspace(file, content)) errors.push(`${file} imports Workspace code into the core contract boundary.`);
+  });
 }
 
 function checkProductionBoundaries() {
-  const files = changed.filter((file) => file.startsWith('src/core/workspace-consumers/') || /^src\/workspace\/(?:application-shell|workspace-consumer|reports-consumer)-/.test(file));
-  files.forEach((file) => {
+  productionFiles().forEach((file) => {
     const content = read(file);
-    if (/\b(?:analysis:started|supportLoadScreening:runRequested|verticalBeam:solveRequested)\b/.test(content)) errors.push(`${file} emits a forbidden calculation event.`);
-    if (/\b(?:CREATE_REQUESTED|RUN_REQUESTED|SOLVE_REQUESTED)\b/.test(content)) errors.push(`${file} invokes automatic calculation or package creation.`);
+    if (/\b(?:analysis:started|supportLoadScreening:runRequested|verticalBeam:solveRequested)\b/.test(content)) {
+      errors.push(`${file} emits a forbidden calculation event.`);
+    }
+    if (/\b(?:CREATE_REQUESTED|RUN_REQUESTED|SOLVE_REQUESTED)\b/.test(content)) {
+      errors.push(`${file} invokes automatic calculation or package creation.`);
+    }
   });
 }
 
@@ -56,17 +79,42 @@ function checkDependencies() {
 }
 
 function checkRequiredIntegration() {
-  const bootstrap = read('src/workspace/bootstrap.js');
-  ['getWorkspaceConsumerContext', 'listWorkspaceConsumers', 'getWorkspaceConsumerReadiness', 'getApplicationViewState', 'activateApplicationView']
-    .forEach((name) => { if (!bootstrap.includes(name)) errors.push(`Bootstrap API ${name} is missing.`); });
-  const layout = read('src/workspace/workspace-layout.js');
-  ['data-application-view="WORKSPACE"', 'data-application-view="REPORTS"', 'data-role="application-navigation"']
-    .forEach((token) => { if (!layout.includes(token)) errors.push(`Application shell token ${token} is missing.`); });
+  requireTokens('src/workspace/bootstrap.js', [
+    'getWorkspaceConsumerContext', 'listWorkspaceConsumers', 'getWorkspaceConsumerReadiness',
+    'getApplicationViewState', 'activateApplicationView',
+  ], 'Bootstrap API');
+  requireTokens('src/workspace/workspace-layout.js', [
+    'data-application-view="WORKSPACE"', 'data-application-view="REPORTS"',
+    'data-role="application-navigation"',
+  ], 'Application shell token');
   const events = `${read('src/workspace/application-shell-controller.js')}\n${read('src/workspace/workspace-consumer-controller.js')}`;
   ['applicationView:changeRequested', 'applicationView:changed', 'applicationView:changeFailed', 'workspaceConsumerContext:changed']
     .forEach((topic) => { if (!events.includes(topic)) errors.push(`Required W10.8 event ${topic} is missing.`); });
 }
 
+function addedJavaScript() {
+  return changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file));
+}
+function productionFiles() {
+  return changed.filter((file) => file.startsWith('src/core/workspace-consumers/')
+    || /^src\/workspace\/(?:application-shell|workspace-consumer|reports-consumer)-/.test(file));
+}
+function hasNondeterministicIdentity(content) {
+  return /\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(content);
+}
+function forbiddenRuntimeImport(content) {
+  return /from\s+['"][^'"]*(?:react|zustand|src\/reporting|\/reporting\/|components\/|store\/appStore)/i.test(content);
+}
+function forbiddenExecutionImport(content) {
+  return /\b(?:solveVerticalBeamModel|runVerticalBeamSolution|runTributarySupportLoadScreening|buildTributarySupportLoadScreening)\b/.test(importClauses(content));
+}
+function coreImportsWorkspace(file, content) {
+  return file.startsWith('src/core/workspace-consumers/') && /from\s+['"][^'"]*workspace\//i.test(content);
+}
+function requireTokens(file, tokens, label) {
+  const content = read(file);
+  tokens.forEach((token) => { if (!content.includes(token)) errors.push(`${label} ${token} is missing.`); });
+}
 function assertSame(left, right, label) {
   if (JSON.stringify(left || {}) !== JSON.stringify(right || {})) errors.push(`package.json ${label} changed.`);
 }
