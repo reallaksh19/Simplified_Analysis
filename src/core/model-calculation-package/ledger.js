@@ -50,6 +50,12 @@ export function activeModelCalculationEntry(ledger) {
   return ledger.entries.find((row) => row.entryId === ledger.activeEntryId) || null;
 }
 
+export function validateModelCalculationLedgerEntry(value, datasetId = value?.datasetId) {
+  const errors = [];
+  validateEntry(value, datasetId, errors);
+  return deepFreeze({ ok: errors.length === 0, errors });
+}
+
 export function validateModelCalculationLedger(value) {
   const errors = [];
   if (value?.schema !== MODEL_CALCULATION_LEDGER_SCHEMA) errors.push('Invalid model calculation ledger schema.');
@@ -59,7 +65,7 @@ export function validateModelCalculationLedger(value) {
   if (new Set(ids).size !== ids.length) errors.push('Model calculation ledger entry IDs must be unique.');
   (value?.entries || []).forEach((row) => validateEntry(row, value.datasetId, errors));
   if (value?.activeEntryId && !ids.includes(value.activeEntryId)) errors.push('Model calculation ledger active entry is invalid.');
-  if (!Number.isInteger(value?.nextSequence) || value.nextSequence < 1) errors.push('Model calculation ledger sequence is invalid.');
+  validateSequenceState(value, errors);
   validateArchiveHashes(value, errors);
   if (value?.semanticHash !== semanticHash(ledgerHashPayload(value))) errors.push('Model calculation ledger semantic hash mismatch.');
   return deepFreeze({ ok: errors.length === 0, errors });
@@ -90,6 +96,15 @@ function validateEntry(row, datasetId, errors) {
   if (row?.entryId !== `model-calculation-entry:${safe(datasetId)}:${row?.sequence}`) errors.push(`Ledger entry ${row?.entryId || ''} ID is invalid.`);
   if (row?.archiveKey !== `${datasetId}|${row?.packageSemanticHash}`) errors.push(`Ledger entry ${row?.entryId || ''} archive key mismatch.`);
   if (row?.semanticHash !== semanticHash(entryHashPayload(row))) errors.push(`Ledger entry ${row?.entryId || ''} semantic hash mismatch.`);
+}
+function validateSequenceState(value, errors) {
+  if (!Number.isInteger(value?.nextSequence) || value.nextSequence < 1) {
+    errors.push('Model calculation ledger sequence is invalid.'); return;
+  }
+  const sequences = (value?.entries || []).map((row) => row.sequence);
+  if (new Set(sequences).size !== sequences.length) errors.push('Model calculation ledger entry sequences must be unique.');
+  if (sequences.some((value, index) => index > 0 && value <= sequences[index - 1])) errors.push('Model calculation ledger entries must be sequence ordered.');
+  if (sequences.length && value.nextSequence <= Math.max(...sequences)) errors.push('Model calculation ledger next sequence must exceed retained entries.');
 }
 function assertLedger(ledger) { const validation = validateModelCalculationLedger(ledger); if (!validation.ok) throw new TypeError(`Invalid model calculation ledger: ${validation.errors.join(' ')}`); }
 function assertPackage(value) { const validation = validateModelCalculationPackage(value); if (!validation.ok) throw new TypeError(`Invalid model calculation package: ${validation.errors.join(' ')}`); }
