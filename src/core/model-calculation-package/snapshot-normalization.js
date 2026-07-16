@@ -5,7 +5,7 @@ const ORDERED_STRING_ARRAYS = new Set([
   'primitiveTypes', 'localEndForceVector', 'vector', 'matrix',
   'componentIntervals', 'nodes', 'elements', 'dofMap', 'constraints',
   'loadVectorRecords', 'nodeResults', 'elementEndForces', 'elementExtrema',
-  'spans', 'qualifiedSupportKeys', 'blockedSupportKeys', 'flexuralPropertyReferences',
+  'spans', 'flexuralPropertyReferences',
 ]);
 const IDENTITY_FIELDS = [
   'pathId', 'loadCaseId', 'supportKey', 'componentKey', 'primitiveId',
