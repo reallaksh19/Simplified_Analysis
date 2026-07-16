@@ -17,15 +17,16 @@ function screeningMethod(snapshot) {
     engineeringLevel: ENGINEERING_LEVELS.SCREENING,
     profileId: profile.profileId,
     profileVersion: profile.profileVersion,
-    profileSemanticHash: profile.semanticHash,
+    profileSemanticHash: snapshot.sourceSemanticHashes.profileSemanticHash,
     formulaIds: collectFormulaIds(snapshot),
     signConvention: 'screenedVerticalForceN is a nonnegative tributary support-force magnitude.',
     assumptions: screeningAssumptions(profile),
     limitations: uniqueSorted([...PACKAGE_LIMITATIONS, 'Only qualified simple acyclic non-branching paths are screened.', 'Springs, gaps, cycles, branches and overhang loads are blocked.']),
-    resultSemanticHash: snapshot.screening.semanticHash,
-    auditSemanticHash: snapshot.audit.semanticHash,
+    resultSemanticHash: snapshot.sourceSemanticHashes.resultSemanticHash,
+    auditSemanticHash: snapshot.sourceSemanticHashes.auditSemanticHash,
   });
 }
+
 function beamMethod(snapshot) {
   const profile = snapshot.profile;
   return deepFreeze({
@@ -34,15 +35,16 @@ function beamMethod(snapshot) {
     engineeringLevel: ENGINEERING_LEVELS.BEAM,
     profileId: profile.profileId,
     profileVersion: profile.profileVersion,
-    profileSemanticHash: profile.semanticHash,
+    profileSemanticHash: snapshot.sourceSemanticHashes.profileSemanticHash,
     formulaIds: collectFormulaIds(snapshot),
     signConvention: profile.signConvention,
     assumptions: beamAssumptions(profile),
     limitations: uniqueSorted([...PACKAGE_LIMITATIONS, 'Scalar Euler-Bernoulli vertical bending only.', 'Linear elastic small-displacement response only.', 'Rotations remain free and vertical rigid supports have zero prescribed displacement.']),
-    resultSemanticHash: snapshot.solution.semanticHash,
-    auditSemanticHash: snapshot.audit.semanticHash,
+    resultSemanticHash: snapshot.sourceSemanticHashes.solutionSemanticHash,
+    auditSemanticHash: snapshot.sourceSemanticHashes.auditSemanticHash,
   });
 }
+
 function collectFormulaIds(value) {
   const ids = [];
   walk(value, (key, child) => { if (key === 'formulaId' && typeof child === 'string') ids.push(child); });
