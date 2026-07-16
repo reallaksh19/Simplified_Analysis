@@ -12,7 +12,6 @@ let packageMode = null;
 
 export const ModelCalculationStore = Object.freeze({
   setDataset(datasetId) {
-    if (ledger?.datasetId === datasetId) return;
     ledger = createModelCalculationLedger(datasetId);
     activeReport = null; availability = emptyAvailability(); packageMode = null;
   },
