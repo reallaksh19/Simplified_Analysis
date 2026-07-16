@@ -128,6 +128,7 @@ test('same-ID replacement, clear and teardown reset view readiness without autom
   await prepareCalculations(page);
   await createPackage(page, 'SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button', { name: 'Reports' }).click();
+  await page.getByRole('button', { name: 'Workspace' }).click();
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   expect(await page.evaluate(() => AnalysisWorkspace.getSnapshot().status)).toBe('empty');
   expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
