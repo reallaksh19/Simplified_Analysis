@@ -37,8 +37,14 @@ jobs:
       - name: Certify W10.7 ledger retention
         run: node scripts/w10.7-model-calculation-contract-check.mjs ledger
 
-      - name: Certify W10.7 report and export artifacts
-        run: node scripts/w10.7-model-calculation-contract-check.mjs exports
+      - name: Certify W10.7 report projection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs report
+
+      - name: Certify W10.7 artifact formats and byte evidence
+        run: node scripts/w10.7-model-calculation-contract-check.mjs artifacts
+
+      - name: Certify W10.7 CSV and Markdown rendering
+        run: node scripts/w10.7-model-calculation-contract-check.mjs rendering
 
       - name: Certify W10.7 upstream immutability
         run: node scripts/w10.7-model-calculation-contract-check.mjs immutability
