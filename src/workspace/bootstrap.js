@@ -179,43 +179,97 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   globalThis.EventBus = EventBus;
 
   return Object.freeze({
-    getSnapshot() { return WorkspaceState.getSnapshot(); },
+    getSnapshot() {
+      return WorkspaceState.getSnapshot();
+    },
     getSharedModel() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' ? snapshot.dataset?.sharedModel || null : null;
     },
-    getTopologyGraph() { return TopologyStore.getGraph(); },
-    getTopologyAudit() { return TopologyStore.getAudit(); },
-    getSupportAttachmentModel() { return SupportRestraintStore.getAttachmentModel(); },
-    getSupportAttachmentAudit() { return SupportRestraintStore.getAttachmentAudit(); },
-    getRestraintCapabilityModel() { return SupportRestraintStore.getRestraintModel(); },
-    getRestraintCapabilityAudit() { return SupportRestraintStore.getRestraintAudit(); },
-    getLoadCaseSet() { return ModelLoadStore.getLoadCaseSet(); },
-    getLoadPrimitiveSet() { return ModelLoadStore.getLoadPrimitiveSet(); },
-    getModelLoadReadinessAudit() { return ModelLoadStore.getReadinessAudit(); },
-    getVerticalLoadPathModel() { return SupportLoadScreeningStore.getPathModel(); },
-    getSupportLoadScreening() { return SupportLoadScreeningStore.getScreening(); },
-    getSupportLoadScreeningAudit() { return SupportLoadScreeningStore.getAudit(); },
-    getFlexuralPropertyProjection() { return VerticalBeamStore.getFlexuralProjection(); },
-    getVerticalBeamModel() { return VerticalBeamStore.getBeamModel(); },
-    getVerticalBeamSolution() { return VerticalBeamStore.getSolution(); },
-    getVerticalBeamSolverAudit() { return VerticalBeamStore.getAudit(); },
-    getModelCalculationLedger() { return ModelCalculationStore.getLedger(); },
-    getActiveModelCalculationPackage() { return ModelCalculationStore.getActivePackage(); },
-    getActiveModelCalculationReport() { return ModelCalculationStore.getActiveReport(); },
-    getWorkspaceConsumerContext() { return workspaceConsumerController.getContext(); },
-    listWorkspaceConsumers() { return workspaceConsumerController.listConsumers(); },
-    getWorkspaceConsumerReadiness(consumerId) { return workspaceConsumerController.getReadiness(consumerId); },
-    getApplicationViewState() { return applicationShellController.getState(); },
-    activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
+    getTopologyGraph() {
+      return TopologyStore.getGraph();
+    },
+    getTopologyAudit() {
+      return TopologyStore.getAudit();
+    },
+    getSupportAttachmentModel() {
+      return SupportRestraintStore.getAttachmentModel();
+    },
+    getSupportAttachmentAudit() {
+      return SupportRestraintStore.getAttachmentAudit();
+    },
+    getRestraintCapabilityModel() {
+      return SupportRestraintStore.getRestraintModel();
+    },
+    getRestraintCapabilityAudit() {
+      return SupportRestraintStore.getRestraintAudit();
+    },
+    getLoadCaseSet() {
+      return ModelLoadStore.getLoadCaseSet();
+    },
+    getLoadPrimitiveSet() {
+      return ModelLoadStore.getLoadPrimitiveSet();
+    },
+    getModelLoadReadinessAudit() {
+      return ModelLoadStore.getReadinessAudit();
+    },
+    getVerticalLoadPathModel() {
+      return SupportLoadScreeningStore.getPathModel();
+    },
+    getSupportLoadScreening() {
+      return SupportLoadScreeningStore.getScreening();
+    },
+    getSupportLoadScreeningAudit() {
+      return SupportLoadScreeningStore.getAudit();
+    },
+    getFlexuralPropertyProjection() {
+      return VerticalBeamStore.getFlexuralProjection();
+    },
+    getVerticalBeamModel() {
+      return VerticalBeamStore.getBeamModel();
+    },
+    getVerticalBeamSolution() {
+      return VerticalBeamStore.getSolution();
+    },
+    getVerticalBeamSolverAudit() {
+      return VerticalBeamStore.getAudit();
+    },
+    getModelCalculationLedger() {
+      return ModelCalculationStore.getLedger();
+    },
+    getActiveModelCalculationPackage() {
+      return ModelCalculationStore.getActivePackage();
+    },
+    getActiveModelCalculationReport() {
+      return ModelCalculationStore.getActiveReport();
+    },
+    getWorkspaceConsumerContext() {
+      return workspaceConsumerController.getContext();
+    },
+    listWorkspaceConsumers() {
+      return workspaceConsumerController.listConsumers();
+    },
+    getWorkspaceConsumerReadiness(consumerId) {
+      return workspaceConsumerController.getReadiness(consumerId);
+    },
+    getApplicationViewState() {
+      return applicationShellController.getState();
+    },
+    activateApplicationView(viewId) {
+      return applicationShellController.activate(viewId);
+    },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
         ? assessModelSupportLoadReadiness(snapshot.dataset)
         : null;
     },
-    getAnalysisSession() { return AnalysisSessions.getSnapshot(); },
-    getAnalysisLedger() { return AnalysisLedger.getSnapshot(); },
+    getAnalysisSession() {
+      return AnalysisSessions.getSnapshot();
+    },
+    getAnalysisLedger() {
+      return AnalysisLedger.getSnapshot();
+    },
     getAnalysisCapabilities(targetId) {
       try {
         const entity = WorkspaceState.getEntity(targetId);
