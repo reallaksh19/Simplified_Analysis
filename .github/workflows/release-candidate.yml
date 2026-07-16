@@ -26,8 +26,18 @@ jobs:
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs
       - name: Certify W10.8 deterministic properties
         run: node scripts/w10.8-workspace-consumer-property-check.mjs
-      - name: Certify W10.8 source and scope boundaries
-        run: node scripts/w10.8-workspace-consumer-source-guard.mjs
+      - name: Certify W10.8 changed-path boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs paths
+      - name: Certify W10.8 JavaScript standards
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs javascript
+      - name: Certify W10.8 import boundaries
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs imports
+      - name: Certify W10.8 runtime event boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs runtime
+      - name: Certify W10.8 dependency boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs dependencies
+      - name: Certify W10.8 integration registration
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs integration
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
