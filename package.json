@@ -53,7 +53,7 @@
     "check:w10.5:static": "node scripts/w10.5-support-load-screening-contract-check.mjs && node scripts/w10.5-support-load-screening-property-check.mjs && node scripts/w10.5-support-load-screening-source-guard.mjs",
     "check:w10.5:browser": "playwright test e2e/w10.5-support-load-screening-workspace.spec.js",
     "check:w10.5": "npm run check:w10.5:static && npm run check:w10.5:browser",
-    "check:w10.6:static": "node scripts/w10.6-flexural-property-contract-check.mjs && node scripts/w10.6-vertical-beam-contract-check.mjs && node scripts/w10.6-engineering-benchmark-check.mjs && node scripts/w10.6-vertical-beam-property-check.mjs && node scripts/w10.6-vertical-beam-source-guard.mjs",
+    "check:w10.6:static": "node scripts/w10.6-flexural-property-contract-check.mjs && node scripts/w10.6-vertical-beam-contract-check.mjs && node scripts/w10.6-engineering-benchmark-check.mjs && node scripts/w10.6-vertical-beam-property-check.mjs && node scripts/w10.6-vertical-beam-source-guard.mjs dependencies && node scripts/w10.6-vertical-beam-source-guard.mjs sizes && node scripts/w10.6-vertical-beam-source-guard.mjs runtime && node scripts/w10.6-vertical-beam-source-guard.mjs aliases",
     "check:w10.6:browser": "playwright test e2e/w10.6-vertical-beam-workspace.spec.js",
     "check:w10.6": "npm run check:w10.6:static && npm run check:w10.6:browser",
     "check:w10.7:static": "node scripts/w10.7-model-calculation-contract-check.mjs && node scripts/w10.7-model-calculation-property-check.mjs && node scripts/w10.7-model-calculation-source-guard.mjs",
