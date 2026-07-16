@@ -16,13 +16,13 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
-      - run: npx playwright install chromium --with-deps
       - name: Certify W10.7 package and ledger contracts
         run: node scripts/w10.7-model-calculation-contract-check.mjs
       - name: Certify W10.7 deterministic properties
         run: node scripts/w10.7-model-calculation-property-check.mjs
       - name: Certify W10.7 source and scope boundaries
         run: node scripts/w10.7-model-calculation-source-guard.mjs
+      - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
       - name: Certify Phase 2 dataset contracts
