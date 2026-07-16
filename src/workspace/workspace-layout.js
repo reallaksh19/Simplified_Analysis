@@ -4,7 +4,7 @@ export function renderWorkspaceLayout(rootElement) {
   rootElement.innerHTML = `
     <style data-role="workspace-consumer-styles">${shellStyles()}</style>
     <div class="application-shell" data-role="application-shell">
-      <nav class="application-navigation" data-role="application-navigation" aria-label="Application views"></nav>
+      <div class="application-navigation" data-role="application-navigation" role="navigation" aria-label="Application views"></div>
       <div class="application-view application-view--workspace" data-application-view="WORKSPACE">
     <main class="workspace-shell" aria-label="Analysis Workspace">
       <aside class="workspace-panel tree-panel" data-panel="tree" aria-label="Dataset tree and layers">
