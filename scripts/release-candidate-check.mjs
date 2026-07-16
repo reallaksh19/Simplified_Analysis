@@ -27,6 +27,7 @@ const checks = {
     'docs/model-loads/W10.4_REUSABLE_MODEL_LOADS.md',
     'docs/support-load-screening/W10.5_TOPOLOGY_LOCAL_TRIBUTARY_SCREENING.md',
     'docs/vertical-beam-solver/W10.6_EXPLICIT_EI_VERTICAL_BEAM_SOLVER.md',
+    'docs/model-calculation-package/W10.7_MODEL_CALCULATION_PACKAGE.md',
   ],
   certificationScripts: [
     'scripts/u3-engineering-data-check.mjs',
@@ -68,6 +69,9 @@ const checks = {
     'scripts/w10.6-engineering-benchmark-check.mjs',
     'scripts/w10.6-vertical-beam-property-check.mjs',
     'scripts/w10.6-vertical-beam-source-guard.mjs',
+    'scripts/w10.7-model-calculation-contract-check.mjs',
+    'scripts/w10.7-model-calculation-property-check.mjs',
+    'scripts/w10.7-model-calculation-source-guard.mjs',
     'scripts/release-candidate-check.mjs',
   ],
   sourceContracts: [
@@ -196,6 +200,22 @@ const checks = {
     'src/workspace/vertical-beam-panel.js',
     'src/workspace/vertical-beam-store.js',
     'src/workspace/vertical-beam-view.js',
+    'src/core/model-calculation-package/index.js',
+    'src/core/model-calculation-package/constants.js',
+    'src/core/model-calculation-package/snapshot-validation.js',
+    'src/core/model-calculation-package/snapshot-normalization.js',
+    'src/core/model-calculation-package/method-evidence.js',
+    'src/core/model-calculation-package/qualification-summary.js',
+    'src/core/model-calculation-package/package.js',
+    'src/core/model-calculation-package/ledger.js',
+    'src/core/model-calculation-package/report.js',
+    'src/core/model-calculation-package/export-artifact.js',
+    'src/workspace/model-calculation-controller.js',
+    'src/workspace/model-calculation-events.js',
+    'src/workspace/model-calculation-export.js',
+    'src/workspace/model-calculation-panel.js',
+    'src/workspace/model-calculation-store.js',
+    'src/workspace/model-calculation-view.js',
     'src/workspace/bootstrap.js',
   ],
   browserEvidence: [
@@ -214,6 +234,7 @@ const checks = {
     'e2e/w10.4-model-load-workspace.spec.js',
     'e2e/w10.5-support-load-screening-workspace.spec.js',
     'e2e/w10.6-vertical-beam-workspace.spec.js',
+    'e2e/w10.7-model-calculation-workspace.spec.js',
     'e2e/smoke.spec.js',
     'e2e/u7-workflow-smoke.spec.js',
   ],
@@ -271,4 +292,4 @@ if (failCount > 0) {
   console.error('\n❌ Release candidate check FAILED');
   process.exit(1);
 }
-console.log('\n✓ Release candidate check PASSED');
+console.log('\n✅ Release candidate check PASSED');
