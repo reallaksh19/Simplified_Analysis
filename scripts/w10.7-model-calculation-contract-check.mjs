@@ -5,26 +5,27 @@ import {
   createModelCalculationLedger, createModelCalculationPackage,
   createModelCalculationReport, EXPORT_FORMATS, PACKAGE_MODES,
   selectModelCalculationLedgerEntry, validateModelCalculationExportArtifact,
-  validateModelCalculationLedger, validateModelCalculationPackage,
-  validateModelCalculationReport,
+  validateModelCalculationLedger, validateModelCalculationLedgerEntry,
+  validateModelCalculationPackage, validateModelCalculationReport,
 } from '../src/core/model-calculation-package/index.js';
 import { canonicalPrettyStringify, semanticHash } from '../src/core/shared-piping-model/index.js';
+import { ModelCalculationStore } from '../src/workspace/model-calculation-store.js';
 import { buildCalculationFixture } from './w10.7-fixtures.mjs';
 
 const selected = process.argv[2] || 'all';
 const checks = Object.freeze({
   availability: checkEmptyAvailability,
   modes: checkPackageModes,
+  provenance: checkExactSourceProvenance,
   mismatches: checkMismatches,
   ledger: checkLedger,
   report: checkReportProjection,
   artifacts: checkArtifactFormats,
   rendering: checkTextRendering,
-  exports: checkReportsAndExports,
   immutability: checkUpstreamImmutability,
 });
 console.log(`\n--- W10.7 model calculation contracts · ${selected} ---\n`);
-if (selected === 'all') ['availability', 'modes', 'mismatches', 'ledger', 'report', 'artifacts', 'rendering', 'immutability'].forEach((key) => checks[key]());
+if (selected === 'all') Object.values(checks).forEach((check) => check());
 else if (checks[selected]) checks[selected]();
 else throw new TypeError(`Unknown W10.7 contract check: ${selected}`);
 console.log(`✅ W10.7 model calculation contracts ${selected} passed.\n`);
@@ -38,43 +39,46 @@ function checkPackageModes() {
   const screening = createPackage(PACKAGE_MODES.SCREENING, fixture);
   const beam = createPackage(PACKAGE_MODES.BEAM, fixture);
   const combinedValue = createPackage(PACKAGE_MODES.COMBINED, fixture);
-  [screening, beam, combinedValue].forEach((value) => {
-    assert.equal(validateModelCalculationPackage(value).ok, true);
-    assertDeepFrozen(value);
-    assert.equal(value.qualificationSummary.length, 3);
-    assert.match(value.limitations.join(' '), /not a full pipe-stress/i);
-    assert.equal(canonicalModelCalculationPackage(value), canonicalModelCalculationPackage(value));
-  });
+  [screening, beam, combinedValue].forEach(assertValidFrozenPackage);
   assert.equal(screening.verticalBeamSnapshot, null);
   assert.equal(beam.screeningSnapshot, null);
   assert.equal(combinedValue.methodEvidence.length, 2);
   assert.ok(combinedValue.verticalBeamSnapshot.solution.pathCases.some((row) => row.supportForceResults.some((support) => support.signedSupportForceN > 0)));
-  assert.equal(JSON.stringify(combinedValue).includes('screenedVerticalForceN'), true);
-  assert.equal(JSON.stringify(combinedValue).includes('signedSupportForceN'), true);
-  assert.equal(JSON.stringify(combinedValue).includes('upwardSupportForceN'), true);
-
-  const blocked = buildCalculationFixture({ blockedCase: 'HYD' });
-  const blockedPackage = createPackage(PACKAGE_MODES.COMBINED, blocked);
+  ['screenedVerticalForceN', 'signedSupportForceN', 'upwardSupportForceN']
+    .forEach((field) => assert.equal(JSON.stringify(combinedValue).includes(field), true));
+  const blockedPackage = createPackage(PACKAGE_MODES.COMBINED, buildCalculationFixture({ blockedCase: 'HYD' }));
   const hyd = blockedPackage.qualificationSummary.find((row) => row.loadCaseId === 'HYD');
   assert.equal(hyd.screeningQualification, 'BLOCKED');
   assert.equal(hyd.beamQualification, 'BLOCKED');
   assert.ok(hyd.blockers.length > 0);
 }
+function checkExactSourceProvenance() {
+  const fixture = buildCalculationFixture();
+  const packageValue = createPackage(PACKAGE_MODES.COMBINED, fixture);
+  const screeningSource = packageValue.screeningSnapshot.sourceSemanticHashes;
+  const beamSource = packageValue.verticalBeamSnapshot.sourceSemanticHashes;
+  assert.equal(screeningSource.pathModelSemanticHash, fixture.screeningSnapshot.pathModel.semanticHash);
+  assert.equal(screeningSource.resultSemanticHash, fixture.screeningSnapshot.screening.semanticHash);
+  assert.equal(screeningSource.auditSemanticHash, fixture.screeningSnapshot.audit.semanticHash);
+  assert.equal(beamSource.solutionSemanticHash, fixture.verticalBeamSnapshot.solution.semanticHash);
+  assert.equal(beamSource.auditSemanticHash, fixture.verticalBeamSnapshot.audit.semanticHash);
+  assert.equal(packageValue.modelReference.verticalLoadPathModelSemanticHash, fixture.screeningSnapshot.pathModel.semanticHash);
+  const methods = new Map(packageValue.methodEvidence.map((row) => [row.engineeringLevel, row]));
+  assert.equal(methods.get('BENCHMARKED_SCREENING').resultSemanticHash, fixture.screeningSnapshot.screening.semanticHash);
+  assert.equal(methods.get('LINEAR_ELASTIC_VERTICAL_BEAM').resultSemanticHash, fixture.verticalBeamSnapshot.solution.semanticHash);
+}
 function checkMismatches() {
   const left = buildCalculationFixture();
   const otherDataset = buildCalculationFixture({ datasetId: 'OTHER' });
   assert.throws(() => combined(left.screeningSnapshot, otherDataset.verticalBeamSnapshot, left.modelReference), /different datasets/);
-
   const otherPath = buildCalculationFixture({ datasetId: left.modelReference.datasetId, lengthsM: [3, 2] });
   assert.throws(() => combined(left.screeningSnapshot, otherPath.verticalBeamSnapshot, left.modelReference), /different vertical path models/);
-
   const otherProfile = buildCalculationFixture({ profileOptions: { pivotRelativeTolerance: 1e-10 } });
   assert.throws(() => createModelCalculationPackage({
     packageMode: PACKAGE_MODES.BEAM,
     verticalBeamSnapshot: { ...left.verticalBeamSnapshot, profile: otherProfile.verticalBeamSnapshot.profile },
     modelReference: left.modelReference,
   }), /profile|flexural projection/i);
-
   const mixedAudit = rehash({ ...structuredClone(left.verticalBeamSnapshot.audit), solutionSemanticHash: 'wrong' });
   assert.throws(() => createModelCalculationPackage({
     packageMode: PACKAGE_MODES.BEAM,
@@ -93,26 +97,40 @@ function checkLedger() {
   const second = createPackage(PACKAGE_MODES.BEAM, fixture);
   let ledger = createModelCalculationLedger(first.datasetId);
   ledger = archiveModelCalculationPackage(ledger, first);
+  assert.equal(validateModelCalculationLedgerEntry(ledger.entries[0]).ok, true);
   const duplicate = archiveModelCalculationPackage(ledger, first);
   assert.equal(duplicate.entries.length, 1);
   ledger = archiveModelCalculationPackage(duplicate, second);
   assert.equal(ledger.entries.length, 2);
-  assert.equal(ledger.activeEntryId, ledger.entries.at(-1).entryId);
   ledger = selectModelCalculationLedgerEntry(ledger, ledger.entries[0].entryId);
   assert.equal(ledger.activeEntryId, ledger.entries[0].entryId);
   for (let index = 0; index < 105; index += 1) ledger = archiveModelCalculationPackage(ledger, rehashPackage(first, index));
   assert.equal(ledger.entries.length, 100);
   assert.equal(ledger.nextSequence, 108);
   assert.equal(validateModelCalculationLedger(ledger).ok, true);
-  const cleared = clearModelCalculationLedger(ledger);
-  assert.equal(cleared.entries.length, 0);
-  assert.equal(cleared.nextSequence, 1);
+  const invalidSequence = { ...ledger, nextSequence: ledger.entries.at(-1).sequence };
+  assert.equal(validateModelCalculationLedger(invalidSequence).ok, false);
+  assert.equal(clearModelCalculationLedger(ledger).nextSequence, 1);
+  assertSameDatasetReplacementResets(first);
+}
+function assertSameDatasetReplacementResets(packageValue) {
+  ModelCalculationStore.clear();
+  ModelCalculationStore.setDataset(packageValue.datasetId);
+  ModelCalculationStore.archive(packageValue);
+  assert.equal(ModelCalculationStore.getLedger().entries.length, 1);
+  ModelCalculationStore.setDataset(packageValue.datasetId);
+  assert.equal(ModelCalculationStore.getLedger().entries.length, 0);
+  ModelCalculationStore.clear();
 }
 function checkReportProjection() {
-  const { report } = reportFixture();
-  assert.equal(validateModelCalculationReport(report).ok, true);
+  const { packageValue, report } = reportFixture();
+  assert.equal(validateModelCalculationReport(report, packageValue).ok, true);
   assert.ok(report.sections.screeningSupportForces.every((row) => 'screenedVerticalForceN' in row));
   assert.ok(report.sections.verticalBeamSupportForces.every((row) => 'signedSupportForceN' in row && 'upwardSupportForceN' in row));
+  const tampered = tamperReport(report);
+  assert.equal(validateModelCalculationReport(tampered).ok, true);
+  assert.equal(validateModelCalculationReport(tampered, packageValue).ok, false);
+  assert.throws(() => createModelCalculationExportArtifact(packageValue, tampered, EXPORT_FORMATS.JSON), /matching model calculation report/i);
 }
 function checkArtifactFormats() {
   const { packageValue, report } = reportFixture();
@@ -133,7 +151,6 @@ function checkTextRendering() {
   const markdown = createModelCalculationExportArtifact(packageValue, report, EXPORT_FORMATS.MARKDOWN).content;
   assert.match(markdown, /not a full pipe-stress/i); assert.match(markdown, /signedSupportForceN/);
 }
-function checkReportsAndExports() { checkReportProjection(); checkArtifactFormats(); checkTextRendering(); }
 function checkUpstreamImmutability() {
   const fixture = buildCalculationFixture();
   const before = canonicalPrettyStringify({ screening: fixture.screeningSnapshot, beam: fixture.verticalBeamSnapshot });
@@ -157,6 +174,20 @@ function createPackage(mode, fixture) {
 }
 function combined(screeningSnapshot, verticalBeamSnapshot, modelReference) {
   return createModelCalculationPackage({ packageMode: PACKAGE_MODES.COMBINED, screeningSnapshot, verticalBeamSnapshot, modelReference });
+}
+function assertValidFrozenPackage(value) {
+  assert.equal(validateModelCalculationPackage(value).ok, true);
+  assertDeepFrozen(value);
+  assert.equal(value.qualificationSummary.length, 3);
+  assert.match(value.limitations.join(' '), /not a full pipe-stress/i);
+  assert.equal(canonicalModelCalculationPackage(value), canonicalModelCalculationPackage(value));
+}
+function tamperReport(report) {
+  const clone = structuredClone(report);
+  clone.sections.verticalBeamSupportForces[0].signedSupportForceN += 1;
+  delete clone.reportId; delete clone.semanticHash;
+  clone.reportId = `model-calculation-report:${semanticHash(clone).split(':')[1]}`;
+  return { ...clone, semanticHash: semanticHash(clone) };
 }
 function rehash(value) { const { semanticHash: _hash, ...base } = value; return { ...base, semanticHash: semanticHash(base) }; }
 function rehashPackage(value, index) {
