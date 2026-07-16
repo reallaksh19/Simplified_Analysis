@@ -9,7 +9,8 @@ export {
   activeModelCalculationEntry, archiveModelCalculationPackage,
   clearModelCalculationLedger, createModelCalculationLedger,
   selectModelCalculationLedgerEntry, validateModelCalculationLedger,
+  validateModelCalculationLedgerEntry,
 } from './ledger.js';
 export { createModelCalculationReport, validateModelCalculationReport } from './report.js';
 export { createModelCalculationExportArtifact, validateModelCalculationExportArtifact } from './export-artifact.js';
-export { validateAndNormalizeSnapshots } from './snapshot-validation.js';
+export { validateAndNormalizeSnapshots, validatePackagedSnapshots } from './snapshot-validation.js';
