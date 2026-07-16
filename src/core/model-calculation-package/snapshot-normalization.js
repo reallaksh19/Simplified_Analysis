@@ -14,6 +14,7 @@ const IDENTITY_FIELDS = [
 ];
 
 export function normalizeScreeningSnapshot(snapshot) {
+  const sourceSemanticHashes = screeningSourceHashes(snapshot);
   const profile = clone(snapshot.profile);
   const pathModel = normalizeHashed(snapshot.pathModel);
   const screening = normalizeHashed({
@@ -25,10 +26,11 @@ export function normalizeScreeningSnapshot(snapshot) {
     ...clone(snapshot.audit),
     screeningSemanticHash: screening.semanticHash,
   });
-  return deepFreeze({ profile, pathModel, screening, audit });
+  return deepFreeze({ sourceSemanticHashes, profile, pathModel, screening, audit });
 }
 
 export function normalizeVerticalBeamSnapshot(snapshot, pathModelSemanticHash = null) {
+  const sourceSemanticHashes = beamSourceHashes(snapshot);
   const profile = clone(snapshot.profile);
   const projection = normalizeHashed({
     ...clone(snapshot.flexuralProjection),
@@ -50,7 +52,7 @@ export function normalizeVerticalBeamSnapshot(snapshot, pathModelSemanticHash = 
     ...clone(snapshot.audit),
     solutionSemanticHash: solution.semanticHash,
   });
-  return deepFreeze({ profile, flexuralProjection: projection, beamModel, solution, audit });
+  return deepFreeze({ sourceSemanticHashes, profile, flexuralProjection: projection, beamModel, solution, audit });
 }
 
 export function normalizeModelReference(reference) {
@@ -73,19 +75,35 @@ export function normalizeValue(value, key = '') {
   return result;
 }
 
+function screeningSourceHashes(snapshot) {
+  return deepFreeze({
+    profileSemanticHash: snapshot.profile.semanticHash,
+    pathModelSemanticHash: snapshot.pathModel.semanticHash,
+    resultSemanticHash: snapshot.screening.semanticHash,
+    auditSemanticHash: snapshot.audit.semanticHash,
+  });
+}
+function beamSourceHashes(snapshot) {
+  return deepFreeze({
+    profileSemanticHash: snapshot.profile.semanticHash,
+    flexuralProjectionSemanticHash: snapshot.flexuralProjection.semanticHash,
+    beamModelSemanticHash: snapshot.beamModel.semanticHash,
+    solutionSemanticHash: snapshot.solution.semanticHash,
+    auditSemanticHash: snapshot.audit.semanticHash,
+    pathModelSemanticHash: snapshot.flexuralProjection.pathModelSemanticHash,
+  });
+}
 function normalizeArray(values, key) {
   const rows = values.map((row) => normalizeValue(row, key));
   if (isOrderedArray(values, key)) return rows;
   return rows.sort((left, right) => stableKey(left).localeCompare(stableKey(right)));
 }
-
 function isOrderedArray(values, key) {
   if (ORDERED_STRING_ARRAYS.has(key)) return true;
   if (values.every((row) => typeof row === 'number')) return true;
   if (key === 'formulaTrace' || key === 'loadFormulaTraces') return true;
   return false;
 }
-
 function stableKey(value) {
   if (value === null) return 'null';
   if (['string', 'number', 'boolean'].includes(typeof value)) return String(value);
