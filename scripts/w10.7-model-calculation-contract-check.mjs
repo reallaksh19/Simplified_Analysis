@@ -142,7 +142,7 @@ function checkUpstreamImmutability() {
   assert.equal(after, before);
 }
 function reportFixture() {
-  const fixture = buildCalculationFixture({ directionReversal: true });
+  const fixture = buildCalculationFixture();
   const packageValue = createPackage(PACKAGE_MODES.COMBINED, fixture);
   const ledger = archiveModelCalculationPackage(createModelCalculationLedger(packageValue.datasetId), packageValue);
   return { packageValue, report: createModelCalculationReport(ledger.entries[0]) };
