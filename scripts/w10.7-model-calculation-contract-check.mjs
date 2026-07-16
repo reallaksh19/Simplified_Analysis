@@ -17,11 +17,14 @@ const checks = Object.freeze({
   modes: checkPackageModes,
   mismatches: checkMismatches,
   ledger: checkLedger,
+  report: checkReportProjection,
+  artifacts: checkArtifactFormats,
+  rendering: checkTextRendering,
   exports: checkReportsAndExports,
   immutability: checkUpstreamImmutability,
 });
 console.log(`\n--- W10.7 model calculation contracts · ${selected} ---\n`);
-if (selected === 'all') Object.values(checks).forEach((check) => check());
+if (selected === 'all') ['availability', 'modes', 'mismatches', 'ledger', 'report', 'artifacts', 'rendering', 'immutability'].forEach((key) => checks[key]());
 else if (checks[selected]) checks[selected]();
 else throw new TypeError(`Unknown W10.7 contract check: ${selected}`);
 console.log(`✅ W10.7 model calculation contracts ${selected} passed.\n`);
@@ -105,14 +108,14 @@ function checkLedger() {
   assert.equal(cleared.entries.length, 0);
   assert.equal(cleared.nextSequence, 1);
 }
-function checkReportsAndExports() {
-  const fixture = buildCalculationFixture({ directionReversal: true });
-  const packageValue = createPackage(PACKAGE_MODES.COMBINED, fixture);
-  const ledger = archiveModelCalculationPackage(createModelCalculationLedger(packageValue.datasetId), packageValue);
-  const report = createModelCalculationReport(ledger.entries[0]);
+function checkReportProjection() {
+  const { report } = reportFixture();
   assert.equal(validateModelCalculationReport(report).ok, true);
   assert.ok(report.sections.screeningSupportForces.every((row) => 'screenedVerticalForceN' in row));
   assert.ok(report.sections.verticalBeamSupportForces.every((row) => 'signedSupportForceN' in row && 'upwardSupportForceN' in row));
+}
+function checkArtifactFormats() {
+  const { packageValue, report } = reportFixture();
   Object.values(EXPORT_FORMATS).forEach((format) => {
     const first = createModelCalculationExportArtifact(packageValue, report, format);
     const second = createModelCalculationExportArtifact(packageValue, report, format);
@@ -122,17 +125,27 @@ function checkReportsAndExports() {
     assert.equal(first.content.endsWith('\n'), true);
     assert.equal(new TextEncoder().encode(first.content).length, first.byteLength);
   });
+}
+function checkTextRendering() {
+  const { packageValue, report } = reportFixture();
   const csv = createModelCalculationExportArtifact(packageValue, report, EXPORT_FORMATS.CSV).content;
   assert.match(csv, /screening force/); assert.match(csv, /beam support force/); assert.match(csv, /residual/);
   const markdown = createModelCalculationExportArtifact(packageValue, report, EXPORT_FORMATS.MARKDOWN).content;
   assert.match(markdown, /not a full pipe-stress/i); assert.match(markdown, /signedSupportForceN/);
 }
+function checkReportsAndExports() { checkReportProjection(); checkArtifactFormats(); checkTextRendering(); }
 function checkUpstreamImmutability() {
   const fixture = buildCalculationFixture();
   const before = canonicalPrettyStringify({ screening: fixture.screeningSnapshot, beam: fixture.verticalBeamSnapshot });
   createPackage(PACKAGE_MODES.COMBINED, fixture);
   const after = canonicalPrettyStringify({ screening: fixture.screeningSnapshot, beam: fixture.verticalBeamSnapshot });
   assert.equal(after, before);
+}
+function reportFixture() {
+  const fixture = buildCalculationFixture({ directionReversal: true });
+  const packageValue = createPackage(PACKAGE_MODES.COMBINED, fixture);
+  const ledger = archiveModelCalculationPackage(createModelCalculationLedger(packageValue.datasetId), packageValue);
+  return { packageValue, report: createModelCalculationReport(ledger.entries[0]) };
 }
 function createPackage(mode, fixture) {
   return createModelCalculationPackage({
