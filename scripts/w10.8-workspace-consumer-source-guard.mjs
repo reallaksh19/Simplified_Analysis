@@ -5,7 +5,8 @@ import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const base = 'c13c7cdaa313fe5ef7cb78a527be69b602210f20';
-const changed = execFileSync('git', ['diff', '--name-only', base, 'HEAD'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+ensureBaseCommit();
+const changed = git('diff', '--name-only', base, 'HEAD').trim().split(/\r?\n/).filter(Boolean);
 const allowedExisting = new Set([
   'src/workspace/bootstrap.js', 'src/workspace/workspace-layout.js', 'src/workspace/event-topics.js', 'src/workspace/workspace.css',
   'package.json', '.github/workflows/u0-certification.yml', '.github/workflows/release-candidate.yml',
@@ -18,15 +19,22 @@ for (const file of changed) {
   assert.ok(allowedExisting.has(file) || allowedNew.some((pattern) => pattern.test(file)), `Out-of-scope file changed: ${file}`);
 }
 const sourceFiles = changed.filter((file) => /^(src\/core\/workspace-consumers|src\/workspace\/(application-shell|workspace-consumer|reports-consumer)-).+\.js$/.test(file));
-for (const file of sourceFiles) {
+for (const file of sourceFiles) checkSourceFile(file);
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const basePackage = JSON.parse(git('show', `${base}:package.json`));
+assert.deepEqual(packageJson.dependencies, basePackage.dependencies, 'Dependencies changed.');
+assert.deepEqual(packageJson.devDependencies, basePackage.devDependencies, 'Dev dependencies changed.');
+console.log(`✅ W10.8 source guard passed for ${changed.length} changed files and ${sourceFiles.length} new runtime files.`);
+
+function checkSourceFile(file) {
   const text = fs.readFileSync(path.join(root, file), 'utf8');
   assert.ok(text.split(/\r?\n/).length < 300, `${file} exceeds 299 lines`);
   assert.doesNotMatch(text, /from ['"][^'"]*(react|zustand|three|src\/reporting|\.\.\/reporting|solver-execution)/i, `${file} imports a forbidden runtime`);
   assert.doesNotMatch(text, /\b(Date\.now|new Date|Math\.random|randomUUID|uuid)\b/, `${file} uses nondeterministic identity`);
   assert.doesNotMatch(text, /export\s+default/, `${file} uses a default export`);
 }
-const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-const basePackage = JSON.parse(execFileSync('git', ['show', `${base}:package.json`], { encoding: 'utf8' }));
-assert.deepEqual(packageJson.dependencies, basePackage.dependencies, 'Dependencies changed.');
-assert.deepEqual(packageJson.devDependencies, basePackage.devDependencies, 'Dev dependencies changed.');
-console.log(`✅ W10.8 source guard passed for ${changed.length} changed files and ${sourceFiles.length} new runtime files.`);
+function ensureBaseCommit() {
+  try { execFileSync('git', ['cat-file', '-e', `${base}^{commit}`], { cwd: root, stdio: 'ignore' }); }
+  catch { execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', base], { cwd: root, stdio: 'ignore' }); }
+}
+function git(...args) { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }); }
