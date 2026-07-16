@@ -5,6 +5,19 @@ import path from 'node:path';
 
 const BASE_SHA = 'c13c7cdaa313fe5ef7cb78a527be69b602210f20';
 const root = process.cwd();
+const ALLOWED = Object.freeze([
+  /^src\/core\/workspace-consumers\//,
+  /^src\/workspace\/(?:application-shell|workspace-consumer|reports-consumer)-[^/]+\.js$/,
+  /^scripts\/w10\.8-[^/]+\.mjs$/,
+  /^e2e\/w10\.8-[^/]+\.spec\.js$/,
+  /^docs\/workspace-consumers\//,
+  /^src\/workspace\/(?:bootstrap|workspace-layout|event-topics)\.js$/,
+  /^src\/workspace\/workspace\.css$/,
+  /^package\.json$/,
+  /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
+  /^scripts\/(?:qa-check|u7-browser-qa-check|release-candidate-check)\.mjs$/,
+]);
+
 ensureBaseCommit();
 const changed = gitLines(['diff', '--name-only', BASE_SHA, 'HEAD']);
 const added = new Set(gitLines(['diff', '--name-only', '--diff-filter=A', BASE_SHA, 'HEAD']));
@@ -126,16 +139,3 @@ function importClauses(content) { return [...content.matchAll(/import[\s\S]*?fro
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 function gitLines(args) { return git(args).split(/\r?\n/).filter(Boolean); }
 function git(args) { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }); }
-
-const ALLOWED = [
-  /^src\/core\/workspace-consumers\//,
-  /^src\/workspace\/(?:application-shell|workspace-consumer|reports-consumer)-[^/]+\.js$/,
-  /^scripts\/w10\.8-[^/]+\.mjs$/,
-  /^e2e\/w10\.8-[^/]+\.spec\.js$/,
-  /^docs\/workspace-consumers\//,
-  /^src\/workspace\/(?:bootstrap|workspace-layout|event-topics)\.js$/,
-  /^src\/workspace\/workspace\.css$/,
-  /^package\.json$/,
-  /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
-  /^scripts\/(?:qa-check|u7-browser-qa-check|release-candidate-check)\.mjs$/,
-];
