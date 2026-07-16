@@ -45,7 +45,6 @@ test('creates, archives, selects and explicitly exports model calculation packag
   await expect(page.locator('[data-role="model-calculation-availability"]')).toContainText('Screening available · Beam available');
   expect(await page.evaluate(() => AnalysisWorkspace.getActiveModelCalculationPackage())).toBeNull();
 
-  await page.locator('[data-entity-id="PIPE-A"]').click();
   const upstreamBefore = await upstreamSnapshot(page), eventBaseline = await eventCounts(page);
   await page.locator('[data-model-calculation-control="mode"]').selectOption('SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button', { name: 'Create Calculation Package' }).click();
@@ -97,8 +96,10 @@ test('resets history on dataset replacement, explicit clear and teardown', async
   await prepareAndCreate(page);
   expect(await page.evaluate(() => AnalysisWorkspace.getModelCalculationLedger().entries.length)).toBe(1);
 
+  const archivedId = await page.evaluate(() => AnalysisWorkspace.getActiveModelCalculationPackage().packageId);
   await page.locator('[data-entity-id="PIPE-B"]').click();
   expect(await page.evaluate(() => AnalysisWorkspace.getModelCalculationLedger().entries.length)).toBe(1);
+  expect(await page.evaluate(() => AnalysisWorkspace.getActiveModelCalculationPackage().packageId)).toBe(archivedId);
   await uploadJson(page, 'w10.7-browser-2.json', { ...STAGED_PACKAGE, packageHash: 'W10.7-BROWSER-2' });
   expect(await page.evaluate(() => AnalysisWorkspace.getModelCalculationLedger().entries.length)).toBe(0);
   expect(await page.evaluate(() => AnalysisWorkspace.getActiveModelCalculationReport())).toBeNull();
