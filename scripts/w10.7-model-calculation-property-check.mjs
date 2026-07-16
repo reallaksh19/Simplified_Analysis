@@ -10,14 +10,22 @@ import { buildCalculationFixture } from './w10.7-fixtures.mjs';
 console.log('\n--- W10.7 fixed-seed properties ---\n');
 const fixture = buildCalculationFixture();
 const base = build(fixture);
+let distinctSourceIdentityCount = 0;
 for (let seed = 10700; seed < 10720; seed += 1) {
   const shuffled = reorderFixture(fixture, seed);
   const candidate = build(shuffled);
-  assert.equal(candidate.packageId, base.packageId);
-  assert.equal(candidate.semanticHash, base.semanticHash);
-  assert.equal(candidate.report.semanticHash, base.report.semanticHash);
-  Object.values(EXPORT_FORMATS).forEach((format) => assert.equal(candidate.exports[format].content, base.exports[format].content));
+  const repeated = build(shuffled);
+  assert.equal(calculationProjectionHash(candidate), calculationProjectionHash(base));
+  assert.equal(candidate.packageId, repeated.packageId);
+  assert.equal(candidate.semanticHash, repeated.semanticHash);
+  assert.equal(candidate.report.semanticHash, repeated.report.semanticHash);
+  Object.values(EXPORT_FORMATS).forEach((format) => assert.equal(candidate.exports[format].content, repeated.exports[format].content));
+  assert.equal(candidate.modelReference.verticalLoadPathModelSemanticHash, shuffled.screeningSnapshot.pathModel.semanticHash);
+  assert.equal(candidate.screeningSnapshot.sourceSemanticHashes.resultSemanticHash, shuffled.screeningSnapshot.screening.semanticHash);
+  assert.equal(candidate.verticalBeamSnapshot.sourceSemanticHashes.solutionSemanticHash, shuffled.verticalBeamSnapshot.solution.semanticHash);
+  if (candidate.packageId !== base.packageId) distinctSourceIdentityCount += 1;
 }
+assert.ok(distinctSourceIdentityCount > 0, 'Different exact source contracts must not collapse to one package identity.');
 assert.equal(Object.isFrozen(base), true);
 console.log('✅ W10.7 fixed-seed properties passed.\n');
 
@@ -27,6 +35,17 @@ function build(source) {
   const report = createModelCalculationReport(ledger.entries[0]);
   const exports = Object.fromEntries(Object.values(EXPORT_FORMATS).map((format) => [format, createModelCalculationExportArtifact(packageValue, report, format)]));
   return Object.freeze({ ...packageValue, report, exports });
+}
+function calculationProjectionHash(value) {
+  const clone = structuredClone(value);
+  delete clone.packageId; delete clone.semanticHash; delete clone.report; delete clone.exports;
+  delete clone.modelReference;
+  [clone.screeningSnapshot, clone.verticalBeamSnapshot].filter(Boolean)
+    .forEach((snapshot) => { delete snapshot.sourceSemanticHashes; });
+  clone.methodEvidence.forEach((method) => {
+    delete method.profileSemanticHash; delete method.resultSemanticHash; delete method.auditSemanticHash;
+  });
+  return semanticHash(clone);
 }
 function reorderFixture(source, seed) {
   const clone = structuredClone(source), random = generator(seed);
