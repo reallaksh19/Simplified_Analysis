@@ -48,7 +48,6 @@ export class WorkspaceConsumerController {
     const contracts = Object.fromEntries(Object.entries(this.#read.contractReaders).map(([key, getter]) => [key, getter()]));
     this.#context = createWorkspaceConsumerContext({ datasetId: snapshot.dataset?.datasetId ?? null, workspaceVersion: snapshot.version, selectedEntityId: snapshot.selectedEntityId, contracts });
     this.#readiness = Object.fromEntries(CONSUMER_IDS.map((id) => [id, createWorkspaceConsumerReadiness(this.#registry, this.#context, id)]));
-    this.#readiness.WORKSPACE = Object.freeze({ ...this.#readiness.WORKSPACE, readinessState: 'AVAILABLE', blockers: [], missingRequiredContractKeys: [] });
     this.#viewState = createApplicationViewState(this.#readiness, this.#viewState?.activeViewId ?? 'WORKSPACE', this.#viewState?.version ?? 0);
     if (emit) this.#bus.publish('workspaceConsumerContext:changed', { context: this.#context });
   }
