@@ -95,6 +95,8 @@ jobs:
         run: node scripts/w10.6-vertical-beam-source-guard.mjs runtime
       - name: Certify W10.6 explicit aliases
         run: node scripts/w10.6-vertical-beam-source-guard.mjs aliases
+      - name: Certify W10.7 model calculation package and archive
+        run: npm run check:w10.7:static
       - run: npm run check:full
       - name: Run QA static checks
         run: npm run check:qa -- --skip-e2e
