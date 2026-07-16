@@ -106,7 +106,13 @@ function toCsvRow(rowValue) { return CSV_COLUMNS.map((field) => rowValue[field] 
 function csvCell(value) { const text = String(value); return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text; }
 function filenameFor(packageValue, format) { const extension = { JSON: 'json', CSV: 'csv', MARKDOWN: 'md' }[format]; return `model-calculation-${safe(packageValue.datasetId)}-${packageValue.packageId.split(':').at(-1)}.${extension}`; }
 function mimeTypeFor(format) { return format === EXPORT_FORMATS.JSON ? 'application/json;charset=utf-8' : format === EXPORT_FORMATS.CSV ? 'text/csv;charset=utf-8' : 'text/markdown;charset=utf-8'; }
-function assertInputs(packageValue, report, format) { const packageValidation = validateModelCalculationPackage(packageValue), reportValidation = validateModelCalculationReport(report); if (!packageValidation.ok) throw new TypeError('Valid model calculation package is required.'); if (!reportValidation.ok || report.packageSemanticHash !== packageValue.semanticHash) throw new TypeError('Matching model calculation report is required.'); if (!Object.values(EXPORT_FORMATS).includes(format)) throw new TypeError('Unsupported model calculation export format.'); }
+function assertInputs(packageValue, report, format) {
+  const packageValidation = validateModelCalculationPackage(packageValue);
+  const reportValidation = validateModelCalculationReport(report, packageValue);
+  if (!packageValidation.ok) throw new TypeError('Valid model calculation package is required.');
+  if (!reportValidation.ok) throw new TypeError('Matching model calculation report is required.');
+  if (!Object.values(EXPORT_FORMATS).includes(format)) throw new TypeError('Unsupported model calculation export format.');
+}
 function safe(value) { return String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'dataset'; }
 function fmt(value) { return value === null || value === undefined ? '—' : Number(value).toPrecision(10).replace(/\.0+$/, ''); }
 function withoutHash(value) { const { semanticHash: _semanticHash, ...rest } = value || {}; return rest; }
