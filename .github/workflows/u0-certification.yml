@@ -25,8 +25,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Certify W10.7 package and ledger contracts
-        run: node scripts/w10.7-model-calculation-contract-check.mjs
+      - name: Certify W10.7 unavailable-state rejection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs availability
+
+      - name: Certify W10.7 package modes
+        run: node scripts/w10.7-model-calculation-contract-check.mjs modes
+
+      - name: Certify W10.7 stale and mixed snapshot rejection
+        run: node scripts/w10.7-model-calculation-contract-check.mjs mismatches
+
+      - name: Certify W10.7 ledger retention
+        run: node scripts/w10.7-model-calculation-contract-check.mjs ledger
+
+      - name: Certify W10.7 report and export artifacts
+        run: node scripts/w10.7-model-calculation-contract-check.mjs exports
+
+      - name: Certify W10.7 upstream immutability
+        run: node scripts/w10.7-model-calculation-contract-check.mjs immutability
 
       - name: Certify W10.7 deterministic properties
         run: node scripts/w10.7-model-calculation-property-check.mjs
