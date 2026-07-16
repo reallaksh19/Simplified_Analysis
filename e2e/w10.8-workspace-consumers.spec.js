@@ -9,7 +9,7 @@ const DATASET = {
 };
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => { globalThis.__WORKSPACE_VIEWPORT_BACKEND__ = 'canvas2d'; globalThis.__w108Downloads = 0; });
+  await page.addInitScript(() => { globalThis.__WORKSPACE_VIEWPORT_BACKEND__ = 'canvas2d'; });
 });
 
 test('framework-neutral shell adopts the active W10.7 report without resetting state', async ({ page }) => {
@@ -19,11 +19,10 @@ test('framework-neutral shell adopts the active W10.7 report without resetting s
   const nav = page.locator('[data-role="application-navigation"]');
   await expect(nav).toBeVisible();
   await expect(nav.getByRole('tab', { name: 'Workspace' })).toHaveAttribute('aria-selected', 'true');
-  for (const label of ['Load Calc', '3D Calc', 'Pipe Solver', 'QA', 'Debug']) {
+  for (const label of ['Reports', 'Load Calc', '3D Calc', 'Pipe Solver', 'QA', 'Debug']) {
     const button = nav.getByRole('tab', { name: label });
     await expect(button).toBeDisabled(); await expect(button).toHaveAttribute('aria-disabled', 'true');
   }
-  await expect(nav.getByRole('tab', { name: 'Reports' })).toBeEnabled();
   expect(await page.evaluate(() => AnalysisWorkspace.getWorkspaceConsumerReadiness('REPORTS').readinessState)).toBe('BLOCKED_MISSING_CONTRACTS');
   expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
 
@@ -34,6 +33,7 @@ test('framework-neutral shell adopts the active W10.7 report without resetting s
   await page.locator('[data-model-calculation-control="mode"]').selectOption('SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button', { name: 'Create Calculation Package' }).click();
   await expect.poll(() => page.evaluate(() => AnalysisWorkspace.getWorkspaceConsumerReadiness('REPORTS').readinessState)).toBe('AVAILABLE');
+  await expect(nav.getByRole('tab', { name: 'Reports' })).toBeEnabled();
 
   const before = await page.evaluate(() => ({
     datasetId: AnalysisWorkspace.getSnapshot().dataset.datasetId,
