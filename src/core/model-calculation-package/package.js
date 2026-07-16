@@ -8,10 +8,9 @@ import { createPackageDiagnostic, normalizeDiagnostics, uniqueSorted } from './d
 import { buildMethodEvidence } from './method-evidence.js';
 import { normalizeModelReference } from './snapshot-normalization.js';
 import { buildQualificationSummary } from './qualification-summary.js';
-import { validateAndNormalizeSnapshots } from './snapshot-validation.js';
+import { validateAndNormalizeSnapshots, validatePackagedSnapshots } from './snapshot-validation.js';
 
 const VALIDATION_CACHE = new WeakMap();
-
 const REFERENCE_FIELDS = Object.freeze([
   'sharedModelSemanticHash', 'topologySemanticHash', 'supportAttachmentSemanticHash',
   'restraintCapabilitySemanticHash', 'loadCaseSetSemanticHash',
@@ -21,10 +20,9 @@ const REFERENCE_FIELDS = Object.freeze([
 
 export function createModelCalculationPackage(input) {
   const mode = input?.packageMode;
-  const rawExpected = expectedReferencesFromInputs(input?.screeningSnapshot, input?.verticalBeamSnapshot);
   const snapshots = validateAndNormalizeSnapshots(mode, input?.screeningSnapshot, input?.verticalBeamSnapshot);
   const datasetId = resolveDatasetId(snapshots);
-  const modelReference = validateModelReference(input?.modelReference, snapshots, datasetId, rawExpected);
+  const modelReference = validateModelReference(input?.modelReference, snapshots, datasetId);
   const methodEvidence = buildMethodEvidence(snapshots.screening, snapshots.beam);
   const qualificationSummary = buildQualificationSummary(snapshots.screening, snapshots.beam);
   const diagnostics = packageDiagnostics(modelReference, input?.diagnostics);
@@ -43,26 +41,19 @@ export function createModelCalculationPackage(input) {
 }
 
 export function validateModelCalculationPackage(value) {
-  const cached = value && typeof value === 'object' ? VALIDATION_CACHE.get(value) : null;
+  const cached = value && typeof value === 'object' && Object.isFrozen(value) ? VALIDATION_CACHE.get(value) : null;
   if (cached) return cached;
   const errors = [];
-  if (value?.schema !== MODEL_CALCULATION_PACKAGE_SCHEMA) errors.push('Invalid model calculation package schema.');
-  if (!Object.values(PACKAGE_MODES).includes(value?.packageMode)) errors.push('Invalid model calculation package mode.');
-  if (!stringValue(value?.datasetId)) errors.push('Model calculation package datasetId is required.');
-  if (!value?.screeningSnapshot && !value?.verticalBeamSnapshot) errors.push('At least one completed calculation snapshot is required.');
-  if (value?.packageMode === PACKAGE_MODES.SCREENING && value?.verticalBeamSnapshot !== null) errors.push('Screening-only package must omit the vertical-beam snapshot.');
-  if (value?.packageMode === PACKAGE_MODES.BEAM && value?.screeningSnapshot !== null) errors.push('Beam-only package must omit the screening snapshot.');
-  if (value?.packageMode === PACKAGE_MODES.COMBINED && (!value?.screeningSnapshot || !value?.verticalBeamSnapshot)) errors.push('Combined package requires both completed snapshots.');
+  validateSurface(value, errors);
   try {
-    const snapshots = validateAndNormalizeSnapshots(value?.packageMode, value?.screeningSnapshot, value?.verticalBeamSnapshot);
+    const snapshots = validatePackagedSnapshots(value?.packageMode, value?.screeningSnapshot, value?.verticalBeamSnapshot);
     validateModelReference(value?.modelReference, snapshots, value?.datasetId);
     validateDerivedRows(value, snapshots, errors);
   } catch (error) { errors.push(messageOf(error)); }
-  const expectedId = packageIdFor(value);
-  if (value?.packageId !== expectedId) errors.push('Model calculation package ID mismatch.');
+  if (value?.packageId !== packageIdFor(value)) errors.push('Model calculation package ID mismatch.');
   if (value?.semanticHash !== semanticHash(withoutHash(value))) errors.push('Model calculation package semantic hash mismatch.');
   const result = deepFreeze({ ok: errors.length === 0, errors });
-  if (value && typeof value === 'object') VALIDATION_CACHE.set(value, result);
+  if (value && typeof value === 'object' && Object.isFrozen(value)) VALIDATION_CACHE.set(value, result);
   return result;
 }
 
@@ -72,6 +63,15 @@ export function canonicalModelCalculationPackage(packageValue) {
   return canonicalPrettyStringify(packageValue);
 }
 
+function validateSurface(value, errors) {
+  if (value?.schema !== MODEL_CALCULATION_PACKAGE_SCHEMA) errors.push('Invalid model calculation package schema.');
+  if (!Object.values(PACKAGE_MODES).includes(value?.packageMode)) errors.push('Invalid model calculation package mode.');
+  if (!stringValue(value?.datasetId)) errors.push('Model calculation package datasetId is required.');
+  if (!value?.screeningSnapshot && !value?.verticalBeamSnapshot) errors.push('At least one completed calculation snapshot is required.');
+  if (value?.packageMode === PACKAGE_MODES.SCREENING && value?.verticalBeamSnapshot !== null) errors.push('Screening-only package must omit the vertical-beam snapshot.');
+  if (value?.packageMode === PACKAGE_MODES.BEAM && value?.screeningSnapshot !== null) errors.push('Beam-only package must omit the screening snapshot.');
+  if (value?.packageMode === PACKAGE_MODES.COMBINED && (!value?.screeningSnapshot || !value?.verticalBeamSnapshot)) errors.push('Combined package requires both completed snapshots.');
+}
 function validateDerivedRows(value, snapshots, errors) {
   const methods = buildMethodEvidence(snapshots.screening, snapshots.beam);
   const summary = buildQualificationSummary(snapshots.screening, snapshots.beam);
@@ -88,34 +88,28 @@ function resolveDatasetId(snapshots) {
   if (!ids.length || new Set(ids).size !== 1) throw new TypeError('Calculation snapshot dataset ID is unavailable or inconsistent.');
   return ids[0];
 }
-function validateModelReference(reference, snapshots, datasetId, rawExpected = {}) {
+function validateModelReference(reference, snapshots, datasetId) {
   const supplied = normalizeModelReference(Object.fromEntries(REFERENCE_FIELDS.map((field) => [field, reference?.[field] ?? null])));
   const expected = expectedReferences(snapshots);
   Object.entries(expected).forEach(([field, value]) => {
-    const accepted = [value, rawExpected[field]].filter(Boolean);
-    if (accepted.length && supplied[field] && !accepted.includes(supplied[field])) throw new TypeError(`Model provenance mismatch for ${field}.`);
+    if (value && supplied[field] && supplied[field] !== value) throw new TypeError(`Model provenance mismatch for ${field}.`);
   });
   if (reference?.datasetId && reference.datasetId !== datasetId) throw new TypeError('Model provenance dataset ID mismatch.');
-  return normalizeModelReference(Object.fromEntries(REFERENCE_FIELDS.map((field) => [field, expected[field] || supplied[field] || null])));
-}
-function expectedReferencesFromInputs(screening, beam) {
-  const path = screening?.pathModel, result = screening?.screening, model = beam?.beamModel;
-  return expectedReferenceRows(path, result, model, beam?.flexuralProjection);
+  return normalizeModelReference(Object.fromEntries(REFERENCE_FIELDS.map((field) => [field, expected[field] || null])));
 }
 function expectedReferences({ screening, beam }) {
   const path = screening?.pathModel, result = screening?.screening, model = beam?.beamModel;
-  return expectedReferenceRows(path, result, model, beam?.flexuralProjection);
-}
-function expectedReferenceRows(path, result, model, projection) {
+  const screeningSource = screening?.sourceSemanticHashes;
+  const beamSource = beam?.sourceSemanticHashes;
   return {
-    sharedModelSemanticHash: path?.sharedModelSemanticHash || projection?.sharedModelSemanticHash || null,
+    sharedModelSemanticHash: path?.sharedModelSemanticHash || beam?.flexuralProjection?.sharedModelSemanticHash || null,
     topologySemanticHash: path?.topologySemanticHash || null,
     supportAttachmentSemanticHash: path?.attachmentModelSemanticHash || null,
     restraintCapabilitySemanticHash: path?.restraintModelSemanticHash || null,
     loadCaseSetSemanticHash: result?.loadCaseSetSemanticHash || model?.loadCaseSetSemanticHash || null,
     loadPrimitiveSetSemanticHash: result?.primitiveSetSemanticHash || model?.primitiveSetSemanticHash || null,
     modelLoadReadinessSemanticHash: result?.readinessAuditSemanticHash || model?.readinessAuditSemanticHash || null,
-    verticalLoadPathModelSemanticHash: path?.semanticHash || projection?.pathModelSemanticHash || null,
+    verticalLoadPathModelSemanticHash: screeningSource?.pathModelSemanticHash || beamSource?.pathModelSemanticHash || null,
   };
 }
 function packageDiagnostics(reference, sourceRows = []) {
