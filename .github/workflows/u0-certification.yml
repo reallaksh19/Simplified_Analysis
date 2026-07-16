@@ -145,6 +145,9 @@ jobs:
       - name: Certify W10.6 explicit aliases
         run: node scripts/w10.6-vertical-beam-source-guard.mjs aliases
 
+      - name: Certify W10.7 model calculation package and archive
+        run: npm run check:w10.7:static
+
       - name: Run full repository checks
         run: npm run check:full
 
