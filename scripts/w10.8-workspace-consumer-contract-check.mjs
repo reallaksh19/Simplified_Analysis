@@ -4,6 +4,7 @@ import {
   createApplicationViewState,
   createWorkspaceConsumerContext,
   createWorkspaceConsumerReadiness,
+  createWorkspaceConsumerReadinessRegistry,
   createWorkspaceConsumerRegistry,
   IMPLEMENTATION_STATUS,
   READINESS_STATES,
@@ -138,7 +139,7 @@ function contextFor(fixture, overrides = {}, selectedEntityId = 'COMP-1') {
   });
 }
 function readinessRows(registry, context) {
-  return registry.consumers.map((row) => createWorkspaceConsumerReadiness(registry, context, row.consumerId, { workspaceBooted: true }));
+  return createWorkspaceConsumerReadinessRegistry(registry, context, { workspaceBooted: true });
 }
 function staleTopology(graph) {
   const { semanticHash: _hash, ...base } = structuredClone(graph);
