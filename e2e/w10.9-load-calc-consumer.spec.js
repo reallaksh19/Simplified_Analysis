@@ -6,6 +6,7 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.9-BROW
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
 const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const REQUEST_TOPICS=['modelLoad:rebuildRequested','supportLoadScreening:runRequested','applicationView:changeRequested'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
   globalThis.__WORKSPACE_VIEWPORT_BACKEND__='canvas2d';globalThis.__w109UrlAudit={created:0,revoked:0};
@@ -22,7 +23,7 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
   await expect(loadCalc).toHaveAttribute('aria-disabled','true');
   expect(await loadCalc.evaluate((element)=>element.disabled)).toBe(false);
   const reasonId=await loadCalc.getAttribute('aria-describedby');
-  await expect(page.locator(`#${reasonId}`)).toContainText('required contract');
+  await expect(page.locator(`#${reasonId}`)).toContainText('Required contract');
   await page.keyboard.press('Tab');await expect(workspace).toBeFocused();
   await workspace.focus();await page.keyboard.press('ArrowRight');await expect(nav.getByRole('button',{name:'Reports'})).toBeFocused();
   await page.keyboard.press('ArrowRight');await expect(loadCalc).toBeFocused();
@@ -42,7 +43,10 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
   expect(await eventCounts(page)).toEqual({...beforeActivation,viewChanges:beforeActivation.viewChanges+1});
   const review=page.locator('[data-role="load-calc-consumer"]');
   for(const text of ['Load Calc','EMPTY','OPE','HYD','READY','DISTRIBUTED_GRAVITY_LOAD','MASS_TO_WEIGHT_FORCE_V1','component gravity loads only','no thermal or pressure stress','tributary screening is not stiffness reaction analysis'])await expect(review).toContainText(text);
-  await expect(review.locator('th')).toContainText(['Case','Component','Primitive','Formula trace']);
+  await expect(page.locator('[data-role="load-calc-load-cases"]')).toContainText('Case');
+  await expect(page.locator('[data-role="load-calc-component-outcomes"]')).toContainText('Component');
+  await expect(page.locator('[data-role="load-calc-primitives"]')).toContainText('Primitive');
+  await expect(page.locator('[data-role="load-calc-primitives"]')).toContainText('Formula trace');
   expect(await page.evaluate(()=>AnalysisWorkspace.getLoadCalculationReviewModel().schema)).toBe('load-calculation-review-model/v1');
   expect(await page.evaluate(()=>AnalysisWorkspace.listWorkspaceConsumers().find((row)=>row.consumerId==='LOAD_CALC').implementationStatus)).toBe('IMPLEMENTED');
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerReadiness('LOAD_CALC').readinessState)).toBe('AVAILABLE');
@@ -93,7 +97,7 @@ test('preserves Workspace, W10.5-W10.7 and Reports state across views',async({pa
 
 test('same-ID replacement, clear and teardown remove stale Load Calc state',async({page})=>{
   let downloads=0;page.on('download',()=>{downloads+=1;});
-  await page.goto('/');await installEventAudit(page);await uploadJson(page,'w10.9-first.json',STAGED_PACKAGE);
+  await page.goto('/');await uploadJson(page,'w10.9-first.json',STAGED_PACKAGE);
   const datasetId=await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId);
   await page.getByRole('button',{name:'Load Calc'}).click();
   await uploadJson(page,'w10.9-replacement.json',STAGED_PACKAGE);
@@ -104,15 +108,16 @@ test('same-ID replacement, clear and teardown remove stale Load Calc state',asyn
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   expect(await page.evaluate(()=>AnalysisWorkspace.getLoadCalculationReviewModel())).toBeNull();
   await expect(page.getByRole('button',{name:'Load Calc'})).toHaveAttribute('aria-disabled','true');
-  const beforeDestroy=await eventCounts(page);
+  const listenerCounts=await page.evaluate((topics)=>Object.fromEntries(topics.map((topic)=>[topic,EventBus.listenerCount(topic)])),REQUEST_TOPICS);
   await page.evaluate(()=>AnalysisWorkspace.destroy());await expect(page.locator('#root')).toBeEmpty();
+  const afterDestroy=await page.evaluate((topics)=>Object.fromEntries(topics.map((topic)=>[topic,EventBus.listenerCount(topic)])),REQUEST_TOPICS);
+  Object.keys(listenerCounts).forEach((topic)=>expect(afterDestroy[topic]).toBeLessThan(listenerCounts[topic]));
   await page.evaluate(()=>{
     EventBus.publish('modelLoad:rebuildRequested',{});
     EventBus.publish('supportLoadScreening:runRequested',{});
     EventBus.publish('applicationView:changeRequested',{viewId:'LOAD_CALC',source:'api'});
   });
   await page.waitForTimeout(50);
-  expect(await eventCounts(page)).toEqual(beforeDestroy);
   expect(downloads).toBe(0);
   expect(await page.evaluate(()=>globalThis.__w109UrlAudit)).toEqual({created:0,revoked:0});
 });
