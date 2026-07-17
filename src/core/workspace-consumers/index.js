@@ -19,6 +19,7 @@ export {
   createWorkspaceConsumerReadiness,
   createWorkspaceConsumerReadinessRegistry,
   validateWorkspaceConsumerReadiness,
+  validateWorkspaceConsumerReadinessShape,
 } from './readiness.js';
 export {
   assertApplicationViewId,
