@@ -50,6 +50,7 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
   const beamEntry=await page.evaluate(()=>AnalysisWorkspace.getModelCalculationLedger().activeEntryId);
   await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
   await expect(reportsButton).toHaveAttribute('aria-disabled','false');
+  expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerReadiness('REPORTS').readinessState)).toBe('AVAILABLE');
   const before=await preservedState(page),calculationBaseline=await calculationCounts(page);
 
   await workspace.focus();await page.keyboard.press('ArrowRight');await expect(reportsButton).toBeFocused();
@@ -88,15 +89,8 @@ test('duplicate upstream events preserve one consistent consumer state',async({p
   await prepareCalculations(page);await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
   const before=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
   await page.evaluate(()=>{
-    const payload={
-      ledger:AnalysisWorkspace.getModelCalculationLedger(),
-      activeReport:AnalysisWorkspace.getActiveModelCalculationReport(),
-      availability:{screeningAvailable:true,beamAvailable:true,packageable:true},
-      packageMode:'SCREENING_AND_VERTICAL_BEAM',
-      reason:'duplicate-evidence',
-    };
-    EventBus.publish('modelCalculation:changed',payload);
-    EventBus.publish('modelCalculation:changed',payload);
+    const payload={ledger:AnalysisWorkspace.getModelCalculationLedger(),activeReport:AnalysisWorkspace.getActiveModelCalculationReport(),availability:{screeningAvailable:true,beamAvailable:true,packageable:true},packageMode:'SCREENING_AND_VERTICAL_BEAM',reason:'duplicate-evidence'};
+    EventBus.publish('modelCalculation:changed',payload);EventBus.publish('modelCalculation:changed',payload);
   });
   const after=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
   expect(after).toEqual(before);
