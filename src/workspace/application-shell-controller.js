@@ -7,7 +7,7 @@ import {
   workspaceConsumerDescriptor,
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
-import { APPLICATION_EVENTS } from './event-topics.js';
+import { APPLICATION_EVENTS, EVENT_TOPICS } from './event-topics.js';
 import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
 
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
@@ -35,6 +35,7 @@ export class ApplicationShellController {
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
       this.eventBus.subscribe(APPLICATION_EVENTS.CHANGE_REQUESTED, (payload) => this.handleRequest(payload)),
+      this.eventBus.subscribe(EVENT_TOPICS.DATASET_LOADED, () => this.handleDatasetReplacement()),
     ];
     this.view.render(this.state, this.readiness);
   }
@@ -45,6 +46,16 @@ export class ApplicationShellController {
     this.state = refreshApplicationViewStateV2(this.state, this.readiness);
     this.view.render(this.state, this.readiness);
     if (previous !== this.state.activeViewId) this.publishChanged(previous, 'readiness-lost');
+  }
+  handleDatasetReplacement() {
+    if (this.state.activeViewId === 'WORKSPACE') return;
+    const previous = this.state.activeViewId;
+    this.state = createApplicationViewStateV2(this.readiness, {
+      activeViewId: 'WORKSPACE',
+      version: this.state.version + 1,
+    });
+    this.view.render(this.state, this.readiness);
+    this.publishChanged(previous, 'dataset-replaced');
   }
   handleRequest({ viewId, source }) {
     const previous = this.state.activeViewId;
