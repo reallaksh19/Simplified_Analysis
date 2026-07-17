@@ -85,6 +85,7 @@ function distributed(row) {
     globalVector: row.globalVector,
     massSourceBreakdown: row.massSourceBreakdown,
     formulaTrace: row.formulaTrace,
+    sourceEvidence: row.sourceEvidence,
     diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
@@ -101,6 +102,7 @@ function point(row) {
     semanticDirection: row.semanticDirection,
     globalVector: row.globalVector,
     formulaTrace: row.formulaTrace,
+    sourceEvidence: row.sourceEvidence,
     diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
@@ -115,6 +117,7 @@ function moment(row) {
     momentMagnitudeNm: row.momentMagnitudeNm,
     axisEvidence: row.axisEvidence,
     globalVector: row.globalVector,
+    sourceEvidence: row.sourceEvidence,
     diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
