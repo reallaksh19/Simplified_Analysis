@@ -88,6 +88,13 @@ jobs:
       - name: Certify W10.9 scope, imports, runtime and integration
         run: node scripts/w10.9-load-calculation-source-guard.mjs
 
+      - name: Certify W10.10 exact evidence and versioned contracts
+        run: node scripts/w10.10-three-d-calculation-contract-check.mjs
+      - name: Certify W10.10 deterministic projections
+        run: node scripts/w10.10-three-d-calculation-property-check.mjs
+      - name: Certify W10.10 scope, imports, runtime and integration
+        run: node scripts/w10.10-three-d-calculation-source-guard.mjs
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
@@ -177,6 +184,8 @@ jobs:
         run: npm run check:w10.8:browser
       - name: Certify W10.9 Load Calc consumer
         run: npm run check:w10.9:browser
+      - name: Certify W10.10 3D Calc consumer
+        run: npm run check:w10.10:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report
