@@ -83,7 +83,6 @@ export function validateLoadCalculationReviewModel(value) {
 function assertContext(context) {
   const validation = validateWorkspaceConsumerContext(context);
   if (!validation.ok) throw new TypeError(`Invalid workspace consumer context: ${validation.errors.join(' ')}`);
-  if (!context.datasetId) throw new TypeError('Load calculation review requires a dataset.');
 }
 
 function requiredEvidence(context) {
