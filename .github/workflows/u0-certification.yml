@@ -60,8 +60,6 @@ jobs:
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs immutability
       - name: Certify W10.8 deterministic properties
         run: node scripts/w10.8-workspace-consumer-property-check.mjs
-      - name: Certify W10.8 changed-path boundary
-        run: node scripts/w10.8-workspace-consumer-source-guard.mjs paths
       - name: Certify W10.8 JavaScript standards
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs javascript
       - name: Certify W10.8 import boundaries
@@ -72,6 +70,23 @@ jobs:
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs dependencies
       - name: Certify W10.8 integration registration
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs integration
+
+      - name: Certify W10.9 missing and required W10.4 evidence
+        run: node scripts/w10.9-required-evidence-check.mjs
+      - name: Certify W10.9 optional W10.5 evidence
+        run: node scripts/w10.9-optional-evidence-check.mjs
+      - name: Certify W10.9 primitive and stale evidence
+        run: node scripts/w10.9-load-calculation-contract-check.mjs primitives
+      - name: Certify W10.9 registry contract versions
+        run: node scripts/w10.9-load-calculation-contract-check.mjs versions
+      - name: Certify W10.9 readiness and view state v2
+        run: node scripts/w10.9-load-calculation-contract-check.mjs views
+      - name: Certify W10.9 immutability and identity
+        run: node scripts/w10.9-load-calculation-contract-check.mjs immutability
+      - name: Certify W10.9 deterministic projections
+        run: node scripts/w10.9-load-calculation-property-check.mjs
+      - name: Certify W10.9 scope, imports, runtime and integration
+        run: node scripts/w10.9-load-calculation-source-guard.mjs
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -160,6 +175,8 @@ jobs:
         run: npm run check:w10.7:browser
       - name: Certify W10.8 application shell and Reports consumer
         run: npm run check:w10.8:browser
+      - name: Certify W10.9 Load Calc consumer
+        run: npm run check:w10.9:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report

@@ -26,8 +26,6 @@ jobs:
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs
       - name: Certify W10.8 deterministic properties
         run: node scripts/w10.8-workspace-consumer-property-check.mjs
-      - name: Certify W10.8 changed-path boundary
-        run: node scripts/w10.8-workspace-consumer-source-guard.mjs paths
       - name: Certify W10.8 JavaScript standards
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs javascript
       - name: Certify W10.8 import boundaries
@@ -38,6 +36,12 @@ jobs:
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs dependencies
       - name: Certify W10.8 integration registration
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs integration
+      - name: Certify W10.9 review and versioned contracts
+        run: node scripts/w10.9-load-calculation-contract-check.mjs
+      - name: Certify W10.9 deterministic projections
+        run: node scripts/w10.9-load-calculation-property-check.mjs
+      - name: Certify W10.9 scope, imports, runtime and integration
+        run: node scripts/w10.9-load-calculation-source-guard.mjs
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
@@ -122,6 +126,8 @@ jobs:
         run: npm run check:w10.7:browser
       - name: Certify W10.8 application shell and Reports consumer
         run: npm run check:w10.8:browser
+      - name: Certify W10.9 Load Calc consumer
+        run: npm run check:w10.9:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report

@@ -1,7 +1,9 @@
 export const WORKSPACE_CONSUMER_CONTEXT_SCHEMA = 'workspace-consumer-context/v1';
 export const WORKSPACE_CONSUMER_REGISTRY_SCHEMA = 'workspace-consumer-registry/v1';
+export const WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA = 'workspace-consumer-registry/v2';
 export const WORKSPACE_CONSUMER_READINESS_SCHEMA = 'workspace-consumer-readiness/v1';
 export const APPLICATION_VIEW_STATE_SCHEMA = 'application-view-state/v1';
+export const APPLICATION_VIEW_STATE_V2_SCHEMA = 'application-view-state/v2';
 
 export const CONTRACT_KEYS = Object.freeze([
   'sharedModel',
@@ -51,4 +53,10 @@ export const READINESS_STATES = Object.freeze({
 export const APPLICATION_VIEW_IDS = Object.freeze([
   CONSUMER_IDS.WORKSPACE,
   CONSUMER_IDS.REPORTS,
+]);
+
+export const APPLICATION_VIEW_IDS_V2 = Object.freeze([
+  CONSUMER_IDS.WORKSPACE,
+  CONSUMER_IDS.REPORTS,
+  CONSUMER_IDS.LOAD_CALC,
 ]);

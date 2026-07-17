@@ -244,10 +244,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
       return ModelCalculationStore.getActiveReport();
     },
     getWorkspaceConsumerContext() { return workspaceConsumerController.getContext(); },
-    listWorkspaceConsumers() { return workspaceConsumerController.listConsumers(); },
-    getWorkspaceConsumerReadiness(consumerId) { return workspaceConsumerController.getReadiness(consumerId); },
+    listWorkspaceConsumers() { return applicationShellController.getRegistry().consumers; },
+    getWorkspaceConsumerReadiness(consumerId) { return applicationShellController.getReadiness(consumerId); },
     getApplicationViewState() { return applicationShellController.getState(); },
     activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
+    getLoadCalculationReviewModel() { return applicationShellController.getLoadCalculationReviewModel(); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
