@@ -249,6 +249,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getApplicationViewState() { return applicationShellController.getState(); },
     activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
     getLoadCalculationReviewModel() { return applicationShellController.getLoadCalculationReviewModel(); },
+    getThreeDCalculationReviewModel() { return applicationShellController.getThreeDCalculationReviewModel(); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
