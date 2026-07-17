@@ -71,8 +71,16 @@ jobs:
       - name: Certify W10.8 integration registration
         run: node scripts/w10.8-workspace-consumer-source-guard.mjs integration
 
-      - name: Certify W10.9 review and versioned contracts
-        run: node scripts/w10.9-load-calculation-contract-check.mjs
+      - name: Certify W10.9 required and optional evidence
+        run: node scripts/w10.9-load-calculation-contract-check.mjs evidence
+      - name: Certify W10.9 primitive and stale evidence
+        run: node scripts/w10.9-load-calculation-contract-check.mjs primitives
+      - name: Certify W10.9 registry contract versions
+        run: node scripts/w10.9-load-calculation-contract-check.mjs versions
+      - name: Certify W10.9 readiness and view state v2
+        run: node scripts/w10.9-load-calculation-contract-check.mjs views
+      - name: Certify W10.9 immutability and identity
+        run: node scripts/w10.9-load-calculation-contract-check.mjs immutability
       - name: Certify W10.9 deterministic projections
         run: node scripts/w10.9-load-calculation-property-check.mjs
       - name: Certify W10.9 scope, imports, runtime and integration
