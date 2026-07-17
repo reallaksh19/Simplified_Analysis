@@ -1,4 +1,5 @@
-import { canonicalStringify, deepFreeze, semanticHash, validateSharedPipingModel } from '../shared-piping-model/index.js';
+import { canonicalStringify, deepFreeze, semanticHash } from '../shared-piping-model/index.js';
+import { validateSharedPipingModel } from '../shared-piping-model/index.js';
 import { validatePipingPortTopologyGraph, validateTopologyConnectionAudit } from '../piping-topology/index.js';
 import {
   validateRestraintCapabilityAudit, validateRestraintCapabilityModel,
@@ -98,7 +99,10 @@ function validateRequired(e, datasetId) {
 
 function optionalLoadEvidence(context) {
   const primitiveSet = context.contracts.loadPrimitiveSet;
-  if (!primitiveSet) return { evidence: null, diagnostics: [] };
+  if (!primitiveSet) {
+    const diagnostic = rejectedContractDiagnostic(context, 'loadPrimitiveSet');
+    return diagnostic ? excluded(THREE_D_DIAGNOSTIC_CODES.OPTIONAL_MODEL_LOAD_INVALID, new Error(diagnostic.message)) : { evidence: null, diagnostics: [] };
+  }
   try {
     assertValid('model-load primitive set', validateModelLoadPrimitiveSet(primitiveSet));
     if (primitiveSet.datasetId !== context.datasetId) throw new TypeError('Model-load primitive dataset mismatch.');
@@ -114,7 +118,11 @@ function optionalBeamEvidence(context, required) {
     audit: context.contracts.verticalBeamSolverAudit,
   };
   const present = Object.values(values).filter(Boolean).length;
-  if (!present) return { evidence: null, diagnostics: [] };
+  if (!present) {
+    const diagnostic = ['flexuralPropertyProjection','verticalBeamModel','verticalBeamSolution','verticalBeamSolverAudit']
+      .map((key) => rejectedContractDiagnostic(context, key)).find(Boolean);
+    return diagnostic ? excluded(THREE_D_DIAGNOSTIC_CODES.OPTIONAL_VERTICAL_BEAM_INVALID, new Error(diagnostic.message)) : { evidence: null, diagnostics: [] };
+  }
   if (present !== 4) return excluded(THREE_D_DIAGNOSTIC_CODES.OPTIONAL_VERTICAL_BEAM_INCOMPLETE, new Error('Optional W10.6 evidence is incomplete.'));
   try {
     validateBeam(values, required, context.datasetId);
@@ -154,6 +162,7 @@ function summary(...rows) {
   const [components, ports, connections, topology, attachments, restraints, loads, flexural, beam] = rows;
   return deepFreeze({ componentCount: components.length, portCount: ports.length, connectionCount: connections.length, topologyComponentCount: topology.length, supportAttachmentCount: attachments.length, restraintCapabilityCount: restraints.length, loadPrimitiveCount: loads.length, flexuralPropertyCount: flexural.length, verticalBeamCaseCount: beam.length, optionalModelLoadsIncluded: loads.length > 0, optionalVerticalBeamIncluded: beam.length > 0 });
 }
+function rejectedContractDiagnostic(context, contractKey) { return context.diagnostics.find((row) => row.contractKey === contractKey) || null; }
 function excluded(code, error) { return { evidence: null, diagnostics: [deepFreeze({ code, severity: 'WARNING', scope: 'OPTIONAL_EVIDENCE', message: error instanceof Error ? error.message : String(error) })] }; }
 function canonicalDiagnostics(rows) { return deepFreeze([...rows].sort((a, b) => `${a.scope}|${a.code}|${a.message}`.localeCompare(`${b.scope}|${b.code}|${b.message}`))); }
 function assertContext(context) { const validation = validateWorkspaceConsumerContext(context); if (!validation.ok) throw new TypeError(`Invalid workspace consumer context: ${validation.errors.join(' ')}`); }
