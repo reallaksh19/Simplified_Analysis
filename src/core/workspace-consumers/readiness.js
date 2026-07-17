@@ -46,6 +46,7 @@ export function validateWorkspaceConsumerReadinessShape(value) {
   if (typeof value?.consumerId !== 'string' || !value.consumerId) errors.push('Workspace consumer readiness consumerId is invalid.');
   if (!Object.values(IMPLEMENTATION_STATUS).includes(value?.implementationStatus)) errors.push('Workspace consumer implementation status is invalid.');
   if (!Object.values(READINESS_STATES).includes(value?.readinessState)) errors.push('Workspace consumer readiness state is invalid.');
+  if (typeof value?.contextSemanticHash !== 'string' || !value.contextSemanticHash.trim()) errors.push('Workspace consumer readiness contextSemanticHash is invalid.');
   ['availableContractKeys','missingRequiredContractKeys','invalidContractKeys','blockers'].forEach((field) => validateCanonicalStringArray(value?.[field], field, errors));
   validateDiagnosticArray(value?.diagnostics, errors);
   validateLogicalState(value, errors);
