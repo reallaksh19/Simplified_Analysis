@@ -29,6 +29,7 @@ success &= runCheck('W10.5 Support Load Screening Static Check', 'npm run check:
 success &= runCheck('W10.6 Vertical Beam Solver Static Check', 'npm run check:w10.6:static');
 success &= runCheck('W10.7 Model Calculation Package Static Check', 'npm run check:w10.7:static');
 success &= runCheck('W10.8 Workspace Consumer Static Check', 'npm run check:w10.8:static');
+success &= runCheck('W10.9 Load Calc Consumer Static Check', 'npm run check:w10.9:static');
 
 console.log(`\n--- Running Math.random Check ---`);
 function findMathRandom(dir, problems = []) {
@@ -117,6 +118,7 @@ const requiredE2EFiles = [
     'e2e/w10.6-vertical-beam-workspace.spec.js',
     'e2e/w10.7-model-calculation-workspace.spec.js',
     'e2e/w10.8-workspace-consumers.spec.js',
+    'e2e/w10.9-load-calc-consumer.spec.js',
 ];
 
 let e2eFilesOk = true;
