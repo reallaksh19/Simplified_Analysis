@@ -83,6 +83,19 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerContext().contracts.sharedModel===AnalysisWorkspace.getSharedModel())).toBe(true);
 });
 
+test('duplicate upstream events preserve one consistent consumer state',async({page})=>{
+  await page.goto('/');await uploadJson(page,'w10.8-duplicates.json',STAGED_PACKAGE);
+  await prepareCalculations(page);await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
+  const before=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
+  await page.evaluate(()=>{
+    const snapshot=AnalysisWorkspace.getSnapshot();
+    EventBus.publish('workspace:snapshotChanged',{snapshot});
+    EventBus.publish('workspace:snapshotChanged',{snapshot});
+  });
+  const after=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
+  expect(after).toEqual(before);
+});
+
 test('same-ID replacement, clear and teardown remove stale consumer state',async({page})=>{
   let downloadCount=0;page.on('download',()=>{downloadCount+=1;});
   await page.goto('/');await installEventAudit(page);
