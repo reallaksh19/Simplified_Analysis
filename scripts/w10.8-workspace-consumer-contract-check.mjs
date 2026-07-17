@@ -5,8 +5,8 @@ import {
   createWorkspaceConsumerRegistry, IMPLEMENTATION_STATUS, READINESS_STATES,
   refreshApplicationViewState, transitionApplicationViewState,
   validateApplicationViewState, validateWorkspaceConsumerContext,
-  validateWorkspaceConsumerReadiness, validateWorkspaceConsumerRegistry,
-  workspaceConsumerDescriptor,
+  validateWorkspaceConsumerReadiness, validateWorkspaceConsumerReadinessShape,
+  validateWorkspaceConsumerRegistry, workspaceConsumerDescriptor,
 } from '../src/core/workspace-consumers/index.js';
 import { deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
 import { renderReportsConsumer } from '../src/workspace/reports-consumer-controller.js';
@@ -24,6 +24,9 @@ function checkContexts(){
   const empty=createWorkspaceConsumerContext({workspaceVersion:0});
   assert.equal(validateWorkspaceConsumerContext(empty).ok,true);
   assert.ok(Object.values(empty.contracts).every((value)=>value===null));
+  assert.throws(()=>createWorkspaceConsumerContext({datasetId:{},workspaceVersion:0}),/datasetId/);
+  assert.throws(()=>createWorkspaceConsumerContext({workspaceVersion:0,selectedEntityId:{}}),/selectedEntityId/);
+  assert.throws(()=>createWorkspaceConsumerContext({workspaceVersion:-1}),/workspaceVersion/);
   const fixture=buildWorkspaceConsumerFixture(),full=contextFor(fixture);
   assert.equal(validateWorkspaceConsumerContext(full).ok,true);
   assert.equal(full.availabilitySummary.availableContractKeys.length,20);
@@ -47,6 +50,10 @@ function checkContexts(){
   rejectsContext(full,(copy)=>{copy.contracts.topologyGraph=structuredClone(other.contracts.topologyGraph);copy.contractReferences[1].semanticHash=copy.contracts.topologyGraph.semanticHash;});
   rejectsContext(full,(copy)=>{delete copy.contracts.sharedModel;});
   rejectsContext(full,(copy)=>{copy.contractReferences.reverse();});
+  rejectsContext(full,(copy)=>{copy.selectedEntityId={forged:true};});
+  rejectsContext(full,(copy)=>{copy.selectedEntityId=' COMP-1 ';});
+  rejectsContext(full,(copy)=>{delete copy.selectedEntityId;});
+  rejectsContext(full,(copy)=>{copy.datasetId=' '+copy.datasetId;});
   const badId=structuredClone(full);badId.contextId='workspace-consumer-context:forged';assert.equal(validateWorkspaceConsumerContext(badId).ok,false);
   const badHash=structuredClone(full);badHash.semanticHash='fnv1a64:forged';assert.equal(validateWorkspaceConsumerContext(badHash).ok,false);
 }
@@ -80,6 +87,8 @@ function checkReadiness(){
   readinessMutationRejected(available,registry,full,(copy)=>{copy.contextSemanticHash='fnv1a64:wrong';});
   readinessMutationRejected(available,registry,full,(copy)=>{copy.blockers=['MISSING_CONTRACT:modelCalculationLedger'];});
   readinessMutationRejected(available,registry,full,(copy)=>{copy.diagnostics=[{code:'forged',severity:'INFO',contractKey:null,message:'forged'}];});
+  const noContextHash=structuredClone(available);noContextHash.contextSemanticHash='';rehashReadiness(noContextHash);
+  assert.equal(validateWorkspaceConsumerReadinessShape(noContextHash).ok,false);
   const future=createWorkspaceConsumerReadiness(registry,full,CONSUMER_IDS.PIPE_SOLVER,{workspaceBooted:true});
   assert.equal(future.readinessState,READINESS_STATES.NOT_IMPLEMENTED);
   readinessMutationRejected(future,registry,full,(copy)=>{copy.readinessState=READINESS_STATES.AVAILABLE;copy.blockers=[];copy.diagnostics=[];});
@@ -94,6 +103,12 @@ function checkViews(){
   const reports=transitionApplicationViewState(initial,CONSUMER_IDS.REPORTS,fullRows);
   assert.equal(reports.activated,true);assert.equal(reports.state.activeViewId,CONSUMER_IDS.REPORTS);
   const forged=structuredClone(initial);forged.activeViewId=CONSUMER_IDS.REPORTS;assert.equal(validateApplicationViewState(forged).ok,false);
+  const mixedRows=structuredClone(fullRows),mixedReport=mixedRows.find((row)=>row.consumerId===CONSUMER_IDS.REPORTS);
+  mixedReport.contextSemanticHash='fnv1a64:mixed-context';rehashReadiness(mixedReport);
+  assert.throws(()=>createApplicationViewState(mixedRows),/one consumer context/);
+  const mixedState=structuredClone(reports.state);
+  mixedState.viewReadiness.REPORTS.contextSemanticHash='fnv1a64:mixed-context';rehashReadiness(mixedState.viewReadiness.REPORTS);
+  assert.equal(validateApplicationViewState(mixedState).ok,false);
   const replacement=createWorkspaceConsumerContext({datasetId:fixture.contracts.sharedModel.project.datasetId,workspaceVersion:2});
   const reset=refreshApplicationViewState(reports.state,readinessRows(registry,replacement));
   assert.equal(reset.activeViewId,CONSUMER_IDS.WORKSPACE);assert.equal(reset.version,reports.state.version+1);
@@ -133,5 +148,6 @@ function staleTopology(graph){const{semanticHash:_hash,...base}=structuredClone(
 function rejectsContext(value,mutate){const copy=structuredClone(value);mutate(copy);rehashContext(copy);assert.equal(validateWorkspaceConsumerContext(copy).ok,false);}
 function rehashContext(copy){const identity={schema:copy.schema,datasetId:copy.datasetId,contractReferences:copy.contractReferences,availabilitySummary:copy.availabilitySummary,diagnostics:copy.diagnostics};copy.contextId=`workspace-consumer-context:${semanticHash(identity).split(':')[1]}`;copy.semanticHash=semanticHash({...identity,contextId:copy.contextId});}
 function registryMutationRejected(value,mutate){const copy=structuredClone(value);mutate(copy);const{semanticHash:_hash,...base}=copy;copy.semanticHash=semanticHash(base);assert.equal(validateWorkspaceConsumerRegistry(copy).ok,false);}
-function readinessMutationRejected(value,registry,context,mutate){const copy=structuredClone(value);mutate(copy);const{semanticHash:_hash,...base}=copy;copy.semanticHash=semanticHash(base);assert.equal(validateWorkspaceConsumerReadiness(copy,registry,context,{workspaceBooted:true}).ok,false);}
+function readinessMutationRejected(value,registry,context,mutate){const copy=structuredClone(value);mutate(copy);rehashReadiness(copy);assert.equal(validateWorkspaceConsumerReadiness(copy,registry,context,{workspaceBooted:true}).ok,false);}
+function rehashReadiness(copy){const{semanticHash:_hash,...base}=copy;copy.semanticHash=semanticHash(base);}
 function assertDeepFrozen(value,seen=new WeakSet()){if(!value||typeof value!=='object'||seen.has(value))return;seen.add(value);assert.equal(Object.isFrozen(value),true);Object.values(value).forEach((child)=>assertDeepFrozen(child,seen));}
