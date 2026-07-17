@@ -88,9 +88,15 @@ test('duplicate upstream events preserve one consistent consumer state',async({p
   await prepareCalculations(page);await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
   const before=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
   await page.evaluate(()=>{
-    const snapshot=AnalysisWorkspace.getSnapshot();
-    EventBus.publish('workspace:snapshotChanged',{snapshot});
-    EventBus.publish('workspace:snapshotChanged',{snapshot});
+    const payload={
+      ledger:AnalysisWorkspace.getModelCalculationLedger(),
+      activeReport:AnalysisWorkspace.getActiveModelCalculationReport(),
+      availability:{screeningAvailable:true,beamAvailable:true,packageable:true},
+      packageMode:'SCREENING_AND_VERTICAL_BEAM',
+      reason:'duplicate-evidence',
+    };
+    EventBus.publish('modelCalculation:changed',payload);
+    EventBus.publish('modelCalculation:changed',payload);
   });
   const after=await page.evaluate(()=>({contextHash:AnalysisWorkspace.getWorkspaceConsumerContext().semanticHash,view:AnalysisWorkspace.getApplicationViewState(),packageHash:AnalysisWorkspace.getActiveModelCalculationPackage().semanticHash}));
   expect(after).toEqual(before);
