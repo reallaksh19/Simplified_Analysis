@@ -47,13 +47,23 @@ jobs:
         run: node scripts/w10.7-model-calculation-source-guard.mjs dependencies && node scripts/w10.7-model-calculation-source-guard.mjs sizes && node scripts/w10.7-model-calculation-source-guard.mjs runtime && node scripts/w10.7-model-calculation-source-guard.mjs contracts
 
       - name: Certify W10.8 empty and full contexts
-        run: node scripts/w10.8-workspace-consumer-contract-check.mjs context
+        run: set -o pipefail; node scripts/w10.8-workspace-consumer-contract-check.mjs context 2>&1 | tee w10.8-context.log
+      - name: Upload W10.8 context diagnostic
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w10.8-context-diagnostic
+          path: w10.8-context.log
+          if-no-files-found: error
+          retention-days: 1
       - name: Certify W10.8 consumer registry
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs registry
       - name: Certify W10.8 consumer readiness
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs readiness
       - name: Certify W10.8 application view state
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs views
+      - name: Certify W10.8 event contracts
+        run: node scripts/w10.8-workspace-consumer-contract-check.mjs events
       - name: Certify W10.8 immutability
         run: node scripts/w10.8-workspace-consumer-contract-check.mjs immutability
       - name: Certify W10.8 deterministic properties
