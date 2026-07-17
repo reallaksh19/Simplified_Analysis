@@ -1,42 +1,30 @@
-import { deepFreeze } from '../shared-piping-model/index.js';
-import {
-  APPLICATION_VIEW_IDS,
-  APPLICATION_VIEW_STATE_SCHEMA,
-  READINESS_STATES,
-} from './constants.js';
+import { canonicalStringify, deepFreeze } from '../shared-piping-model/index.js';
+import { APPLICATION_VIEW_IDS, APPLICATION_VIEW_STATE_SCHEMA, CONSUMER_IDS, READINESS_STATES } from './constants.js';
+import { validateWorkspaceConsumerReadinessShape } from './readiness.js';
 
 export function createApplicationViewState(readinessRecords = [], options = {}) {
   const readiness = normalizeReadiness(readinessRecords);
-  const availableViewIds = APPLICATION_VIEW_IDS.filter((viewId) => readiness[viewId]?.readinessState === READINESS_STATES.AVAILABLE);
-  const requested = options.activeViewId || 'WORKSPACE';
-  const activeViewId = availableViewIds.includes(requested) ? requested : 'WORKSPACE';
+  const availableViewIds = APPLICATION_VIEW_IDS.filter((id) => readiness[id]?.readinessState === READINESS_STATES.AVAILABLE);
+  if (!availableViewIds.includes(CONSUMER_IDS.WORKSPACE)) throw new TypeError('Workspace view must be available.');
+  const requested = options.activeViewId || CONSUMER_IDS.WORKSPACE;
+  const activeViewId = availableViewIds.includes(requested) ? requested : CONSUMER_IDS.WORKSPACE;
   const version = Number.isInteger(options.version) && options.version >= 0 ? options.version : 0;
-  return deepFreeze({
-    schema: APPLICATION_VIEW_STATE_SCHEMA,
-    activeViewId,
-    availableViewIds,
-    viewReadiness: readiness,
-    version,
-  });
+  return deepFreeze({ schema: APPLICATION_VIEW_STATE_SCHEMA, activeViewId, availableViewIds, viewReadiness: readiness, version });
 }
 
 export function transitionApplicationViewState(current, requestedViewId, readinessRecords) {
   assertViewId(requestedViewId);
-  const next = createApplicationViewState(readinessRecords, {
-    activeViewId: requestedViewId,
-    version: (current?.version || 0) + 1,
-  });
-  const activated = next.activeViewId === requestedViewId;
-  return deepFreeze({ state: activated ? next : refreshApplicationViewState(current, readinessRecords), activated });
+  const readiness = normalizeReadiness(readinessRecords);
+  if (readiness[requestedViewId]?.readinessState !== READINESS_STATES.AVAILABLE) return deepFreeze({ state: current, activated: false });
+  const state = createApplicationViewState(readinessRecords, { activeViewId: requestedViewId, version: (current?.version || 0) + 1 });
+  return deepFreeze({ state, activated: true });
 }
 
 export function refreshApplicationViewState(current, readinessRecords) {
-  const desired = current?.activeViewId || 'WORKSPACE';
-  const next = createApplicationViewState(readinessRecords, {
-    activeViewId: desired,
-    version: (current?.version || 0) + 1,
-  });
-  return next;
+  const desired = current?.activeViewId || CONSUMER_IDS.WORKSPACE;
+  const candidate = createApplicationViewState(readinessRecords, { activeViewId: desired, version: current?.version || 0 });
+  if (sameEvidence(current, candidate)) return current;
+  return deepFreeze({ ...candidate, version: (current?.version || 0) + 1 });
 }
 
 export function validateApplicationViewState(value) {
@@ -44,19 +32,27 @@ export function validateApplicationViewState(value) {
   if (value?.schema !== APPLICATION_VIEW_STATE_SCHEMA) errors.push('Invalid application view-state schema.');
   if (!APPLICATION_VIEW_IDS.includes(value?.activeViewId)) errors.push('Application active view is invalid.');
   if (!Array.isArray(value?.availableViewIds)) errors.push('Application available views are invalid.');
-  if (!value?.viewReadiness || typeof value.viewReadiness !== 'object') errors.push('Application view readiness is invalid.');
   if (!Number.isInteger(value?.version) || value.version < 0) errors.push('Application view-state version is invalid.');
+  const readiness = value?.viewReadiness;
+  const keys = readiness && typeof readiness === 'object' ? Object.keys(readiness).sort() : [];
+  if (canonicalStringify(keys) !== canonicalStringify([...APPLICATION_VIEW_IDS].sort())) errors.push('Application view readiness keys are incomplete.');
+  APPLICATION_VIEW_IDS.forEach((id) => {
+    const row = readiness?.[id];
+    if (row?.consumerId !== id || !validateWorkspaceConsumerReadinessShape(row).ok) errors.push(`Application readiness ${id} is invalid.`);
+  });
+  const expectedAvailable = APPLICATION_VIEW_IDS.filter((id) => readiness?.[id]?.readinessState === READINESS_STATES.AVAILABLE);
+  if (canonicalStringify(value?.availableViewIds) !== canonicalStringify(expectedAvailable)) errors.push('Application available views do not match readiness.');
+  if (!value?.availableViewIds?.includes(value?.activeViewId)) errors.push('Application active view is unavailable.');
   return deepFreeze({ ok: errors.length === 0, errors });
 }
-
 export function assertApplicationViewId(viewId) { assertViewId(viewId); }
-
 function normalizeReadiness(records) {
-  const byId = Object.fromEntries((records || []).filter((row) => APPLICATION_VIEW_IDS.includes(row.consumerId))
-    .sort((left, right) => left.consumerId.localeCompare(right.consumerId))
-    .map((row) => [row.consumerId, row]));
-  return deepFreeze(byId);
+  const matching = (records || []).filter((row) => APPLICATION_VIEW_IDS.includes(row?.consumerId));
+  if (matching.length !== APPLICATION_VIEW_IDS.length || new Set(matching.map((row) => row.consumerId)).size !== APPLICATION_VIEW_IDS.length) throw new TypeError('Workspace and Reports readiness are required exactly once.');
+  return deepFreeze(Object.fromEntries(matching.sort((a,b)=>a.consumerId.localeCompare(b.consumerId)).map((row)=>[row.consumerId,row])));
 }
-function assertViewId(viewId) {
-  if (!APPLICATION_VIEW_IDS.includes(viewId)) throw new TypeError(`Unknown application view: ${viewId}.`);
+function sameEvidence(left, right) {
+  if (!left) return false;
+  return left.activeViewId === right.activeViewId && canonicalStringify(left.availableViewIds) === canonicalStringify(right.availableViewIds) && canonicalStringify(left.viewReadiness) === canonicalStringify(right.viewReadiness);
 }
+function assertViewId(viewId) { if (!APPLICATION_VIEW_IDS.includes(viewId)) throw new TypeError(`Unknown application view: ${viewId}.`); }
