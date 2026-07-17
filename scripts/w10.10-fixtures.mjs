@@ -1,3 +1,7 @@
+import {
+  archiveModelCalculationPackage, createModelCalculationLedger, createModelCalculationPackage,
+  createModelCalculationReport, PACKAGE_MODES,
+} from '../src/core/model-calculation-package/index.js';
 import { deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
 import { createWorkspaceConsumerContext } from '../src/core/workspace-consumers/index.js';
 import { buildCalculationFixture } from './w10.7-fixtures.mjs';
@@ -78,6 +82,15 @@ function selectedContracts(source, options) {
 
 function calculationContracts(calculation) {
   const source = calculation.source;
+  const packageValue = createModelCalculationPackage({
+    packageMode: PACKAGE_MODES.COMBINED,
+    screeningSnapshot: calculation.screeningSnapshot,
+    verticalBeamSnapshot: calculation.verticalBeamSnapshot,
+    modelReference: calculation.modelReference,
+  });
+  const ledger = archiveModelCalculationPackage(createModelCalculationLedger(packageValue.datasetId), packageValue);
+  const activeEntry = ledger.entries.find((row) => row.entryId === ledger.activeEntryId);
+  const report = createModelCalculationReport(activeEntry);
   return {
     sharedModel: source.sharedModel,
     topologyGraph: source.topologyGraph,
@@ -96,6 +109,9 @@ function calculationContracts(calculation) {
     verticalBeamModel: source.foundation.beamModel,
     verticalBeamSolution: source.solved.solution,
     verticalBeamSolverAudit: source.solved.audit,
+    modelCalculationLedger: ledger,
+    activeModelCalculationPackage: packageValue,
+    activeModelCalculationReport: report,
   };
 }
 function rehash(value) {
