@@ -8,6 +8,14 @@ import { MODEL_LOAD_EVENTS } from './model-load-events.js';
 import { SUPPORT_LOAD_SCREENING_EVENTS } from './support-load-screening-events.js';
 import { renderLoadCalcConsumer } from './load-calc-consumer-view.js';
 
+const ACTION_FAILURES = Object.freeze({
+  rebuildModelLoads: 'Complete validated W10.4 evidence is required.',
+  exportModelLoads: 'Complete validated W10.4 evidence is required for export.',
+  rebuildPaths: 'Validated topology and support/restraint evidence is required to rebuild vertical load paths.',
+  runScreening: 'A validated vertical-load-path model and W10.4 model-load evidence are required for screening.',
+  exportScreening: 'Complete linked W10.5 screening evidence is required for export.',
+});
+
 export class LoadCalcConsumerController {
   constructor(rootElement, consumerController, eventBus = EventBus) {
     this.rootElement = rootElement;
@@ -15,6 +23,7 @@ export class LoadCalcConsumerController {
     this.eventBus = eventBus;
     this.context = consumerController?.getContext() || null;
     this.reviewModel = buildReviewModel(this.context);
+    this.actionAvailability = createLoadCalcActionAvailability(this.context, this.reviewModel);
     this.status = {};
     this.unsubscribeCallbacks = [];
   }
@@ -37,6 +46,7 @@ export class LoadCalcConsumerController {
   handleContext(context) {
     this.context = context;
     this.reviewModel = buildReviewModel(context);
+    this.actionAvailability = createLoadCalcActionAvailability(context, this.reviewModel);
     this.render();
   }
   handleChanged(reason, fallback) {
@@ -47,24 +57,22 @@ export class LoadCalcConsumerController {
   handleExport(artifact) { this.status = { message: `Exported ${artifact.filename}` }; this.render(); }
   render() {
     if (!this.rootElement) return;
-    const view = renderLoadCalcConsumer(this.rootElement.ownerDocument, this.reviewModel, this.status);
+    const view = renderLoadCalcConsumer(
+      this.rootElement.ownerDocument,
+      this.reviewModel,
+      this.status,
+      this.actionAvailability,
+    );
     this.rootElement.replaceChildren(view);
-    bind(view, 'rebuild-model-loads', () => this.publish(MODEL_LOAD_EVENTS.REBUILD_REQUESTED));
-    bind(view, 'export-model-loads', () => this.publish(MODEL_LOAD_EVENTS.EXPORT_REQUESTED));
-    bind(view, 'rebuild-paths', () => this.publish(SUPPORT_LOAD_SCREENING_EVENTS.REBUILD_PATHS_REQUESTED));
-    bind(view, 'run-screening', () => this.publish(SUPPORT_LOAD_SCREENING_EVENTS.RUN_REQUESTED));
-    bind(view, 'export-screening', () => this.publishScreeningExport(view));
+    bind(view, 'rebuild-model-loads', () => this.publishAction('rebuildModelLoads', MODEL_LOAD_EVENTS.REBUILD_REQUESTED));
+    bind(view, 'export-model-loads', () => this.publishAction('exportModelLoads', MODEL_LOAD_EVENTS.EXPORT_REQUESTED));
+    bind(view, 'rebuild-paths', () => this.publishAction('rebuildPaths', SUPPORT_LOAD_SCREENING_EVENTS.REBUILD_PATHS_REQUESTED));
+    bind(view, 'run-screening', () => this.publishAction('runScreening', SUPPORT_LOAD_SCREENING_EVENTS.RUN_REQUESTED));
+    bind(view, 'export-screening', () => this.publishAction('exportScreening', SUPPORT_LOAD_SCREENING_EVENTS.EXPORT_REQUESTED));
   }
-  publish(topic) {
-    if (!this.reviewModel) return this.handleFailure('Complete validated W10.4 evidence is required.');
+  publishAction(actionKey, topic) {
+    if (!this.actionAvailability[actionKey]) return this.handleFailure(ACTION_FAILURES[actionKey]);
     this.eventBus.publish(topic, {});
-  }
-  publishScreeningExport(view) {
-    const button = view.querySelector('[data-load-calc-action="export-screening"]');
-    if (!this.reviewModel?.summary.screeningIncluded || button?.getAttribute('aria-disabled') === 'true') {
-      return this.handleFailure('Complete linked W10.5 screening evidence is required for export.');
-    }
-    this.eventBus.publish(SUPPORT_LOAD_SCREENING_EVENTS.EXPORT_REQUESTED, {});
   }
   getReviewModel() {
     return validateLoadCalculationReviewModel(this.reviewModel).ok ? this.reviewModel : null;
@@ -74,10 +82,29 @@ export class LoadCalcConsumerController {
     this.unsubscribeCallbacks = [];
     this.context = null;
     this.reviewModel = null;
+    this.actionAvailability = Object.freeze({});
     this.consumerController = null;
     this.status = {};
     this.rootElement?.replaceChildren();
   }
+}
+
+export function createLoadCalcActionAvailability(context, reviewModel) {
+  const contracts = context?.contracts || {};
+  const hasModelLoads = Boolean(reviewModel);
+  const hasPathInputs = Boolean(hasModelLoads
+    && contracts.sharedModel
+    && contracts.topologyGraph
+    && contracts.supportAttachmentModel
+    && contracts.restraintCapabilityModel);
+  const hasPathModel = Boolean(hasModelLoads && contracts.verticalLoadPathModel);
+  return Object.freeze({
+    rebuildModelLoads: hasModelLoads,
+    exportModelLoads: hasModelLoads,
+    rebuildPaths: hasPathInputs,
+    runScreening: hasPathModel,
+    exportScreening: Boolean(reviewModel?.summary.screeningIncluded),
+  });
 }
 
 function buildReviewModel(context) {
