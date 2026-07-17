@@ -1,14 +1,15 @@
 import {
-  createApplicationViewStateV2,
+  createApplicationViewStateV3,
   createWorkspaceConsumerReadinessRegistry,
-  createWorkspaceConsumerRegistryV2,
-  refreshApplicationViewStateV2,
-  transitionApplicationViewStateV2,
+  createWorkspaceConsumerRegistryV3,
+  refreshApplicationViewStateV3,
+  transitionApplicationViewStateV3,
   workspaceConsumerDescriptor,
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
 import { APPLICATION_EVENTS, EVENT_TOPICS } from './event-topics.js';
 import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
+import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
@@ -17,14 +18,15 @@ export class ApplicationShellController {
     this.eventBus = eventBus;
     this.consumerController = consumerController;
     this.context = consumerController.getContext();
-    this.registry = createWorkspaceConsumerRegistryV2();
+    this.registry = createWorkspaceConsumerRegistryV3();
     this.readiness = this.buildReadiness();
-    this.state = createApplicationViewStateV2(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
+    this.state = createApplicationViewStateV3(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
     this.view = new ApplicationShellView(rootElement, eventBus);
     this.loadCalcController = new LoadCalcConsumerController(
-      rootElement?.querySelector('[data-role="load-calc-consumer-root"]'),
-      consumerController,
-      eventBus,
+      rootElement?.querySelector('[data-role="load-calc-consumer-root"]'), consumerController, eventBus,
+    );
+    this.threeDCalcController = new ThreeDCalcConsumerController(
+      rootElement?.querySelector('[data-role="three-d-calc-consumer-root"]'), consumerController, eventBus,
     );
     this.unsubscribeCallbacks = [];
   }
@@ -32,6 +34,7 @@ export class ApplicationShellController {
     if (this.unsubscribeCallbacks.length) return;
     this.view.init(this.registry);
     this.loadCalcController.init();
+    this.threeDCalcController.init();
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
       this.eventBus.subscribe(APPLICATION_EVENTS.CHANGE_REQUESTED, (payload) => this.handleRequest(payload)),
@@ -43,16 +46,15 @@ export class ApplicationShellController {
     const previous = this.state.activeViewId;
     this.context = context;
     this.readiness = this.buildReadiness();
-    this.state = refreshApplicationViewStateV2(this.state, this.readiness);
+    this.state = refreshApplicationViewStateV3(this.state, this.readiness);
     this.view.render(this.state, this.readiness);
     if (previous !== this.state.activeViewId) this.publishChanged(previous, 'readiness-lost');
   }
   handleDatasetReplacement() {
     if (this.state.activeViewId === 'WORKSPACE') return;
     const previous = this.state.activeViewId;
-    this.state = createApplicationViewStateV2(this.readiness, {
-      activeViewId: 'WORKSPACE',
-      version: this.state.version + 1,
+    this.state = createApplicationViewStateV3(this.readiness, {
+      activeViewId: 'WORKSPACE', version: this.state.version + 1,
     });
     this.view.render(this.state, this.readiness);
     this.publishChanged(previous, 'dataset-replaced');
@@ -62,9 +64,8 @@ export class ApplicationShellController {
     try {
       const descriptor = workspaceConsumerDescriptor(this.registry, viewId);
       const readiness = this.getReadiness(viewId);
-      if (descriptor.implementationStatus !== 'IMPLEMENTED') throw viewError('VIEW_NOT_IMPLEMENTED', `${descriptor.label} is not implemented in the current runtime.`);
-      if (readiness?.readinessState !== 'AVAILABLE') throw viewError('VIEW_NOT_AVAILABLE', readiness?.diagnostics?.[0]?.message || `${descriptor.label} is unavailable.`);
-      const result = transitionApplicationViewStateV2(this.state, viewId, this.readiness);
+      assertImplementedAvailable(descriptor, readiness);
+      const result = transitionApplicationViewStateV3(this.state, viewId, this.readiness);
       if (!result.activated) throw viewError('VIEW_NOT_AVAILABLE', `${descriptor.label} is unavailable.`);
       this.state = result.state;
       this.view.render(this.state, this.readiness);
@@ -97,9 +98,11 @@ export class ApplicationShellController {
     return this.readiness.find((row) => row.consumerId === consumerId);
   }
   getLoadCalculationReviewModel() { return this.loadCalcController.getReviewModel(); }
+  getThreeDCalculationReviewModel() { return this.threeDCalcController.getReviewModel(); }
   destroy() {
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
+    this.threeDCalcController.destroy();
     this.loadCalcController.destroy();
     this.view.destroy();
     this.context = null;
@@ -113,9 +116,9 @@ export class ApplicationShellView {
     this.rootElement = rootElement;
     this.eventBus = eventBus;
     this.navElement = rootElement?.querySelector('[data-role="application-navigation"]') || null;
-    this.workspaceView = rootElement?.querySelector('[data-application-view="WORKSPACE"]') || null;
-    this.reportsView = rootElement?.querySelector('[data-application-view="REPORTS"]') || null;
-    this.loadCalcView = rootElement?.querySelector('[data-application-view="LOAD_CALC"]') || null;
+    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC'].map((id) => [
+      id, rootElement?.querySelector(`[data-application-view="${id}"]`) || null,
+    ]));
     this.keydownHandler = (event) => this.handleKeydown(event);
   }
   init(registry) {
@@ -127,9 +130,7 @@ export class ApplicationShellView {
   render(state, readiness) {
     const byId = new Map(readiness.map((row) => [row.consumerId, row]));
     this.navElement?.querySelectorAll('[data-application-nav]').forEach((button) => this.updateButton(button, state, byId.get(button.dataset.applicationNav)));
-    setViewVisibility(this.workspaceView, state?.activeViewId === 'WORKSPACE');
-    setViewVisibility(this.reportsView, state?.activeViewId === 'REPORTS');
-    setViewVisibility(this.loadCalcView, state?.activeViewId === 'LOAD_CALC');
+    this.views.forEach((element, id) => setViewVisibility(element, state?.activeViewId === id));
   }
   navigationItem(descriptor) {
     const wrapper = this.rootElement.ownerDocument.createElement('div');
@@ -169,10 +170,12 @@ export class ApplicationShellView {
   destroy() {
     this.navElement?.removeEventListener('keydown', this.keydownHandler);
     this.navElement?.replaceChildren();
-    setViewVisibility(this.workspaceView, true);
-    setViewVisibility(this.reportsView, false);
-    setViewVisibility(this.loadCalcView, false);
+    this.views.forEach((element, id) => setViewVisibility(element, id === 'WORKSPACE'));
   }
+}
+function assertImplementedAvailable(descriptor, readiness) {
+  if (descriptor.implementationStatus !== 'IMPLEMENTED') throw viewError('VIEW_NOT_IMPLEMENTED', `${descriptor.label} is not implemented in the current runtime.`);
+  if (readiness?.readinessState !== 'AVAILABLE') throw viewError('VIEW_NOT_AVAILABLE', readiness?.diagnostics?.[0]?.message || `${descriptor.label} is unavailable.`);
 }
 function viewError(code, message) { const error = new TypeError(message); error.code = code; return error; }
 function keyboardTarget(key, current, length) { if (key === 'Home') return 0; if (key === 'End') return length - 1; if (key === 'ArrowLeft') return current <= 0 ? length - 1 : current - 1; return current < 0 || current === length - 1 ? 0 : current + 1; }
