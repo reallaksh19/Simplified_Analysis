@@ -7,8 +7,8 @@ import { createWorkspaceConsumerContext } from '../src/core/workspace-consumers/
 import { buildW109Context } from './w10.9-fixtures.mjs';
 
 console.log('\n--- W10.9 required W10.4 evidence ---\n');
-const empty=createWorkspaceConsumerContext({workspaceVersion:0});
-assert.throws(()=>createLoadCalculationReviewModel(empty),/Complete W10.4/);
+const missing=createWorkspaceConsumerContext({datasetId:'W10.9-MISSING',workspaceVersion:0});
+assert.throws(()=>createLoadCalculationReviewModel(missing),/Complete W10.4/);
 const context=buildW109Context({screening:false});
 const model=createLoadCalculationReviewModel(context);
 assert.equal(validateLoadCalculationReviewModel(model).ok,true);
