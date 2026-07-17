@@ -8,6 +8,7 @@ import {
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
 import { APPLICATION_EVENTS } from './event-topics.js';
+import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
 
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
@@ -20,11 +21,17 @@ export class ApplicationShellController {
     this.readiness = this.buildReadiness();
     this.state = createApplicationViewStateV2(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
     this.view = new ApplicationShellView(rootElement, eventBus);
+    this.loadCalcController = new LoadCalcConsumerController(
+      rootElement?.querySelector('[data-role="load-calc-consumer-root"]'),
+      consumerController,
+      eventBus,
+    );
     this.unsubscribeCallbacks = [];
   }
   init() {
     if (this.unsubscribeCallbacks.length) return;
     this.view.init(this.registry);
+    this.loadCalcController.init();
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
       this.eventBus.subscribe(APPLICATION_EVENTS.CHANGE_REQUESTED, (payload) => this.handleRequest(payload)),
@@ -78,9 +85,11 @@ export class ApplicationShellController {
     workspaceConsumerDescriptor(this.registry, consumerId);
     return this.readiness.find((row) => row.consumerId === consumerId);
   }
+  getLoadCalculationReviewModel() { return this.loadCalcController.getReviewModel(); }
   destroy() {
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
+    this.loadCalcController.destroy();
     this.view.destroy();
     this.context = null;
     this.state = null;
