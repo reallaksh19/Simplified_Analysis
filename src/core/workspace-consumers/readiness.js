@@ -46,12 +46,9 @@ export function validateWorkspaceConsumerReadinessShape(value) {
   if (typeof value?.consumerId !== 'string' || !value.consumerId) errors.push('Workspace consumer readiness consumerId is invalid.');
   if (!Object.values(IMPLEMENTATION_STATUS).includes(value?.implementationStatus)) errors.push('Workspace consumer implementation status is invalid.');
   if (!Object.values(READINESS_STATES).includes(value?.readinessState)) errors.push('Workspace consumer readiness state is invalid.');
-  ['availableContractKeys','missingRequiredContractKeys','invalidContractKeys','blockers','diagnostics'].forEach((field) => validateCanonicalArray(value?.[field], field, errors));
-  if (value?.implementationStatus === IMPLEMENTATION_STATUS.NOT_IMPLEMENTED && value?.readinessState !== READINESS_STATES.NOT_IMPLEMENTED) errors.push('A non-implemented consumer must remain NOT_IMPLEMENTED.');
-  if (value?.implementationStatus === IMPLEMENTATION_STATUS.IMPLEMENTED && value?.readinessState === READINESS_STATES.NOT_IMPLEMENTED) errors.push('An implemented consumer cannot report NOT_IMPLEMENTED.');
-  if (value?.readinessState === READINESS_STATES.AVAILABLE && (value?.missingRequiredContractKeys?.length || value?.invalidContractKeys?.length || value?.blockers?.length)) errors.push('AVAILABLE readiness contains blockers.');
-  if (value?.readinessState === READINESS_STATES.BLOCKED_MISSING_CONTRACTS && !value?.missingRequiredContractKeys?.length && !value?.blockers?.includes('WORKSPACE_NOT_BOOTED')) errors.push('Missing-contract readiness has no missing contract.');
-  if (value?.readinessState === READINESS_STATES.BLOCKED_INVALID_CONTRACTS && !value?.invalidContractKeys?.length) errors.push('Invalid-contract readiness has no invalid contract.');
+  ['availableContractKeys','missingRequiredContractKeys','invalidContractKeys','blockers'].forEach((field) => validateCanonicalStringArray(value?.[field], field, errors));
+  validateDiagnosticArray(value?.diagnostics, errors);
+  validateLogicalState(value, errors);
   if (value?.semanticHash !== semanticHash(withoutHash(value))) errors.push('Workspace consumer readiness semantic hash mismatch.');
   return deepFreeze({ ok: errors.length === 0, errors });
 }
@@ -78,9 +75,24 @@ function diagnosticsFor(state, invalid, missing) {
   if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS) return missing.length ? missing.map((key) => diagnostic('MISSING_REQUIRED_CONTRACT',`Required contract ${key} is unavailable.`,key)) : [diagnostic('WORKSPACE_NOT_BOOTED','The current Workspace shell is not booted.')];
   return [];
 }
-function validateCanonicalArray(value, field, errors) {
-  if (!Array.isArray(value)) { errors.push(`Workspace consumer readiness ${field} is invalid.`); return; }
-  if (field !== 'diagnostics' && canonicalStringify(value) !== canonicalStringify([...new Set(value)].sort())) errors.push(`Workspace consumer readiness ${field} is not canonical.`);
+function validateLogicalState(value, errors) {
+  const state = value?.readinessState;
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.NOT_IMPLEMENTED && state !== READINESS_STATES.NOT_IMPLEMENTED) errors.push('A non-implemented consumer must remain NOT_IMPLEMENTED.');
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.IMPLEMENTED && state === READINESS_STATES.NOT_IMPLEMENTED) errors.push('An implemented consumer cannot report NOT_IMPLEMENTED.');
+  if (state === READINESS_STATES.AVAILABLE && (value?.missingRequiredContractKeys?.length || value?.blockers?.length || value?.diagnostics?.length)) errors.push('AVAILABLE readiness contains blockers.');
+  if (state === READINESS_STATES.NOT_IMPLEMENTED && canonicalStringify(value?.blockers) !== canonicalStringify(['CONSUMER_NOT_IMPLEMENTED'])) errors.push('NOT_IMPLEMENTED readiness blockers are inconsistent.');
+  if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS && !value?.missingRequiredContractKeys?.length && !value?.blockers?.includes('WORKSPACE_NOT_BOOTED')) errors.push('Missing-contract readiness has no missing contract.');
+  if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS && !value?.invalidContractKeys?.length) errors.push('Invalid-contract readiness has no invalid contract.');
+}
+function validateCanonicalStringArray(value, field, errors) {
+  if (!Array.isArray(value) || value.some((row) => typeof row !== 'string')) { errors.push(`Workspace consumer readiness ${field} is invalid.`); return; }
+  if (canonicalStringify(value) !== canonicalStringify([...new Set(value)].sort())) errors.push(`Workspace consumer readiness ${field} is not canonical.`);
+}
+function validateDiagnosticArray(value, errors) {
+  if (!Array.isArray(value)) { errors.push('Workspace consumer readiness diagnostics is invalid.'); return; }
+  const keys = value.map((row) => `${row?.code}|${row?.contractKey || ''}|${row?.message || ''}`);
+  if (canonicalStringify(keys) !== canonicalStringify([...new Set(keys)].sort())) errors.push('Workspace consumer readiness diagnostics are not canonical.');
+  value.forEach((row) => { if (!row || row.severity !== 'INFO' || typeof row.code !== 'string' || !row.code || typeof row.message !== 'string' || !row.message) errors.push('Workspace consumer readiness diagnostic is invalid.'); });
 }
 function diagnostic(code, message, contractKey = null) { return deepFreeze({ code, severity: 'INFO', contractKey, message }); }
 function withoutHash(value) { const { semanticHash: _hash, ...base } = value || {}; return base; }
