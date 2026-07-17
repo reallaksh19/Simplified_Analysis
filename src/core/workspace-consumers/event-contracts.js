@@ -1,5 +1,5 @@
 import {
-  APPLICATION_VIEW_IDS_V2,
+  APPLICATION_VIEW_IDS_V3,
   CONSUMER_IDS,
   createWorkspaceConsumerRegistry,
   validateApplicationViewStateAny,
@@ -18,7 +18,7 @@ export function validateApplicationViewChangeRequested(payload) {
 
 export function validateApplicationViewChanged(payload) {
   assertExactRecord(payload, ['previousViewId', 'reason', 'state'], 'applicationView:changed');
-  if (!APPLICATION_VIEW_IDS_V2.includes(payload.previousViewId)) throw new TypeError('applicationView:changed payload.previousViewId is invalid.');
+  if (!APPLICATION_VIEW_IDS_V3.includes(payload.previousViewId)) throw new TypeError('applicationView:changed payload.previousViewId is invalid.');
   assertNonEmpty(payload.reason, 'applicationView:changed payload.reason');
   const validation = validateApplicationViewStateAny(payload.state);
   if (!validation.ok) throw new TypeError(`applicationView:changed payload.state is invalid: ${validation.errors.join(' ')}`);
@@ -27,7 +27,7 @@ export function validateApplicationViewChanged(payload) {
 export function validateApplicationViewChangeFailed(payload) {
   assertExactRecord(payload, ['activeViewId', 'code', 'message', 'viewId'], 'applicationView:changeFailed');
   if (!CONSUMER_ID_SET.has(payload.viewId)) throw new TypeError('applicationView:changeFailed payload.viewId is invalid.');
-  if (!APPLICATION_VIEW_IDS_V2.includes(payload.activeViewId)) throw new TypeError('applicationView:changeFailed payload.activeViewId is invalid.');
+  if (!APPLICATION_VIEW_IDS_V3.includes(payload.activeViewId)) throw new TypeError('applicationView:changeFailed payload.activeViewId is invalid.');
   assertNonEmpty(payload.code, 'applicationView:changeFailed payload.code');
   assertNonEmpty(payload.message, 'applicationView:changeFailed payload.message');
 }
