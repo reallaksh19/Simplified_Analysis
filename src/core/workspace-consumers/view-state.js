@@ -36,10 +36,14 @@ export function validateApplicationViewState(value) {
   const readiness = value?.viewReadiness;
   const keys = readiness && typeof readiness === 'object' ? Object.keys(readiness).sort() : [];
   if (canonicalStringify(keys) !== canonicalStringify([...APPLICATION_VIEW_IDS].sort())) errors.push('Application view readiness keys are incomplete.');
+  const contextHashes = new Set();
   APPLICATION_VIEW_IDS.forEach((id) => {
     const row = readiness?.[id];
-    if (row?.consumerId !== id || !validateWorkspaceConsumerReadinessShape(row).ok) errors.push(`Application readiness ${id} is invalid.`);
+    const validation = validateWorkspaceConsumerReadinessShape(row);
+    if (row?.consumerId !== id || !validation.ok) errors.push(`Application readiness ${id} is invalid.`);
+    if (typeof row?.contextSemanticHash === 'string' && row.contextSemanticHash) contextHashes.add(row.contextSemanticHash);
   });
+  if (contextHashes.size !== 1) errors.push('Application view readiness must reference one consumer context.');
   const expectedAvailable = APPLICATION_VIEW_IDS.filter((id) => readiness?.[id]?.readinessState === READINESS_STATES.AVAILABLE);
   if (canonicalStringify(value?.availableViewIds) !== canonicalStringify(expectedAvailable)) errors.push('Application available views do not match readiness.');
   if (!value?.availableViewIds?.includes(value?.activeViewId)) errors.push('Application active view is unavailable.');
@@ -49,6 +53,11 @@ export function assertApplicationViewId(viewId) { assertViewId(viewId); }
 function normalizeReadiness(records) {
   const matching = (records || []).filter((row) => APPLICATION_VIEW_IDS.includes(row?.consumerId));
   if (matching.length !== APPLICATION_VIEW_IDS.length || new Set(matching.map((row) => row.consumerId)).size !== APPLICATION_VIEW_IDS.length) throw new TypeError('Workspace and Reports readiness are required exactly once.');
+  matching.forEach((row) => {
+    const validation = validateWorkspaceConsumerReadinessShape(row);
+    if (!validation.ok) throw new TypeError(`Application readiness ${row?.consumerId || ''} is invalid: ${validation.errors.join(' ')}`);
+  });
+  if (new Set(matching.map((row) => row.contextSemanticHash)).size !== 1) throw new TypeError('Application readiness rows must reference one consumer context.');
   return deepFreeze(Object.fromEntries(matching.sort((a,b)=>a.consumerId.localeCompare(b.consumerId)).map((row)=>[row.consumerId,row])));
 }
 function sameEvidence(left, right) {
