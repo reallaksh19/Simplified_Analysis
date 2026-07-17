@@ -9,10 +9,11 @@ import {
   workspaceConsumerDescriptor,
 } from '../src/core/workspace-consumers/index.js';
 import { deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
+import { renderReportsConsumer } from '../src/workspace/reports-consumer-controller.js';
 import { APPLICATION_EVENTS, assertEventPayload } from '../src/workspace/event-topics.js';
 import { buildWorkspaceConsumerFixture } from './w10.8-fixtures.mjs';
 
-const checks = { context:checkContexts, registry:checkRegistry, readiness:checkReadiness, views:checkViews, events:checkEvents, immutability:checkImmutability };
+const checks={context:checkContexts,registry:checkRegistry,readiness:checkReadiness,views:checkViews,events:checkEvents,reports:checkReports,immutability:checkImmutability};
 const selected=process.argv[2];
 console.log(`\n--- W10.8 ${selected||'workspace consumer contracts'} ---\n`);
 if(selected)run(selected);else Object.keys(checks).forEach(run);
@@ -23,7 +24,7 @@ function checkContexts(){
   const empty=createWorkspaceConsumerContext({workspaceVersion:0});
   assert.equal(validateWorkspaceConsumerContext(empty).ok,true);
   assert.ok(Object.values(empty.contracts).every((value)=>value===null));
-  const fixture=buildWorkspaceConsumerFixture(), full=contextFor(fixture);
+  const fixture=buildWorkspaceConsumerFixture(),full=contextFor(fixture);
   assert.equal(validateWorkspaceConsumerContext(full).ok,true);
   assert.equal(full.availabilitySummary.availableContractKeys.length,20);
   Object.entries(fixture.contracts).forEach(([key,value])=>assert.equal(full.contracts[key],value));
@@ -67,11 +68,11 @@ function checkRegistry(){
   assert.throws(()=>workspaceConsumerDescriptor(registry,'UNKNOWN'),/Unknown workspace consumer/);
 }
 function checkReadiness(){
-  const registry=createWorkspaceConsumerRegistry(), empty=createWorkspaceConsumerContext({workspaceVersion:0});
+  const registry=createWorkspaceConsumerRegistry(),empty=createWorkspaceConsumerContext({workspaceVersion:0});
   const blocked=createWorkspaceConsumerReadiness(registry,empty,CONSUMER_IDS.REPORTS,{workspaceBooted:true});
   assert.equal(blocked.readinessState,READINESS_STATES.BLOCKED_MISSING_CONTRACTS);
   assert.equal(validateWorkspaceConsumerReadiness(blocked,registry,empty,{workspaceBooted:true}).ok,true);
-  const fixture=buildWorkspaceConsumerFixture(), full=contextFor(fixture);
+  const fixture=buildWorkspaceConsumerFixture(),full=contextFor(fixture);
   const available=createWorkspaceConsumerReadiness(registry,full,CONSUMER_IDS.REPORTS,{workspaceBooted:true});
   assert.equal(available.readinessState,READINESS_STATES.AVAILABLE);
   readinessMutationRejected(available,registry,full,(copy)=>{copy.readinessState=READINESS_STATES.NOT_IMPLEMENTED;});
@@ -110,6 +111,16 @@ function checkEvents(){
   assert.doesNotThrow(()=>assertEventPayload(APPLICATION_EVENTS.CONTEXT_CHANGED,{context,readiness,reason:'test'}));
   assert.throws(()=>assertEventPayload(APPLICATION_EVENTS.CONTEXT_CHANGED,{context,readiness:[],reason:'test'}));
   assert.throws(()=>assertEventPayload(APPLICATION_EVENTS.CONTEXT_CHANGED,{context:{...context,semanticHash:'bad'},readiness,reason:'test'}));
+}
+function checkReports(){
+  const fixture=buildWorkspaceConsumerFixture({datasetId:'W10.8-<img src=x onerror=alert(1)>'});
+  const context=contextFor(fixture),registry=createWorkspaceConsumerRegistry();
+  const readiness=createWorkspaceConsumerReadiness(registry,context,CONSUMER_IDS.REPORTS,{workspaceBooted:true});
+  const element={className:'',dataset:{},innerHTML:''};
+  const view=renderReportsConsumer({createElement:()=>element},context,readiness,{message:'<script>boom()</script>'});
+  assert.equal(view.innerHTML.includes('<script>'),false);
+  assert.equal(view.innerHTML.includes('<img src=x'),false);
+  assert.match(view.innerHTML,/&lt;script&gt;boom\(\)&lt;\/script&gt;/);
 }
 function checkImmutability(){
   const fixture=buildWorkspaceConsumerFixture(),context=contextFor(fixture),registry=createWorkspaceConsumerRegistry();
