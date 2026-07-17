@@ -33,17 +33,22 @@ import {
   stalePrimitiveContext,
 } from './w10.9-fixtures.mjs';
 
-console.log('\n--- W10.9 load calculation consumer contracts ---\n');
-checkMissingEvidence();
-checkW104Only();
-checkOptionalW105();
-checkPrimitiveProjection();
-checkBlockedEvidence();
-checkStaleAndWrongEvidence();
-checkContractEvolution();
-checkReadinessAndViews();
-checkImmutability();
+const checks = Object.freeze({
+  evidence: () => { checkMissingEvidence(); checkW104Only(); checkOptionalW105(); },
+  primitives: () => { checkPrimitiveProjection(); checkBlockedEvidence(); checkStaleAndWrongEvidence(); },
+  versions: checkContractEvolution,
+  views: checkReadinessAndViews,
+  immutability: checkImmutability,
+});
+const selected = process.argv[2];
+console.log(`\n--- W10.9 load calculation contracts${selected ? ` · ${selected}` : ''} ---\n`);
+if (selected) run(selected); else Object.keys(checks).forEach(run);
 console.log('✅ W10.9 load calculation consumer contracts passed.\n');
+
+function run(name) {
+  if (!checks[name]) throw new TypeError(`Unknown W10.9 contract check: ${name}.`);
+  checks[name]();
+}
 
 function checkMissingEvidence() {
   const empty = createWorkspaceConsumerContext({ workspaceVersion: 0 });
