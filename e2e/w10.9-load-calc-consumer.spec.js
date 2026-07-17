@@ -30,6 +30,7 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
   expect((await eventCounts(page)).viewFailures).toBe(1);
   await page.keyboard.press('End');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
   await page.keyboard.press('Home');await expect(workspace).toBeFocused();
+  await page.keyboard.press('ArrowLeft');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
 
   await uploadJson(page,'w10.9-browser.json',STAGED_PACKAGE);
   await page.locator('[data-entity-id="PIPE-A"]').click();
