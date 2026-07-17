@@ -1,3 +1,17 @@
+import {
+  validateApplicationViewChanged,
+  validateApplicationViewChangeFailed,
+  validateApplicationViewChangeRequested,
+  validateWorkspaceConsumerContextChanged,
+} from '../core/workspace-consumers/event-contracts.js';
+
+export const APPLICATION_EVENTS = Object.freeze({
+  CHANGE_REQUESTED: 'applicationView:changeRequested',
+  CHANGED: 'applicationView:changed',
+  CHANGE_FAILED: 'applicationView:changeFailed',
+  CONTEXT_CHANGED: 'workspaceConsumerContext:changed',
+});
+
 export const EVENT_TOPICS = Object.freeze({
   DATASET_LOAD_REQUESTED: 'dataset:loadRequested',
   DATASET_CLEAR_REQUESTED: 'dataset:clearRequested',
@@ -26,6 +40,7 @@ export const EVENT_TOPICS = Object.freeze({
   ANALYSIS_EXPORT_REQUESTED: 'analysis:exportRequested',
   ANALYSIS_EXPORT_COMPLETED: 'analysis:exportCompleted',
   ANALYSIS_EXPORT_FAILED: 'analysis:exportFailed',
+  ...APPLICATION_EVENTS,
 });
 
 export function assertEventPayload(topic, payload) {
@@ -61,6 +76,10 @@ const PAYLOAD_VALIDATORS = new Map([
   [EVENT_TOPICS.ANALYSIS_EXPORT_REQUESTED, validateExportRequested],
   [EVENT_TOPICS.ANALYSIS_EXPORT_COMPLETED, validateExportCompleted],
   [EVENT_TOPICS.ANALYSIS_EXPORT_FAILED, validateFailure],
+  [APPLICATION_EVENTS.CHANGE_REQUESTED, validateApplicationViewChangeRequested],
+  [APPLICATION_EVENTS.CHANGED, validateApplicationViewChanged],
+  [APPLICATION_EVENTS.CHANGE_FAILED, validateApplicationViewChangeFailed],
+  [APPLICATION_EVENTS.CONTEXT_CHANGED, validateWorkspaceConsumerContextChanged],
 ]);
 
 const SELECTION_SOURCES = new Set(['tree', 'viewport', 'api']);

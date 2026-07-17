@@ -20,8 +20,24 @@ jobs:
         run: node scripts/w10.7-model-calculation-contract-check.mjs
       - name: Certify W10.7 deterministic properties
         run: node scripts/w10.7-model-calculation-property-check.mjs
-      - name: Certify W10.7 source and scope boundaries
-        run: node scripts/w10.7-model-calculation-source-guard.mjs
+      - name: Certify W10.7 dependency, size, runtime and contract boundaries
+        run: node scripts/w10.7-model-calculation-source-guard.mjs dependencies && node scripts/w10.7-model-calculation-source-guard.mjs sizes && node scripts/w10.7-model-calculation-source-guard.mjs runtime && node scripts/w10.7-model-calculation-source-guard.mjs contracts
+      - name: Certify W10.8 consumer contracts
+        run: node scripts/w10.8-workspace-consumer-contract-check.mjs
+      - name: Certify W10.8 deterministic properties
+        run: node scripts/w10.8-workspace-consumer-property-check.mjs
+      - name: Certify W10.8 changed-path boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs paths
+      - name: Certify W10.8 JavaScript standards
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs javascript
+      - name: Certify W10.8 import boundaries
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs imports
+      - name: Certify W10.8 runtime event boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs runtime
+      - name: Certify W10.8 dependency boundary
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs dependencies
+      - name: Certify W10.8 integration registration
+        run: node scripts/w10.8-workspace-consumer-source-guard.mjs integration
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
@@ -104,6 +120,8 @@ jobs:
         run: npm run check:qa -- --skip-e2e
       - name: Certify W10.7 Workspace capability
         run: npm run check:w10.7:browser
+      - name: Certify W10.8 application shell and Reports consumer
+        run: npm run check:w10.8:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report

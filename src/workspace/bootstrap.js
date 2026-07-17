@@ -4,6 +4,7 @@ import { AnalysisLedgerController } from './analysis-ledger-controller.js';
 import { AnalysisLedger } from './analysis-ledger-store.js';
 import { AnalysisSessionController } from './analysis-session-controller.js';
 import { AnalysisSessions } from './analysis-session-store.js';
+import { ApplicationShellController } from './application-shell-controller.js';
 import { DatasetController } from './dataset-controller.js';
 import { EventBus } from './event-bus.js';
 import { ModelCalculationController } from './model-calculation-controller.js';
@@ -16,6 +17,7 @@ import { ModelSupportLoadController } from './model-support-load-controller.js';
 import { ModelSupportLoadPanel } from './model-support-load-panel.js';
 import { assessModelSupportLoadReadiness } from './model-support-load-readiness.js';
 import { PropertiesPanel } from './properties-panel.js';
+import { ReportsConsumerController } from './reports-consumer-controller.js';
 import { SharedModelController } from './shared-model-controller.js';
 import { SharedModelPanel } from './shared-model-panel.js';
 import { SupportLoadScreeningController } from './support-load-screening-controller.js';
@@ -32,6 +34,7 @@ import { VerticalBeamController } from './vertical-beam-controller.js';
 import { VerticalBeamPanel } from './vertical-beam-panel.js';
 import { VerticalBeamStore } from './vertical-beam-store.js';
 import { ViewportPanel } from './viewport-panel.js';
+import { WorkspaceConsumerController } from './workspace-consumer-controller.js';
 import { renderWorkspaceLayout } from './workspace-layout.js';
 import { WorkspaceState } from './workspace-state.js';
 
@@ -132,6 +135,17 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     EventBus,
     WorkspaceState,
   );
+  const workspaceConsumerController = new WorkspaceConsumerController(EventBus);
+  const applicationShellController = new ApplicationShellController(
+    rootElement,
+    workspaceConsumerController,
+    EventBus,
+  );
+  const reportsConsumerController = new ReportsConsumerController(
+    rootElement.querySelector('[data-role="reports-consumer-root"]'),
+    workspaceConsumerController,
+    EventBus,
+  );
   const controllers = [
     datasetController,
     sharedModelController,
@@ -156,6 +170,9 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     modelCalculationPanel,
     modelSupportLoadPanel,
     propertiesPanel,
+    workspaceConsumerController,
+    applicationShellController,
+    reportsConsumerController,
   ];
   controllers.forEach((controller) => controller.init());
 
@@ -226,6 +243,11 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getActiveModelCalculationReport() {
       return ModelCalculationStore.getActiveReport();
     },
+    getWorkspaceConsumerContext() { return workspaceConsumerController.getContext(); },
+    listWorkspaceConsumers() { return workspaceConsumerController.listConsumers(); },
+    getWorkspaceConsumerReadiness(consumerId) { return workspaceConsumerController.getReadiness(consumerId); },
+    getApplicationViewState() { return applicationShellController.getState(); },
+    activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
