@@ -10,8 +10,8 @@ export function projectLoadCases(loadCaseSet, readinessAudit) {
       name: loadCase.name,
       caseType: loadCase.caseType,
       qualification: audit.qualification,
-      includedMassSources: loadCase.includedMassSources,
-      excludedMassSources: loadCase.excludedMassSources,
+      includedMassSources: sortedStrings(loadCase.includedMassSources),
+      excludedMassSources: sortedStrings(loadCase.excludedMassSources),
       readyComponentCount: audit.readyComponentIds.length,
       blockedComponentCount: audit.blockedComponentIds.length,
       distributedPrimitiveCount: audit.distributedPrimitiveCount,
@@ -19,8 +19,8 @@ export function projectLoadCases(loadCaseSet, readinessAudit) {
       explicitMomentCount: audit.explicitMomentCount,
       totalMassKg: audit.totalMassKg,
       totalForceN: audit.totalForceN,
-      blockers: audit.blockers,
-      diagnostics: audit.diagnostics,
+      blockers: sortedStrings(audit.blockers),
+      diagnostics: canonicalDiagnostics(audit.diagnostics),
     });
   }).sort((a, b) => a.loadCaseId.localeCompare(b.loadCaseId)));
 }
@@ -31,8 +31,8 @@ export function projectComponentOutcomes(primitiveSet) {
     componentKey: row.componentKey,
     ready: row.ready,
     mode: row.ready ? row.mode : null,
-    blockers: row.blockers,
-    diagnostics: row.diagnostics,
+    blockers: sortedStrings(row.blockers),
+    diagnostics: canonicalDiagnostics(row.diagnostics),
   })).sort(outcomeOrder));
 }
 
@@ -55,8 +55,8 @@ export function projectScreeningSummary(pathModel, screening, audit) {
       relativeResidual: row.relativeResidual,
       supportCount: (row.qualifiedSupportIds?.length || 0) + (row.blockedSupportIds?.length || 0),
       spanCount: row.spanCount,
-      blockers: row.blockers,
-      diagnostics: row.diagnostics,
+      blockers: sortedStrings(row.blockers),
+      diagnostics: canonicalDiagnostics(row.diagnostics),
       pathSemanticHash: path?.semanticHash || null,
       screeningSemanticHash: screening.semanticHash,
     });
@@ -85,7 +85,7 @@ function distributed(row) {
     globalVector: row.globalVector,
     massSourceBreakdown: row.massSourceBreakdown,
     formulaTrace: row.formulaTrace,
-    diagnostics: row.diagnostics,
+    diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
 
@@ -101,7 +101,7 @@ function point(row) {
     semanticDirection: row.semanticDirection,
     globalVector: row.globalVector,
     formulaTrace: row.formulaTrace,
-    diagnostics: row.diagnostics,
+    diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
 
@@ -115,10 +115,17 @@ function moment(row) {
     momentMagnitudeNm: row.momentMagnitudeNm,
     axisEvidence: row.axisEvidence,
     globalVector: row.globalVector,
-    diagnostics: row.diagnostics,
+    diagnostics: canonicalDiagnostics(row.diagnostics),
   });
 }
 
+function canonicalDiagnostics(rows) {
+  return deepFreeze([...(rows || [])].sort((a, b) => diagnosticKey(a).localeCompare(diagnosticKey(b))));
+}
+function diagnosticKey(row) {
+  return `${row?.scope || ''}\0${row?.loadCaseId || ''}\0${row?.componentKey || ''}\0${row?.code || ''}\0${row?.severity || ''}\0${row?.message || ''}`;
+}
+function sortedStrings(rows) { return deepFreeze([...(rows || [])].sort()); }
 function outcomeOrder(a, b) {
   return `${a.loadCaseId}\0${a.componentKey}`.localeCompare(`${b.loadCaseId}\0${b.componentKey}`);
 }
