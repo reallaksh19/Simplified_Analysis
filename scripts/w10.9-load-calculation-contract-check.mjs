@@ -27,6 +27,7 @@ import {
   validateWorkspaceConsumerRegistryV2,
   workspaceConsumerDescriptor,
 } from '../src/core/workspace-consumers/index.js';
+import { createLoadCalcActionAvailability } from '../src/workspace/load-calc-consumer-controller.js';
 import {
   buildAllPrimitiveContext,
   buildW109Context,
@@ -34,7 +35,7 @@ import {
 } from './w10.9-fixtures.mjs';
 
 const checks = Object.freeze({
-  evidence: () => { checkMissingEvidence(); checkW104Only(); checkOptionalW105(); },
+  evidence: () => { checkMissingEvidence(); checkW104Only(); checkOptionalW105(); checkActionAvailability(); },
   primitives: () => { checkPrimitiveProjection(); checkBlockedEvidence(); checkStaleAndWrongEvidence(); },
   versions: checkContractEvolution,
   views: checkReadinessAndViews,
@@ -88,6 +89,32 @@ function checkOptionalW105() {
   assert.ok(stale.diagnostics.some((row) => row.code === 'OPTIONAL_SCREENING_INCOMPLETE'));
 }
 
+function checkActionAvailability() {
+  const minimalContext = buildAllPrimitiveContext();
+  const minimalModel = createLoadCalculationReviewModel(minimalContext);
+  const minimal = createLoadCalcActionAvailability(minimalContext, minimalModel);
+  assert.deepEqual(minimal, {
+    rebuildModelLoads: true,
+    exportModelLoads: true,
+    rebuildPaths: false,
+    runScreening: false,
+    exportScreening: false,
+  });
+  const pathReadyContext = buildW109Context({ screening: false });
+  const pathReady = createLoadCalcActionAvailability(
+    pathReadyContext,
+    createLoadCalculationReviewModel(pathReadyContext),
+  );
+  assert.equal(pathReady.rebuildPaths, true);
+  assert.equal(pathReady.runScreening, false);
+  assert.equal(pathReady.exportScreening, false);
+  const fullContext = buildW109Context();
+  const full = createLoadCalcActionAvailability(fullContext, createLoadCalculationReviewModel(fullContext));
+  assert.equal(full.rebuildPaths, true);
+  assert.equal(full.runScreening, true);
+  assert.equal(full.exportScreening, true);
+}
+
 function checkPrimitiveProjection() {
   const context = buildAllPrimitiveContext();
   const model = createLoadCalculationReviewModel(context);
@@ -97,15 +124,19 @@ function checkPrimitiveProjection() {
   const distributed = model.primitives.find((row) => row.primitiveType === 'DISTRIBUTED_GRAVITY_LOAD');
   const point = model.primitives.find((row) => row.primitiveType === 'POINT_GRAVITY_LOAD');
   const moment = model.primitives.find((row) => row.primitiveType === 'EXPLICIT_POINT_MOMENT');
+  const sourceById = new Map(context.contracts.loadPrimitiveSet.primitives.map((row) => [row.primitiveId, row]));
   assert.equal(distributed.globalVector, null);
   assert.equal(point.globalVector, null);
   assert.equal(moment.globalVector, null);
   assert.ok(distributed.formulaTrace.length);
   assert.ok(point.formulaTrace.length);
   assert.equal(moment.formulaTrace, undefined);
-  assert.deepEqual(distributed.startPoint, context.contracts.loadPrimitiveSet.primitives.find((row) => row.primitiveId === distributed.primitiveId).startPoint);
-  assert.deepEqual(point.applicationPoint, context.contracts.loadPrimitiveSet.primitives.find((row) => row.primitiveId === point.primitiveId).applicationPoint);
-  assert.deepEqual(moment.axisEvidence, context.contracts.loadPrimitiveSet.primitives.find((row) => row.primitiveId === moment.primitiveId).axisEvidence);
+  assert.deepEqual(distributed.startPoint, sourceById.get(distributed.primitiveId).startPoint);
+  assert.deepEqual(point.applicationPoint, sourceById.get(point.primitiveId).applicationPoint);
+  assert.deepEqual(moment.axisEvidence, sourceById.get(moment.primitiveId).axisEvidence);
+  assert.equal(distributed.sourceEvidence, sourceById.get(distributed.primitiveId).sourceEvidence);
+  assert.equal(point.sourceEvidence, sourceById.get(point.primitiveId).sourceEvidence);
+  assert.equal(moment.sourceEvidence, sourceById.get(moment.primitiveId).sourceEvidence);
 }
 
 function checkBlockedEvidence() {
