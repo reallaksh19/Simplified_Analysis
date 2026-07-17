@@ -85,8 +85,8 @@ jobs:
         run: node scripts/w10.9-load-calculation-contract-check.mjs immutability
       - name: Certify W10.9 deterministic projections
         run: node scripts/w10.9-load-calculation-property-check.mjs
-      - name: Certify W10.9 scope, imports, runtime and integration
-        run: node scripts/w10.9-load-calculation-source-guard.mjs
+      - name: Certify W10.9 JavaScript, imports, runtime, dependency, contract and integration boundaries
+        run: node scripts/w10.9-load-calculation-source-guard.mjs javascript && node scripts/w10.9-load-calculation-source-guard.mjs imports && node scripts/w10.9-load-calculation-source-guard.mjs runtime && node scripts/w10.9-load-calculation-source-guard.mjs dependencies && node scripts/w10.9-load-calculation-source-guard.mjs contracts && node scripts/w10.9-load-calculation-source-guard.mjs integration
 
       - name: Certify W10.10 exact evidence and versioned contracts
         run: node scripts/w10.10-three-d-calculation-contract-check.mjs
