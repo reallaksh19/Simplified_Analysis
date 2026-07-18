@@ -239,7 +239,6 @@ checkSpecContracts('e2e/w10.7-model-calculation-workspace.spec.js', [
 ]);
 
 checkSpecContracts('e2e/w10.8-workspace-consumers.spec.js', [
-  'workspace-consumer-context/v1',
   'getApplicationViewState',
   'getWorkspaceConsumerContext',
   'getWorkspaceConsumerReadiness',
