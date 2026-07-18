@@ -28,16 +28,24 @@ import {
   staleRequiredContext,
 } from './w10.10-fixtures.mjs';
 
-console.log('\n--- W10.10 3D calculation review contracts ---\n');
-checkMissingRequired();
-checkRequiredProjection();
-checkOptionalProjection();
-checkStaleOptionalEvidence();
-checkRegistryEvolution();
-checkViewStateEvolution();
-checkActionEligibility();
-checkImmutabilityAndValidator();
-console.log('✅ W10.10 3D calculation review contracts passed.\n');
+const CHECKS = Object.freeze({
+  required: () => { checkMissingRequired(); checkRequiredProjection(); },
+  optional: () => { checkOptionalProjection(); checkStaleOptionalEvidence(); },
+  evolution: () => { checkRegistryEvolution(); checkViewStateEvolution(); },
+  actions: checkActionEligibility,
+  immutability: checkImmutabilityAndValidator,
+});
+const selected = process.argv[2] || 'all';
+console.log(`\n--- W10.10 3D calculation review contracts · ${selected} ---\n`);
+if (selected === 'all') Object.entries(CHECKS).forEach(([name, check]) => runCheck(name, check));
+else if (CHECKS[selected]) runCheck(selected, CHECKS[selected]);
+else throw new TypeError(`Unknown W10.10 contract check: ${selected}.`);
+console.log(`✅ W10.10 3D calculation review contracts · ${selected} passed.\n`);
+
+function runCheck(name, check) {
+  console.log(`Running W10.10 contract concern: ${name}`);
+  check();
+}
 
 function checkMissingRequired() {
   assert.throws(() => createThreeDCalculationReviewModel(createWorkspaceConsumerContext()), /W10.1-W10.3/);
