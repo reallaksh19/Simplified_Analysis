@@ -23,6 +23,8 @@ const browser=read('e2e/w10.10-three-d-calc-consumer.spec.js');
   'Not a second 3D viewport',
   'AnalysisWorkspace.destroy()',
 ].forEach((token)=>{if(!browser.includes(token))errors.push(`W10.10 browser evidence is missing ${token}.`);});
+const releaseWorkflow=read('.github/workflows/release-candidate.yml');
+if(!releaseWorkflow.includes('npm run check:u7'))errors.push('Release Candidate Certification must retain npm run check:u7.');
 if(errors.length){errors.forEach((error)=>console.error(`❌ ${error}`));process.exit(1);}
 console.log('✅ W10.10 release and browser registration evidence passed.');
 function read(file){return fs.existsSync(file)?fs.readFileSync(file,'utf8'):'';}
