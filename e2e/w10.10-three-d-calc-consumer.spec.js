@@ -21,6 +21,7 @@ test('adopts exact model/topology/support evidence and delegates guarded actions
   await expect(nav.getByRole('button')).toHaveText(NAVIGATION);
   const workspace=nav.getByRole('button',{name:'Workspace'}),threeD=nav.getByRole('button',{name:'3D Calc'});
   await expect(threeD).toHaveAttribute('aria-disabled','true');
+  await expect(page.locator('[data-role="three-d-calc-consumer-root"]')).toBeEmpty();
   expect(await threeD.evaluate((element)=>element.disabled)).toBe(false);
   const reasonId=await threeD.getAttribute('aria-describedby');
   await expect(page.locator(`#${reasonId}`)).toContainText('Required contract');
@@ -81,6 +82,7 @@ test('preserves Workspace, Load Calc, Reports and W10.4-W10.9 state',async({page
   await page.getByRole('button',{name:'Solve Vertical Beam'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getVerticalBeamSolution()?.semanticHash||null)).not.toBeNull();
   await page.getByRole('button',{name:'Workspace'}).click();
+  await expect(page.locator('[data-role="three-d-calc-consumer-root"]')).toBeEmpty();
   await page.locator('[data-model-calculation-control="mode"]').selectOption('SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button',{name:'Create Calculation Package'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getActiveModelCalculationPackage()?.semanticHash||null)).not.toBeNull();
