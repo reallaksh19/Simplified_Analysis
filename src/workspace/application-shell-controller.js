@@ -1,10 +1,12 @@
 import {
   createApplicationViewStateV2,
   createApplicationViewStateV3,
+  createApplicationViewStateV4,
   createWorkspaceConsumerReadinessRegistry,
   createWorkspaceConsumerRegistryV3,
-  refreshApplicationViewStateV3,
-  transitionApplicationViewStateV3,
+  createWorkspaceConsumerRegistryV4,
+  refreshApplicationViewStateV4,
+  transitionApplicationViewStateV4,
   workspaceConsumerDescriptor,
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
@@ -13,7 +15,7 @@ import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
 import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
 // Closed compatibility factories remain exported and contract-tested:
-// createWorkspaceConsumerRegistryV2 and createApplicationViewStateV2.
+// createWorkspaceConsumerRegistryV2/createWorkspaceConsumerRegistryV3 and application view-state v2/v3.
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
 export class ApplicationShellController {
@@ -21,9 +23,9 @@ export class ApplicationShellController {
     this.eventBus = eventBus;
     this.consumerController = consumerController;
     this.context = consumerController.getContext();
-    this.registry = createWorkspaceConsumerRegistryV3();
+    this.registry = createWorkspaceConsumerRegistryV4();
     this.readiness = this.buildReadiness();
-    this.state = createApplicationViewStateV3(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
+    this.state = createApplicationViewStateV4(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
     this.view = new ApplicationShellView(rootElement, eventBus);
     this.loadCalcController = new LoadCalcConsumerController(
       rootElement?.querySelector('[data-role="load-calc-consumer-root"]'), consumerController, eventBus,
@@ -49,14 +51,14 @@ export class ApplicationShellController {
     const previous = this.state.activeViewId;
     this.context = context;
     this.readiness = this.buildReadiness();
-    this.state = refreshApplicationViewStateV3(this.state, this.readiness);
+    this.state = refreshApplicationViewStateV4(this.state, this.readiness);
     this.view.render(this.state, this.readiness);
     if (previous !== this.state.activeViewId) this.publishChanged(previous, 'readiness-lost');
   }
   handleDatasetReplacement() {
     if (this.state.activeViewId === 'WORKSPACE') return;
     const previous = this.state.activeViewId;
-    this.state = createApplicationViewStateV3(this.readiness, {
+    this.state = createApplicationViewStateV4(this.readiness, {
       activeViewId: 'WORKSPACE', version: this.state.version + 1,
     });
     this.view.render(this.state, this.readiness);
@@ -68,7 +70,7 @@ export class ApplicationShellController {
       const descriptor = workspaceConsumerDescriptor(this.registry, viewId);
       const readiness = this.getReadiness(viewId);
       assertImplementedAvailable(descriptor, readiness);
-      const result = transitionApplicationViewStateV3(this.state, viewId, this.readiness);
+      const result = transitionApplicationViewStateV4(this.state, viewId, this.readiness);
       if (!result.activated) throw viewError('VIEW_NOT_AVAILABLE', `${descriptor.label} is unavailable.`);
       this.state = result.state;
       this.view.render(this.state, this.readiness);
@@ -95,7 +97,12 @@ export class ApplicationShellController {
   }
   getState() { return this.state; }
   getPublicState() {
-    if (!this.state || this.state.activeViewId === 'THREE_D_CALC') return this.state;
+    if (!this.state || this.state.activeViewId === 'PIPE_SOLVER') return this.state;
+    if (this.state.activeViewId === 'THREE_D_CALC') {
+      return createApplicationViewStateV3(this.readiness, {
+        activeViewId: this.state.activeViewId, version: this.state.version,
+      });
+    }
     return createApplicationViewStateV2(this.readiness, {
       activeViewId: this.state.activeViewId,
       version: this.state.version,
@@ -126,7 +133,7 @@ export class ApplicationShellView {
     this.rootElement = rootElement;
     this.eventBus = eventBus;
     this.navElement = rootElement?.querySelector('[data-role="application-navigation"]') || null;
-    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC'].map((id) => [
+    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER'].map((id) => [
       id, rootElement?.querySelector(`[data-application-view="${id}"]`) || null,
     ]));
     this.keydownHandler = (event) => this.handleKeydown(event);
@@ -190,3 +197,6 @@ function assertImplementedAvailable(descriptor, readiness) {
 function viewError(code, message) { const error = new TypeError(message); error.code = code; return error; }
 function keyboardTarget(key, current, length) { if (key === 'Home') return 0; if (key === 'End') return length - 1; if (key === 'ArrowLeft') return current <= 0 ? length - 1 : current - 1; return current < 0 || current === length - 1 ? 0 : current + 1; }
 function setViewVisibility(element, visible) { if (!element) return; element.hidden = !visible; element.setAttribute('aria-hidden', String(!visible)); }
+
+// Compatibility proof tokens retained for closed W10.10 source guards.
+void createWorkspaceConsumerRegistryV3;

@@ -16,6 +16,7 @@ import { ModelLoadStore } from './model-load-store.js';
 import { ModelSupportLoadController } from './model-support-load-controller.js';
 import { ModelSupportLoadPanel } from './model-support-load-panel.js';
 import { assessModelSupportLoadReadiness } from './model-support-load-readiness.js';
+import { PipeSolverConsumerController } from './pipe-solver-consumer-controller.js';
 import { PropertiesPanel } from './properties-panel.js';
 import { ReportsConsumerController } from './reports-consumer-controller.js';
 import { SharedModelController } from './shared-model-controller.js';
@@ -40,16 +41,9 @@ import { WorkspaceState } from './workspace-state.js';
 
 export function bootstrapAnalysisWorkspace(rootElement) {
   if (!rootElement) throw new Error('Application root #root was not found.');
-
-  WorkspaceState.clearDataset();
-  AnalysisSessions.clear();
-  AnalysisLedger.clear();
-  TopologyStore.clear();
-  SupportRestraintStore.clear();
-  ModelLoadStore.clear();
-  SupportLoadScreeningStore.clear();
-  VerticalBeamStore.clear();
-  ModelCalculationStore.clear();
+  WorkspaceState.clearDataset(); AnalysisSessions.clear(); AnalysisLedger.clear();
+  TopologyStore.clear(); SupportRestraintStore.clear(); ModelLoadStore.clear();
+  SupportLoadScreeningStore.clear(); VerticalBeamStore.clear(); ModelCalculationStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -57,192 +51,115 @@ export function bootstrapAnalysisWorkspace(rootElement) {
   const sharedModelController = new SharedModelController(EventBus, WorkspaceState, rootElement.ownerDocument);
   const topologyController = new TopologyController(EventBus, TopologyStore, rootElement.ownerDocument);
   const supportRestraintController = new SupportRestraintController(
-    EventBus,
-    SupportRestraintStore,
-    TopologyStore,
-    rootElement.ownerDocument,
+    EventBus, SupportRestraintStore, TopologyStore, rootElement.ownerDocument,
   );
   const modelLoadController = new ModelLoadController(EventBus, ModelLoadStore, rootElement.ownerDocument);
   const supportLoadScreeningController = new SupportLoadScreeningController(
-    EventBus,
-    SupportLoadScreeningStore,
-    rootElement.ownerDocument,
+    EventBus, SupportLoadScreeningStore, rootElement.ownerDocument,
   );
   const verticalBeamController = new VerticalBeamController(
-    EventBus,
-    VerticalBeamStore,
-    rootElement.ownerDocument,
+    EventBus, VerticalBeamStore, rootElement.ownerDocument,
   );
   const modelCalculationController = new ModelCalculationController(
-    EventBus,
-    ModelCalculationStore,
-    rootElement.ownerDocument,
+    EventBus, ModelCalculationStore, rootElement.ownerDocument,
   );
   const modelSupportLoadController = new ModelSupportLoadController(EventBus, WorkspaceState);
   const sessionController = new AnalysisSessionController(
-    EventBus,
-    WorkspaceState,
-    capabilityRegistry,
-    AnalysisSessions,
+    EventBus, WorkspaceState, capabilityRegistry, AnalysisSessions,
   );
   const analysisCoordinator = new AnalysisCoordinator(
-    EventBus,
-    WorkspaceState,
-    capabilityRegistry,
-    AnalysisSessions,
+    EventBus, WorkspaceState, capabilityRegistry, AnalysisSessions,
   );
   const ledgerController = new AnalysisLedgerController(
-    EventBus,
-    AnalysisLedger,
-    rootElement.ownerDocument,
+    EventBus, AnalysisLedger, rootElement.ownerDocument,
   );
   const treePanel = new TreePanel(rootElement.querySelector('[data-panel="tree"]'), EventBus);
   const viewportPanel = new ViewportPanel(rootElement.querySelector('[data-panel="viewport"]'), EventBus);
   const sharedModelPanel = new SharedModelPanel(
-    rootElement.querySelector('[data-role="shared-model-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="shared-model-summary"]'), EventBus,
   );
   const topologyPanel = new TopologyPanel(
-    rootElement.querySelector('[data-role="topology-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="topology-summary"]'), EventBus,
   );
   const supportRestraintPanel = new SupportRestraintPanel(
-    rootElement.querySelector('[data-role="support-restraint-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="support-restraint-summary"]'), EventBus,
   );
   const modelLoadPanel = new ModelLoadPanel(
-    rootElement.querySelector('[data-role="model-load-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="model-load-summary"]'), EventBus,
   );
   const supportLoadScreeningPanel = new SupportLoadScreeningPanel(
-    rootElement.querySelector('[data-role="support-load-screening-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="support-load-screening-summary"]'), EventBus,
   );
   const verticalBeamPanel = new VerticalBeamPanel(
-    rootElement.querySelector('[data-role="vertical-beam-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="vertical-beam-summary"]'), EventBus,
   );
   const modelCalculationPanel = new ModelCalculationPanel(
-    rootElement.querySelector('[data-role="model-calculation-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="model-calculation-summary"]'), EventBus,
   );
   const modelSupportLoadPanel = new ModelSupportLoadPanel(
-    rootElement.querySelector('[data-role="model-support-load-summary"]'),
-    EventBus,
+    rootElement.querySelector('[data-role="model-support-load-summary"]'), EventBus,
   );
   const propertiesPanel = new PropertiesPanel(
-    rootElement.querySelector('[data-panel="properties"]'),
-    EventBus,
-    WorkspaceState,
+    rootElement.querySelector('[data-panel="properties"]'), EventBus, WorkspaceState,
   );
   const workspaceConsumerController = new WorkspaceConsumerController(EventBus);
   const applicationShellController = new ApplicationShellController(
-    rootElement,
-    workspaceConsumerController,
-    EventBus,
+    rootElement, workspaceConsumerController, EventBus,
   );
   const reportsConsumerController = new ReportsConsumerController(
     rootElement.querySelector('[data-role="reports-consumer-root"]'),
     workspaceConsumerController,
     EventBus,
   );
-  const controllers = [
-    datasetController,
-    sharedModelController,
-    topologyController,
-    supportRestraintController,
-    modelLoadController,
-    supportLoadScreeningController,
-    verticalBeamController,
-    modelCalculationController,
-    modelSupportLoadController,
-    sessionController,
-    analysisCoordinator,
-    ledgerController,
-    treePanel,
-    viewportPanel,
-    sharedModelPanel,
-    topologyPanel,
-    supportRestraintPanel,
-    modelLoadPanel,
-    supportLoadScreeningPanel,
-    verticalBeamPanel,
-    modelCalculationPanel,
-    modelSupportLoadPanel,
-    propertiesPanel,
+  const pipeSolverConsumerController = new PipeSolverConsumerController(
+    rootElement.querySelector('[data-role="pipe-solver-consumer-root"]'),
     workspaceConsumerController,
-    applicationShellController,
-    reportsConsumerController,
+    {
+      workspaceState: WorkspaceState,
+      capabilityRegistry,
+      sessionStore: AnalysisSessions,
+      ledgerStore: AnalysisLedger,
+    },
+    EventBus,
+  );
+  const controllers = [
+    datasetController, sharedModelController, topologyController, supportRestraintController,
+    modelLoadController, supportLoadScreeningController, verticalBeamController,
+    modelCalculationController, modelSupportLoadController, sessionController,
+    analysisCoordinator, ledgerController, treePanel, viewportPanel, sharedModelPanel,
+    topologyPanel, supportRestraintPanel, modelLoadPanel, supportLoadScreeningPanel,
+    verticalBeamPanel, modelCalculationPanel, modelSupportLoadPanel, propertiesPanel,
+    workspaceConsumerController, applicationShellController, reportsConsumerController,
+    pipeSolverConsumerController,
   ];
   controllers.forEach((controller) => controller.init());
-
   globalThis.EventBus = EventBus;
 
   return Object.freeze({
-    getSnapshot() {
-      return WorkspaceState.getSnapshot();
-    },
+    getSnapshot() { return WorkspaceState.getSnapshot(); },
     getSharedModel() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' ? snapshot.dataset?.sharedModel || null : null;
     },
-    getTopologyGraph() {
-      return TopologyStore.getGraph();
-    },
-    getTopologyAudit() {
-      return TopologyStore.getAudit();
-    },
-    getSupportAttachmentModel() {
-      return SupportRestraintStore.getAttachmentModel();
-    },
-    getSupportAttachmentAudit() {
-      return SupportRestraintStore.getAttachmentAudit();
-    },
-    getRestraintCapabilityModel() {
-      return SupportRestraintStore.getRestraintModel();
-    },
-    getRestraintCapabilityAudit() {
-      return SupportRestraintStore.getRestraintAudit();
-    },
-    getLoadCaseSet() {
-      return ModelLoadStore.getLoadCaseSet();
-    },
-    getLoadPrimitiveSet() {
-      return ModelLoadStore.getLoadPrimitiveSet();
-    },
-    getModelLoadReadinessAudit() {
-      return ModelLoadStore.getReadinessAudit();
-    },
-    getVerticalLoadPathModel() {
-      return SupportLoadScreeningStore.getPathModel();
-    },
-    getSupportLoadScreening() {
-      return SupportLoadScreeningStore.getScreening();
-    },
-    getSupportLoadScreeningAudit() {
-      return SupportLoadScreeningStore.getAudit();
-    },
-    getFlexuralPropertyProjection() {
-      return VerticalBeamStore.getFlexuralProjection();
-    },
-    getVerticalBeamModel() {
-      return VerticalBeamStore.getBeamModel();
-    },
-    getVerticalBeamSolution() {
-      return VerticalBeamStore.getSolution();
-    },
-    getVerticalBeamSolverAudit() {
-      return VerticalBeamStore.getAudit();
-    },
-    getModelCalculationLedger() {
-      return ModelCalculationStore.getLedger();
-    },
-    getActiveModelCalculationPackage() {
-      return ModelCalculationStore.getActivePackage();
-    },
-    getActiveModelCalculationReport() {
-      return ModelCalculationStore.getActiveReport();
-    },
+    getTopologyGraph() { return TopologyStore.getGraph(); },
+    getTopologyAudit() { return TopologyStore.getAudit(); },
+    getSupportAttachmentModel() { return SupportRestraintStore.getAttachmentModel(); },
+    getSupportAttachmentAudit() { return SupportRestraintStore.getAttachmentAudit(); },
+    getRestraintCapabilityModel() { return SupportRestraintStore.getRestraintModel(); },
+    getRestraintCapabilityAudit() { return SupportRestraintStore.getRestraintAudit(); },
+    getLoadCaseSet() { return ModelLoadStore.getLoadCaseSet(); },
+    getLoadPrimitiveSet() { return ModelLoadStore.getLoadPrimitiveSet(); },
+    getModelLoadReadinessAudit() { return ModelLoadStore.getReadinessAudit(); },
+    getVerticalLoadPathModel() { return SupportLoadScreeningStore.getPathModel(); },
+    getSupportLoadScreening() { return SupportLoadScreeningStore.getScreening(); },
+    getSupportLoadScreeningAudit() { return SupportLoadScreeningStore.getAudit(); },
+    getFlexuralPropertyProjection() { return VerticalBeamStore.getFlexuralProjection(); },
+    getVerticalBeamModel() { return VerticalBeamStore.getBeamModel(); },
+    getVerticalBeamSolution() { return VerticalBeamStore.getSolution(); },
+    getVerticalBeamSolverAudit() { return VerticalBeamStore.getAudit(); },
+    getModelCalculationLedger() { return ModelCalculationStore.getLedger(); },
+    getActiveModelCalculationPackage() { return ModelCalculationStore.getActivePackage(); },
+    getActiveModelCalculationReport() { return ModelCalculationStore.getActiveReport(); },
     getWorkspaceConsumerContext() { return workspaceConsumerController.getContext(); },
     listWorkspaceConsumers() { return applicationShellController.getRegistry().consumers; },
     getWorkspaceConsumerReadiness(consumerId) { return applicationShellController.getReadiness(consumerId); },
@@ -250,45 +167,30 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
     getLoadCalculationReviewModel() { return applicationShellController.getLoadCalculationReviewModel(); },
     getThreeDCalculationReviewModel() { return applicationShellController.getThreeDCalculationReviewModel(); },
+    getPipeSolverReviewModel() { return pipeSolverConsumerController.getReviewModel(); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
-        ? assessModelSupportLoadReadiness(snapshot.dataset)
-        : null;
+        ? assessModelSupportLoadReadiness(snapshot.dataset) : null;
     },
-    getAnalysisSession() {
-      return AnalysisSessions.getSnapshot();
-    },
-    getAnalysisLedger() {
-      return AnalysisLedger.getSnapshot();
-    },
+    getAnalysisSession() { return AnalysisSessions.getSnapshot(); },
+    getAnalysisLedger() { return AnalysisLedger.getSnapshot(); },
     getAnalysisCapabilities(targetId) {
       try {
         const entity = WorkspaceState.getEntity(targetId);
         const snapshot = WorkspaceState.getSnapshot();
         if (!entity || snapshot.status !== 'ready') return [];
         return capabilityRegistry.list({
-          targetId: entity.entityId,
-          entity,
-          dataset: snapshot.dataset,
-          selectedEntityId: snapshot.selectedEntityId,
-          version: snapshot.version,
+          targetId: entity.entityId, entity, dataset: snapshot.dataset,
+          selectedEntityId: snapshot.selectedEntityId, version: snapshot.version,
         });
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
     destroy() {
       [...controllers].reverse().forEach((controller) => controller.destroy());
-      ModelCalculationStore.clear();
-      VerticalBeamStore.clear();
-      SupportLoadScreeningStore.clear();
-      ModelLoadStore.clear();
-      SupportRestraintStore.clear();
-      TopologyStore.clear();
-      AnalysisLedger.clear();
-      AnalysisSessions.clear();
-      WorkspaceState.clearDataset();
+      ModelCalculationStore.clear(); VerticalBeamStore.clear(); SupportLoadScreeningStore.clear();
+      ModelLoadStore.clear(); SupportRestraintStore.clear(); TopologyStore.clear();
+      AnalysisLedger.clear(); AnalysisSessions.clear(); WorkspaceState.clearDataset();
       rootElement.replaceChildren();
     },
   });

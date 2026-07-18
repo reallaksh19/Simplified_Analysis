@@ -24,6 +24,8 @@ jobs:
         run: node scripts/w10.9-registration-check.mjs
       - name: Certify W10.10 release registration
         run: node scripts/w10.10-registration-check.mjs
+      - name: Certify W10.11 release registration
+        run: node scripts/w10.11-registration-check.mjs
 
       - name: Certify W10.7 package and ledger contracts
         run: node scripts/w10.7-model-calculation-contract-check.mjs
@@ -69,6 +71,13 @@ jobs:
         run: node scripts/w10.10-three-d-calculation-property-check.mjs
       - name: Certify W10.10 scope, imports, runtime and integration
         run: node scripts/w10.10-three-d-calculation-source-guard.mjs
+      - name: Certify W10.11 source and review contracts
+        run: node scripts/w10.11-pipe-solver-contract-check.mjs
+      - name: Certify W10.11 deterministic projections
+        run: node scripts/w10.11-pipe-solver-property-check.mjs
+      - name: Certify W10.11 scope, imports, runtime and integration
+        run: node scripts/w10.11-pipe-solver-source-guard.mjs
+
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
@@ -157,6 +166,8 @@ jobs:
         run: npm run check:w10.9:browser
       - name: Certify W10.10 3D Calc consumer
         run: npm run check:w10.10:browser
+      - name: Certify W10.11 guarded Pipe Solver consumer
+        run: npm run check:w10.11:browser
       - name: Run consolidated workspace browser certification
         run: npm run check:workspace-browser
       - name: Upload workspace browser report
