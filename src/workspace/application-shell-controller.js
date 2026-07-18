@@ -11,6 +11,8 @@ import { APPLICATION_EVENTS, EVENT_TOPICS } from './event-topics.js';
 import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
 import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
+// Closed compatibility factories remain exported and contract-tested:
+// createWorkspaceConsumerRegistryV2 and createApplicationViewStateV2.
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
 export class ApplicationShellController {
