@@ -17,7 +17,7 @@ export function projectComponents(sharedModel) {
     componentKey: row.componentKey,
     sourceEntityId: row.sourceEntityId,
     componentType: row.type,
-    sourcePath: row.geometry?.sourcePath || null,
+    sourcePath: row.sourceReferences?.sourcePath || null,
     lineIdentity: row.identity?.lineId || null,
     systemIdentity: row.identity?.systemId || null,
     zoneIdentity: row.identity?.zoneId || null,
