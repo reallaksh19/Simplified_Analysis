@@ -30,12 +30,14 @@ export class ThreeDCalcConsumerController {
     this.context = consumerController?.getContext() || null;
     this.reviewModel = buildReviewModel(this.context);
     this.status = {};
+    this.active = false;
     this.unsubscribeCallbacks = [];
   }
   init() {
     if (this.unsubscribeCallbacks.length) return;
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
+      this.eventBus.subscribe(APPLICATION_EVENTS.CHANGED, ({ state }) => this.handleViewState(state)),
       ...statusSubscriptions(this),
     ];
     this.render();
@@ -43,6 +45,12 @@ export class ThreeDCalcConsumerController {
   handleContext(context) {
     this.context = context;
     this.reviewModel = buildReviewModel(context);
+    this.render();
+  }
+  handleViewState(state) {
+    const active = state?.activeViewId === 'THREE_D_CALC';
+    if (this.active === active) return;
+    this.active = active;
     this.render();
   }
   handleChanged(message) { this.status = { message }; this.render(); }
@@ -56,6 +64,10 @@ export class ThreeDCalcConsumerController {
   }
   render() {
     if (!this.rootElement) return;
+    if (!this.active) {
+      this.rootElement.replaceChildren();
+      return;
+    }
     const eligibility = assessThreeDCalculationActions(this.reviewModel);
     const view = renderThreeDCalcConsumer(this.rootElement.ownerDocument, this.reviewModel, eligibility, this.status);
     this.rootElement.replaceChildren(view);
@@ -71,6 +83,7 @@ export class ThreeDCalcConsumerController {
     this.reviewModel = null;
     this.consumerController = null;
     this.status = {};
+    this.active = false;
     this.rootElement?.replaceChildren();
   }
 }
