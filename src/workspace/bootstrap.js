@@ -246,9 +246,10 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     getWorkspaceConsumerContext() { return workspaceConsumerController.getContext(); },
     listWorkspaceConsumers() { return applicationShellController.getRegistry().consumers; },
     getWorkspaceConsumerReadiness(consumerId) { return applicationShellController.getReadiness(consumerId); },
-    getApplicationViewState() { return applicationShellController.getState(); },
+    getApplicationViewState() { return applicationShellController.getPublicState(); },
     activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
     getLoadCalculationReviewModel() { return applicationShellController.getLoadCalculationReviewModel(); },
+    getThreeDCalculationReviewModel() { return applicationShellController.getThreeDCalculationReviewModel(); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset

@@ -1,8 +1,10 @@
 export {
   APPLICATION_VIEW_IDS,
   APPLICATION_VIEW_IDS_V2,
+  APPLICATION_VIEW_IDS_V3,
   APPLICATION_VIEW_STATE_SCHEMA,
   APPLICATION_VIEW_STATE_V2_SCHEMA,
+  APPLICATION_VIEW_STATE_V3_SCHEMA,
   CONSUMER_IDS,
   CONTRACT_KEYS,
   IMPLEMENTATION_STATUS,
@@ -11,14 +13,17 @@ export {
   WORKSPACE_CONSUMER_READINESS_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA,
+  WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA,
 } from './constants.js';
 export { createWorkspaceConsumerContext, validateWorkspaceConsumerContext } from './context.js';
 export {
   createWorkspaceConsumerRegistry,
   createWorkspaceConsumerRegistryV2,
+  createWorkspaceConsumerRegistryV3,
   validateWorkspaceConsumerRegistry,
   validateWorkspaceConsumerRegistryV1,
   validateWorkspaceConsumerRegistryV2,
+  validateWorkspaceConsumerRegistryV3,
   workspaceConsumerDescriptor,
 } from './registry.js';
 export {
@@ -30,13 +35,18 @@ export {
 export {
   assertApplicationViewId,
   assertApplicationViewIdV2,
+  assertApplicationViewIdV3,
   createApplicationViewState,
   createApplicationViewStateV2,
+  createApplicationViewStateV3,
   refreshApplicationViewState,
   refreshApplicationViewStateV2,
+  refreshApplicationViewStateV3,
   transitionApplicationViewState,
   transitionApplicationViewStateV2,
+  transitionApplicationViewStateV3,
   validateApplicationViewState,
   validateApplicationViewStateAny,
   validateApplicationViewStateV2,
+  validateApplicationViewStateV3,
 } from './view-state.js';

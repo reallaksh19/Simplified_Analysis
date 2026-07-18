@@ -24,6 +24,9 @@ const requiredE2EFiles = [
   'e2e/w10.5-support-load-screening-workspace.spec.js',
   'e2e/w10.6-vertical-beam-workspace.spec.js',
   'e2e/w10.7-model-calculation-workspace.spec.js',
+  'e2e/w10.8-workspace-consumers.spec.js',
+  'e2e/w10.9-load-calc-consumer.spec.js',
+  'e2e/w10.10-three-d-calc-consumer.spec.js',
 ];
 
 for (const file of requiredE2EFiles) {
@@ -232,6 +235,36 @@ checkSpecContracts('e2e/w10.7-model-calculation-workspace.spec.js', [
   'getActiveModelCalculationPackage',
   'getActiveModelCalculationReport',
   '__w107UrlAudit',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.8-workspace-consumers.spec.js', [
+  'getApplicationViewState',
+  'getWorkspaceConsumerContext',
+  'getWorkspaceConsumerReadiness',
+  'aria-disabled',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.9-load-calc-consumer.spec.js', [
+  'load-calculation-review-model/v1',
+  'application-view-state/v2',
+  'getLoadCalculationReviewModel',
+  'modelLoad:rebuildRequested',
+  'supportLoadScreening:runRequested',
+  'Topology-local tributary screening',
+  'AnalysisWorkspace.destroy()',
+]);
+
+checkSpecContracts('e2e/w10.10-three-d-calc-consumer.spec.js', [
+  'three-d-calculation-review-model/v1',
+  'application-view-state/v3',
+  'getThreeDCalculationReviewModel',
+  'sharedModel:exportRequested',
+  'topology:rebuildExactRequested',
+  'supportRestraint:rebuildEvidenceRequested',
+  'verticalBeam:solveRequested',
+  'Not a second 3D viewport',
   'AnalysisWorkspace.destroy()',
 ]);
 
