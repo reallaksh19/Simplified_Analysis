@@ -31,14 +31,17 @@ import {
 const CHECKS = Object.freeze({
   required: () => { checkMissingRequired(); checkRequiredProjection(); },
   optional: () => { checkOptionalProjection(); checkStaleOptionalEvidence(); },
+  'optional-inclusion': checkOptionalProjection,
+  'optional-rejection': checkStaleOptionalEvidence,
   evolution: () => { checkRegistryEvolution(); checkViewStateEvolution(); },
   actions: checkActionEligibility,
   immutability: checkImmutabilityAndValidator,
 });
 const selected = process.argv[2] || 'all';
 console.log(`\n--- W10.10 3D calculation review contracts · ${selected} ---\n`);
-if (selected === 'all') Object.entries(CHECKS).forEach(([name, check]) => runCheck(name, check));
-else if (CHECKS[selected]) runCheck(selected, CHECKS[selected]);
+if (selected === 'all') {
+  ['required','optional','evolution','actions','immutability'].forEach((name) => runCheck(name, CHECKS[name]));
+} else if (CHECKS[selected]) runCheck(selected, CHECKS[selected]);
 else throw new TypeError(`Unknown W10.10 contract check: ${selected}.`);
 console.log(`✅ W10.10 3D calculation review contracts · ${selected} passed.\n`);
 
