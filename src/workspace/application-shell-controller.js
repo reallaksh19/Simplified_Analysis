@@ -1,4 +1,5 @@
 import {
+  createApplicationViewStateV2,
   createApplicationViewStateV3,
   createWorkspaceConsumerReadinessRegistry,
   createWorkspaceConsumerRegistryV3,
@@ -77,7 +78,7 @@ export class ApplicationShellController {
   activate(viewId) {
     workspaceConsumerDescriptor(this.registry, viewId);
     this.eventBus.publish(APPLICATION_EVENTS.CHANGE_REQUESTED, { viewId, source: 'api' });
-    return this.state;
+    return this.getPublicState();
   }
   publishChanged(previousViewId, reason) {
     this.eventBus.publish(APPLICATION_EVENTS.CHANGED, { state: this.state, previousViewId, reason });
@@ -93,6 +94,13 @@ export class ApplicationShellController {
     return createWorkspaceConsumerReadinessRegistry(this.registry, this.context, { workspaceBooted: true });
   }
   getState() { return this.state; }
+  getPublicState() {
+    if (!this.state || this.state.activeViewId === 'THREE_D_CALC') return this.state;
+    return createApplicationViewStateV2(this.readiness, {
+      activeViewId: this.state.activeViewId,
+      version: this.state.version,
+    });
+  }
   getRegistry() { return this.registry; }
   listReadiness() { return this.readiness; }
   getReadiness(consumerId) {
