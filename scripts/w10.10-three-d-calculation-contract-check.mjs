@@ -80,6 +80,7 @@ function checkRequiredProjection() {
   assert.equal(model.verticalBeamCases.length, 0);
   const component = context.contracts.sharedModel.components.find((row) => row.componentKey === model.components[0].componentKey);
   assert.equal(model.components[0].startPoint, component.geometry.start);
+  assert.equal(model.components[0].sourcePath, component.sourceReferences.sourcePath);
   assert.equal(model.components[0].sourceReferences, component.sourceReferences);
   const port = context.contracts.topologyGraph.ports.find((row) => row.portKey === model.ports[0].portKey);
   assert.equal(model.ports[0].position, port.position);
