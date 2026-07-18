@@ -16,6 +16,15 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
+      - name: Certify U7 browser QA registration
+        run: node scripts/u7-browser-qa-check.mjs
+      - name: Certify W10.8 release registration
+        run: node scripts/w10.8-registration-check.mjs
+      - name: Certify W10.9 release registration
+        run: node scripts/w10.9-registration-check.mjs
+      - name: Certify W10.10 release registration
+        run: node scripts/w10.10-registration-check.mjs
+
       - name: Certify W10.7 package and ledger contracts
         run: node scripts/w10.7-model-calculation-contract-check.mjs
       - name: Certify W10.7 deterministic properties
@@ -168,7 +177,6 @@ jobs:
       - run: npm run check:u5:behavior
       - run: npm run check:u6
       - run: npm run check:u6:behavior
-      - run: npm run check:u7
       - run: npm run check:release
       - run: npm run check:benchmarks
       - run: npm run build
