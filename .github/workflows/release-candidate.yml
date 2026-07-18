@@ -177,6 +177,7 @@ jobs:
       - run: npm run check:u5:behavior
       - run: npm run check:u6
       - run: npm run check:u6:behavior
+      - run: npm run check:u7
       - run: npm run check:release
       - run: npm run check:benchmarks
       - run: npm run build
