@@ -44,8 +44,10 @@ jobs:
         run: node scripts/w10.9-load-calculation-source-guard.mjs javascript && node scripts/w10.9-load-calculation-source-guard.mjs imports && node scripts/w10.9-load-calculation-source-guard.mjs runtime && node scripts/w10.9-load-calculation-source-guard.mjs dependencies && node scripts/w10.9-load-calculation-source-guard.mjs contracts && node scripts/w10.9-load-calculation-source-guard.mjs integration
       - name: Certify W10.10 required evidence
         run: node scripts/w10.10-three-d-calculation-contract-check.mjs required
-      - name: Certify W10.10 optional evidence inclusion
-        run: node scripts/w10.10-three-d-calculation-contract-check.mjs optional-inclusion
+      - name: Certify W10.10 optional W10.4 inclusion
+        run: node scripts/w10.10-three-d-calculation-contract-check.mjs optional-load-inclusion
+      - name: Certify W10.10 optional W10.6 inclusion
+        run: node scripts/w10.10-three-d-calculation-contract-check.mjs optional-beam-inclusion
       - name: Certify W10.10 optional evidence rejection
         run: node scripts/w10.10-three-d-calculation-contract-check.mjs optional-rejection
       - name: Certify W10.10 registry and view-state evolution
