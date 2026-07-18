@@ -32,6 +32,8 @@ const CHECKS = Object.freeze({
   required: () => { checkMissingRequired(); checkRequiredProjection(); },
   optional: () => { checkOptionalProjection(); checkStaleOptionalEvidence(); },
   'optional-inclusion': checkOptionalProjection,
+  'optional-load-inclusion': checkOptionalLoadProjection,
+  'optional-beam-inclusion': checkOptionalBeamProjection,
   'optional-rejection': checkStaleOptionalEvidence,
   evolution: () => { checkRegistryEvolution(); checkViewStateEvolution(); },
   actions: checkActionEligibility,
@@ -86,17 +88,27 @@ function checkRequiredProjection() {
 }
 
 function checkOptionalProjection() {
+  checkOptionalLoadProjection();
+  checkOptionalBeamProjection();
+}
+
+function checkOptionalLoadProjection() {
   const context = buildW1010Context();
   const model = createThreeDCalculationReviewModel(context);
   assert.equal(model.sourceReferences.loadPrimitiveSetSemanticHash, context.contracts.loadPrimitiveSet.semanticHash);
-  assert.equal(model.sourceReferences.verticalBeamSolutionSemanticHash, context.contracts.verticalBeamSolution.semanticHash);
   assert.equal(model.loadPrimitives.length, context.contracts.loadPrimitiveSet.primitives.length);
-  assert.equal(model.flexuralProperties.length, context.contracts.flexuralPropertyProjection.records.length);
-  assert.equal(model.verticalBeamCases.length, context.contracts.verticalBeamSolution.pathCases.length);
   const primitive = context.contracts.loadPrimitiveSet.primitives.find((row) => row.primitiveId === model.loadPrimitives[0].primitiveId);
   assert.equal(model.loadPrimitives[0].globalVector, primitive.globalVector);
   assert.equal(model.loadPrimitives[0].formulaTrace, primitive.formulaTrace);
   assert.equal(model.loadPrimitives[0].sourceEvidence, primitive.sourceEvidence);
+}
+
+function checkOptionalBeamProjection() {
+  const context = buildW1010Context();
+  const model = createThreeDCalculationReviewModel(context);
+  assert.equal(model.sourceReferences.verticalBeamSolutionSemanticHash, context.contracts.verticalBeamSolution.semanticHash);
+  assert.equal(model.flexuralProperties.length, context.contracts.flexuralPropertyProjection.records.length);
+  assert.equal(model.verticalBeamCases.length, context.contracts.verticalBeamSolution.pathCases.length);
   const solution = context.contracts.verticalBeamSolution.pathCases.find((row) => row.pathId === model.verticalBeamCases[0].pathId && row.loadCaseId === model.verticalBeamCases[0].loadCaseId);
   assert.equal(model.verticalBeamCases[0].signedSupportForceN, solution.supportForceTotalN);
   assert.equal(model.verticalBeamCases[0].supportForceRows, solution.supportForceResults);
