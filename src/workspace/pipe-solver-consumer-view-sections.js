@@ -19,6 +19,7 @@ export function capabilitySection(documentRef, model) {
     ['Ready to run', yesNo(capability?.readyToRun)],
     ['Code basis', stringify(capability?.codeBasis)],
     ['Missing inputs', stringify(capability?.missingInputs)],
+    ['Readiness diagnostics', stringify(capability?.diagnostics)],
   ]);
 }
 
