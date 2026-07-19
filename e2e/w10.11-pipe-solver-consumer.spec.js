@@ -102,7 +102,7 @@ test('preserves selection, session, ledger and existing consumer state across vi
   await page.getByRole('button',{name:'Workspace'}).click();
   await page.getByRole('button',{name:'Run Tributary Screening'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getSupportLoadScreening()?.semanticHash||null)).not.toBeNull();
-  await page.getByRole('button',{name:'Solve Vertical Beam'}).click();
+  await page.getByRole('button',{name:'Solve Vertical Stiffness'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getVerticalBeamSolution()?.semanticHash||null)).not.toBeNull();
   await page.locator('[data-model-calculation-control="mode"]').selectOption('SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button',{name:'Create Calculation Package'}).click();
