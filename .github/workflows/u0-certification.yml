@@ -92,8 +92,8 @@ jobs:
         run: node scripts/w10.10-three-d-calculation-contract-check.mjs
       - name: Certify W10.10 deterministic projections
         run: node scripts/w10.10-three-d-calculation-property-check.mjs
-      - name: Certify W10.10 scope, imports, runtime and integration
-        run: node scripts/w10.10-three-d-calculation-source-guard.mjs
+      - name: Certify W10.10 JavaScript, imports, runtime, dependency, contract and integration boundaries
+        run: node scripts/w10.10-three-d-calculation-source-guard.mjs javascript && node scripts/w10.10-three-d-calculation-source-guard.mjs imports && node scripts/w10.10-three-d-calculation-source-guard.mjs runtime && node scripts/w10.10-three-d-calculation-source-guard.mjs dependencies && node scripts/w10.10-three-d-calculation-source-guard.mjs contracts && node scripts/w10.10-three-d-calculation-source-guard.mjs integration
 
       - name: Certify W10.11 source and review contracts
         run: node scripts/w10.11-pipe-solver-contract-check.mjs
