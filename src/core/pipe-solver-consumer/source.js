@@ -86,7 +86,7 @@ function requireContext(context) {
 function projectSelectedEntity(entity, expectedId) {
   if (!entity || !expectedId) return null;
   const properties = entity.properties || {};
-  const projected = {
+  return deepFreeze({
     entityId: entity.entityId,
     entityType: entity.entityType,
     name: entity.name,
@@ -95,8 +95,7 @@ function projectSelectedEntity(entity, expectedId) {
     sourcePath: entity.sourcePath,
     sourceAttributes: entity.sourceAttributes ?? properties.sourceAttributes ?? null,
     nativeParams: entity.nativeParams ?? properties.nativeParams ?? null,
-  };
-  return deepFreeze(projected);
+  });
 }
 
 function projectCapability(inspection, selectedEntity, datasetId) {
@@ -117,7 +116,7 @@ function projectCapability(inspection, selectedEntity, datasetId) {
     readyToReview: readiness.readyToReview,
     readyToRun: readiness.readyToRun,
     inputFields: canonicalFields(inspection.fields),
-    missingInputs: readiness.missingInputs,
+    missingInputs: canonicalFields(readiness.missingInputs),
     diagnostics: canonicalDiagnostics(readiness.diagnostics),
     assumptions: readiness.assumptions,
     limitations: readiness.limitations,
@@ -173,9 +172,7 @@ function validateCapability(capability, selectedEntity, datasetId, errors) {
   }
   if (!Array.isArray(capability?.inputFields) || !Array.isArray(capability?.diagnostics)) errors.push('Pipe Solver capability evidence is incomplete.');
   for (const key of ['codeBasis','assumptions','limitations']) {
-    if (canonicalStringify(capability?.[key]) !== canonicalStringify(PIPE_SCREENING_MANIFEST[key])) {
-      errors.push(`Pipe Solver capability ${key} does not match the closed manifest.`);
-    }
+    if (canonicalStringify(capability?.[key]) !== canonicalStringify(PIPE_SCREENING_MANIFEST[key])) errors.push(`Pipe Solver capability ${key} does not match the closed manifest.`);
   }
   if (capability?.sourceInspection?.workspaceReadiness?.datasetId !== undefined
     && capability.sourceInspection.workspaceReadiness.datasetId !== datasetId) errors.push('Capability inspection dataset mismatch.');
@@ -195,19 +192,13 @@ function validateLedger(source, errors) {
   source.matchingLedgerEntries.forEach((entry) => {
     if (entry?.schema !== 'analysis-ledger-entry/v1') errors.push('Pipe Solver ledger entry schema is invalid.');
     if (entry?.datasetId !== source.datasetId
-      || entry?.session?.analysisType !== PIPE_SCREENING_ANALYSIS_TYPE || entry?.session?.datasetId !== source.datasetId) {
-      errors.push('Pipe Solver ledger contains incompatible evidence.');
-    }
+      || entry?.session?.analysisType !== PIPE_SCREENING_ANALYSIS_TYPE || entry?.session?.datasetId !== source.datasetId) errors.push('Pipe Solver ledger contains incompatible evidence.');
     if (previous && (entry.sequence < previous.sequence
-      || (entry.sequence === previous.sequence && entry.entryId.localeCompare(previous.entryId) < 0))) {
-      errors.push('Pipe Solver ledger ordering is invalid.');
-    }
+      || (entry.sequence === previous.sequence && entry.entryId.localeCompare(previous.entryId) < 0))) errors.push('Pipe Solver ledger ordering is invalid.');
     previous = entry;
   });
   if (source.activeMatchingLedgerEntryId
-    && !source.matchingLedgerEntries.some((entry) => entry.entryId === source.activeMatchingLedgerEntryId)) {
-    errors.push('Active Pipe Solver ledger entry is not retained.');
-  }
+    && !source.matchingLedgerEntries.some((entry) => entry.entryId === source.activeMatchingLedgerEntryId)) errors.push('Active Pipe Solver ledger entry is not retained.');
 }
 
 function baseDiagnostics(datasetId, selectedEntity, diagnostics) {
@@ -229,35 +220,48 @@ function retainedAdapterDiagnostics(rows) {
   ].includes(row.code));
 }
 
-function diagnostic(severity, code, message, details = {}) {
-  return { severity, code, message, details };
-}
+function diagnostic(severity, code, message, details = {}) { return { severity, code, message, details }; }
 
 function sourceIdentity(value) {
-  const capability = value?.capability ? capabilityIdentity(value.capability) : value?.capability;
   return {
     ...value,
-    capability,
+    capability: value?.capability ? capabilityIdentity(value.capability) : value?.capability,
     activeSession: sessionIdentity(value?.activeSession),
-    matchingLedgerEntries: (value?.matchingLedgerEntries || []).map((entry) => ({
-      ...entry,
-      session: sessionIdentity(entry.session),
-    })),
+    matchingLedgerEntries: (value?.matchingLedgerEntries || []).map((entry) => ({ ...entry, session: sessionIdentity(entry.session) })),
   };
 }
 
 function capabilityIdentity(value) {
   const { sourceInspection: _inspection, ...capability } = value;
-  return { ...capability, inputFields: canonicalFields(value.inputFields) };
+  return { ...capability, inputFields: canonicalFields(value.inputFields), missingInputs: canonicalFields(value.missingInputs), diagnostics: canonicalDiagnostics(value.diagnostics) };
 }
 
 function sessionIdentity(value) {
   if (!value) return value;
-  return { ...value, inputs: canonicalFields(value.inputs) };
+  return {
+    ...value,
+    inputs: canonicalFields(value.inputs),
+    readiness: simpleReadinessIdentity(value.readiness),
+    workspaceReadiness: workspaceReadinessIdentity(value.workspaceReadiness),
+  };
+}
+
+function simpleReadinessIdentity(value) {
+  return value ? { ...value, missing: [...(value.missing || [])].sort() } : value;
+}
+
+function workspaceReadinessIdentity(value) {
+  if (!value) return value;
+  return {
+    ...value,
+    requiredInputs: canonicalFields(value.requiredInputs), resolvedInputs: canonicalFields(value.resolvedInputs),
+    missingInputs: canonicalFields(value.missingInputs), invalidInputs: canonicalFields(value.invalidInputs),
+    diagnostics: canonicalDiagnostics(value.diagnostics),
+  };
 }
 
 function canonicalFields(fields) {
-  return deepFreeze([...(fields || [])].sort((left, right) => left.key.localeCompare(right.key)));
+  return deepFreeze([...(fields || [])].sort((left, right) => String(left?.key || '').localeCompare(String(right?.key || ''))));
 }
 
 function contractPayload(value) {
