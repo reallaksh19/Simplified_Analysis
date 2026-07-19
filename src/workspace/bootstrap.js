@@ -147,17 +147,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     workspaceConsumerController,
     EventBus,
   );
-  const pipeSolverConsumerController = new PipeSolverConsumerController(
-    rootElement.querySelector('[data-role="pipe-solver-consumer-root"]'),
-    workspaceConsumerController,
-    {
-      workspaceState: WorkspaceState,
-      capabilityRegistry,
-      sessionStore: AnalysisSessions,
-      ledgerStore: AnalysisLedger,
-    },
-    EventBus,
-  );
+  const pipeSolverConsumerController = new PipeSolverConsumerController(rootElement.querySelector('[data-role="pipe-solver-consumer-root"]'), workspaceConsumerController, { workspaceState: WorkspaceState, capabilityRegistry, sessionStore: AnalysisSessions, ledgerStore: AnalysisLedger }, EventBus);
   const controllers = [
     datasetController,
     sharedModelController,
@@ -184,8 +174,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     propertiesPanel,
     workspaceConsumerController,
     applicationShellController,
-    reportsConsumerController,
-    pipeSolverConsumerController,
+    reportsConsumerController, pipeSolverConsumerController,
   ];
   controllers.forEach((controller) => controller.init());
 
