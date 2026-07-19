@@ -50,9 +50,7 @@ function compareReconstructed(value, errors) {
     const expected = createPipeSolverReviewModel(value.sourceSnapshot);
     if (value.sourceSnapshot !== expected.sourceSnapshot) errors.push('Pipe Solver source-snapshot reference mismatch.');
     if (value.semanticHash !== expected.semanticHash) errors.push('Pipe Solver review-model semantic hash mismatch.');
-    if (canonicalStringify(contractPayload(value)) !== canonicalStringify(contractPayload(expected))) {
-      errors.push('Pipe Solver review model does not match reconstructed source evidence.');
-    }
+    if (canonicalStringify(contractPayload(value)) !== canonicalStringify(contractPayload(expected))) errors.push('Pipe Solver review model does not match reconstructed source evidence.');
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
   }
@@ -148,11 +146,11 @@ function projectSession(session) {
     workspaceVersion: session.workspaceVersion,
     version: session.version,
     status: session.status,
-    inputs: deepFreeze([...(session.inputs || [])].sort((a, b) => a.key.localeCompare(b.key))),
+    inputs: canonicalFields(session.inputs),
     overrides: session.overrides,
     fieldErrors: session.fieldErrors,
-    readiness: session.readiness,
-    workspaceReadiness: session.workspaceReadiness,
+    readiness: simpleReadiness(session.readiness),
+    workspaceReadiness: workspaceReadiness(session.workspaceReadiness),
     requestId: session.requestId || null,
     failure: session.failure,
     sourceSession: session,
@@ -213,7 +211,25 @@ function summary(source, result, inputs, ledger) {
 }
 
 function canonicalDiagnostics(rows) {
-  return deepFreeze([...rows].sort((a, b) => `${a.code}|${a.message}`.localeCompare(`${b.code}|${b.message}`)));
+  return deepFreeze([...(rows || [])].sort((a, b) => `${a.code}|${a.message}`.localeCompare(`${b.code}|${b.message}`)));
+}
+
+function simpleReadiness(value) {
+  return value ? deepFreeze({ ...value, missing: [...(value.missing || [])].sort() }) : value;
+}
+
+function workspaceReadiness(value) {
+  if (!value) return value;
+  return deepFreeze({
+    ...value,
+    requiredInputs: canonicalFields(value.requiredInputs), resolvedInputs: canonicalFields(value.resolvedInputs),
+    missingInputs: canonicalFields(value.missingInputs), invalidInputs: canonicalFields(value.invalidInputs),
+    diagnostics: canonicalDiagnostics(value.diagnostics),
+  });
+}
+
+function canonicalFields(rows) {
+  return deepFreeze([...(rows || [])].sort((a, b) => String(a?.key || '').localeCompare(String(b?.key || ''))));
 }
 
 function assertSource(source) {
