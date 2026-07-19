@@ -118,7 +118,7 @@ function projectCapability(inspection, selectedEntity, datasetId) {
     readyToRun: readiness.readyToRun,
     inputFields: canonicalFields(inspection.fields),
     missingInputs: readiness.missingInputs,
-    diagnostics: readiness.diagnostics,
+    diagnostics: canonicalDiagnostics(readiness.diagnostics),
     assumptions: readiness.assumptions,
     limitations: readiness.limitations,
     sourceInspection: inspection,
@@ -218,7 +218,7 @@ function baseDiagnostics(datasetId, selectedEntity, diagnostics) {
 }
 
 function canonicalDiagnostics(rows) {
-  const unique = new Map(rows.map((row) => [`${row.severity}|${row.code}|${row.message}`, deepFreeze(row)]));
+  const unique = new Map((rows || []).map((row) => [`${row.severity}|${row.code}|${row.message}`, deepFreeze(row)]));
   return deepFreeze([...unique.values()].sort((a, b) => `${a.code}|${a.message}`.localeCompare(`${b.code}|${b.message}`)));
 }
 
