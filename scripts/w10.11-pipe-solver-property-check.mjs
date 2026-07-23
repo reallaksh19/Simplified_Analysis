@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   createPipeSolverConsumerSource,
   createPipeSolverReviewModel,
@@ -8,12 +10,21 @@ import { buildW1011Fixture } from './w10.11-fixtures.mjs';
 
 const SEED = 10112026;
 console.log(`\n--- W10.11 fixed-seed properties (${SEED}) ---\n`);
-checkDiagnosticOrderInvariance();
-checkLedgerOrderInvariance();
-checkSameIdReplacementIdentity();
-checkRepeatedIdentity();
-checkExactReferences();
+runProperties();
 console.log('✅ W10.11 fixed-seed properties passed.\n');
+
+function runProperties() {
+  try {
+    checkDiagnosticOrderInvariance();
+    checkLedgerOrderInvariance();
+    checkSameIdReplacementIdentity();
+    checkRepeatedIdentity();
+    checkExactReferences();
+  } catch (error) {
+    retainFailure(error);
+    throw error;
+  }
+}
 
 function checkDiagnosticOrderInvariance() {
   const normal = source(buildW1011Fixture({ missing: ['alpha', 'Sa'] }));
@@ -70,6 +81,17 @@ function checkExactReferences() {
   assert.equal(reviewValue.currentResult, fixture.sessionSnapshot.session.result);
   assert.equal(reviewValue.sourceReferences.capabilityFields, fixture.capabilityInspection.fields);
   assert.equal(reviewValue.sourceReferences.matchingLedgerEntries, sourceValue.matchingLedgerEntries);
+}
+
+function retainFailure(error) {
+  const directory = path.join(process.cwd(), 'test-results');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'w10.11-property-failure.json'), JSON.stringify({
+    seed: SEED,
+    name: error?.name || 'Error',
+    message: error?.message || String(error),
+    stack: error?.stack || null,
+  }, null, 2));
 }
 
 function source(fixture) { return createPipeSolverConsumerSource(fixture); }
