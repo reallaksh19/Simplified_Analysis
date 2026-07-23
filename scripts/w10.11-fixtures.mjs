@@ -140,8 +140,8 @@ function readinessDiagnostics(missingInputs) {
 
 function solverResult(options = {}) {
   return createSolverResultContract({
-    moduleId: 'simplified-2d-screening',
-    methodId: options.methodId || 'SIMPLIFIED_2D_TOPOLOGY_SCREENING',
+    moduleId: options.moduleId || 'simplified-2d',
+    methodId: options.methodId || 'SIMPLIFIED_2D_L_SHAPE',
     formulaIds: ['SIMPLIFIED_2D_FLEXIBILITY_RATIO'],
     settingsHash: 'fnv1a64:1111111111111111',
     dataStatus: 'EXPLICIT_INPUTS',
@@ -152,7 +152,11 @@ function solverResult(options = {}) {
     diagnostics: [],
     warnings: [],
     formulaTrace: [{ formulaId: 'SIMPLIFIED_2D_FLEXIBILITY_RATIO', value: 0.42 }],
-    meta: { requestedTargetId: 'PIPE-117', analysisSessionId: 'analysis-session-1' },
+    meta: {
+      geometryType: options.geometryType || 'L_SHAPE',
+      requestedTargetId: 'PIPE-117',
+      analysisSessionId: 'analysis-session-1',
+    },
     summary: { flexibilityRatio: 0.42 },
   });
 }
