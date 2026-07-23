@@ -3,17 +3,14 @@ import {
   deepFreeze,
   semanticHash,
 } from '../shared-piping-model/index.js';
-import { validateSolverResultContract } from '../solvers/certification/solverResultContract.js';
 import { validateWorkspaceConsumerContext } from '../workspace-consumers/index.js';
 import {
   PIPE_SCREENING_ANALYSIS_TYPE,
-  PIPE_SCREENING_ENGINEERING_LEVEL,
-  PIPE_SCREENING_METHOD_ID,
-  PIPE_SCREENING_RESULT_SCHEMA,
   PIPE_SOLVER_DIAGNOSTIC_CODES,
   PIPE_SOLVER_SOURCE_SCHEMA,
 } from './constants.js';
 import { freezeEvidenceGraph } from './freeze-evidence.js';
+import { validatePipeScreeningResult } from './result-evidence.js';
 import { buildPipeSolverSourceIdentity } from './source-identity.js';
 
 export function createPipeSolverConsumerSource(input = {}) {
@@ -54,19 +51,6 @@ export function isMatchingPipeSolverSession(session, metadata) {
     && session.datasetId === metadata.datasetId
     && session.targetId === metadata.selectedEntityId
     && session.workspaceVersion === metadata.workspaceVersion);
-}
-
-export function validatePipeScreeningResult(result) {
-  const validation = validateSolverResultContract(result);
-  const errors = [...validation.errors];
-  if (result?.schemaVersion !== PIPE_SCREENING_RESULT_SCHEMA) errors.push('Unexpected Pipe Solver result schema.');
-  if (result?.engineeringLevel !== PIPE_SCREENING_ENGINEERING_LEVEL) errors.push('Unexpected Pipe Solver engineering level.');
-  if (result?.methodId !== PIPE_SCREENING_METHOD_ID) errors.push('Unexpected Pipe Solver method.');
-  if (result && Object.prototype.hasOwnProperty.call(result, 'semanticHash')) {
-    const { semanticHash: declared, ...payload } = result;
-    if (declared !== semanticHash(payload)) errors.push('Pipe Solver result semantic hash mismatch.');
-  }
-  return deepFreeze({ ok: errors.length === 0, errors });
 }
 
 function requireSourceContext(value) {
