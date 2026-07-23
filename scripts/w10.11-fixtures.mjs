@@ -180,7 +180,7 @@ function analysisSession(context, inspection, result, options) {
 }
 
 function ledgerEntries(context, inspection, result, options) {
-  const current = analysisSession(context, inspection, result, { ...options, sessionStatus: 'completed' });
+  const current = analysisSession(context, inspection, result, ledgerSessionOptions(options));
   const support = deepFreeze({ ...structuredClone(current), sessionId: 'support-session', analysisType: 'support-load' });
   const prior = deepFreeze({ ...structuredClone(current), sessionId: 'prior-session', datasetId: 'PRIOR-DATASET' });
   return deepFreeze([
@@ -190,6 +190,17 @@ function ledgerEntries(context, inspection, result, options) {
     ledgerEntry('analysis-ledger-entry-18-a', 18, deepFreeze({ ...structuredClone(current), sessionId: 'analysis-session-18-a' })),
     ledgerEntry('analysis-ledger-entry-18-b', 18, deepFreeze({ ...structuredClone(current), sessionId: 'analysis-session-18-b' })),
   ]);
+}
+
+function ledgerSessionOptions(options) {
+  return {
+    ...options,
+    sessionStatus: 'completed',
+    sessionDatasetId: options.ledgerSessionDatasetId,
+    sessionTargetId: options.ledgerSessionTargetId,
+    sessionAnalysisType: options.ledgerSessionAnalysisType,
+    sessionWorkspaceVersion: options.ledgerSessionWorkspaceVersion,
+  };
 }
 
 function ledgerEntry(entryId, sequence, session) {
