@@ -8,8 +8,8 @@ export function buildW1011Fixture(options = {}) {
   const entity = options.selectedEntityId === null ? null : selectedEntity(context.selectedEntityId);
   const inspection = entity ? capabilityInspection(context, options) : null;
   const result = solverResult(options);
-  const session = options.noSession ? null : analysisSession(context, inspection, result, options);
-  const entries = options.entries || ledgerEntries(context, inspection, result, options);
+  const session = options.noSession || !inspection ? null : analysisSession(context, inspection, result, options);
+  const entries = options.entries || (inspection ? ledgerEntries(context, inspection, result, options) : deepFreeze([]));
   const ledgerSnapshot = deepFreeze({
     schema: 'analysis-ledger/v1',
     datasetId: context.datasetId,
