@@ -61,7 +61,7 @@ test('keeps generic readiness separate and sends raw override values to the exis
   expect(session.overrides).toMatchObject({ alpha: 0.000012, Sa: 100 });
 });
 
-test('same-ID replacement falls back, clears stale analysis evidence, and teardown removes listeners', async ({ page }) => {
+test('same-ID replacement falls back, excludes stale analysis evidence, and teardown removes listeners', async ({ page }) => {
   await page.goto('/');
   await upload(page, 'first.json', COMPLETE);
   await page.locator('[data-entity-id="PIPE-A"]').click();
@@ -77,7 +77,9 @@ test('same-ID replacement falls back, clears stale analysis evidence, and teardo
   }, 7000));
   await expect.poll(() => page.evaluate(() => AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
   expect(await page.evaluate(() => AnalysisWorkspace.getSnapshot().dataset.datasetId)).toBe(before.datasetId);
-  expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisSession().status)).toBe('empty');
+  const replacementReview = await page.evaluate(() => AnalysisWorkspace.getPipeSolverReviewModel());
+  expect(replacementReview.sessionSummary.available).toBe(false);
+  expect(replacementReview.currentResult).toBeNull();
   expect((await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger())).entries).toHaveLength(0);
   await page.locator('[data-entity-id="PIPE-A"]').click();
   await page.getByRole('button', { name: 'Pipe Solver' }).click();
