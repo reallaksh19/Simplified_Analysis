@@ -1,29 +1,32 @@
 import {
   createApplicationViewStateV2,
   createApplicationViewStateV3,
+  createApplicationViewStateV4,
   createWorkspaceConsumerReadinessRegistry,
-  createWorkspaceConsumerRegistryV3,
-  refreshApplicationViewStateV3,
-  transitionApplicationViewStateV3,
+  createWorkspaceConsumerRegistryV4,
+  refreshApplicationViewStateV4,
+  transitionApplicationViewStateV4,
   workspaceConsumerDescriptor,
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
 import { APPLICATION_EVENTS, EVENT_TOPICS } from './event-topics.js';
 import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
+import { PipeSolverConsumerController } from './pipe-solver-consumer-controller.js';
 import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
 // Closed compatibility factories remain exported and contract-tested:
-// createWorkspaceConsumerRegistryV2 and createApplicationViewStateV2.
+// createWorkspaceConsumerRegistryV2, createWorkspaceConsumerRegistryV3,
+// createApplicationViewStateV2 and createApplicationViewStateV3.
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
 export class ApplicationShellController {
-  constructor(rootElement, consumerController, eventBus = EventBus) {
+  constructor(rootElement, consumerController, eventBus = EventBus, pipeSolverAdapter = null) {
     this.eventBus = eventBus;
     this.consumerController = consumerController;
     this.context = consumerController.getContext();
-    this.registry = createWorkspaceConsumerRegistryV3();
+    this.registry = createWorkspaceConsumerRegistryV4();
     this.readiness = this.buildReadiness();
-    this.state = createApplicationViewStateV3(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
+    this.state = createApplicationViewStateV4(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
     this.view = new ApplicationShellView(rootElement, eventBus);
     this.loadCalcController = new LoadCalcConsumerController(
       rootElement?.querySelector('[data-role="load-calc-consumer-root"]'), consumerController, eventBus,
@@ -31,13 +34,18 @@ export class ApplicationShellController {
     this.threeDCalcController = new ThreeDCalcConsumerController(
       rootElement?.querySelector('[data-role="three-d-calc-consumer-root"]'), consumerController, eventBus,
     );
+    this.pipeSolverController = pipeSolverAdapter ? new PipeSolverConsumerController(
+      rootElement?.querySelector('[data-role="pipe-solver-consumer-root"]'), consumerController, pipeSolverAdapter, eventBus,
+    ) : null;
     this.unsubscribeCallbacks = [];
   }
+
   init() {
     if (this.unsubscribeCallbacks.length) return;
     this.view.init(this.registry);
     this.loadCalcController.init();
     this.threeDCalcController.init();
+    this.pipeSolverController?.init();
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
       this.eventBus.subscribe(APPLICATION_EVENTS.CHANGE_REQUESTED, (payload) => this.handleRequest(payload)),
@@ -45,44 +53,56 @@ export class ApplicationShellController {
     ];
     this.view.render(this.state, this.readiness);
   }
+
   handleContext(context) {
     const previous = this.state.activeViewId;
+    const datasetBoundary = isDatasetBoundary(this.context, context);
+    const readinessChanged = this.context?.semanticHash !== context?.semanticHash;
     this.context = context;
-    this.readiness = this.buildReadiness();
-    this.state = refreshApplicationViewStateV3(this.state, this.readiness);
-    this.view.render(this.state, this.readiness);
-    if (previous !== this.state.activeViewId) this.publishChanged(previous, 'readiness-lost');
+    if (readinessChanged) this.readiness = this.buildReadiness();
+    if (datasetBoundary && previous !== 'WORKSPACE') {
+      this.state = createApplicationViewStateV4(this.readiness, {
+        activeViewId: 'WORKSPACE', version: this.state.version + 1,
+      });
+    } else if (readinessChanged) {
+      this.state = refreshApplicationViewStateV4(this.state, this.readiness);
+    }
+    if (datasetBoundary || readinessChanged) this.view.render(this.state, this.readiness);
+    if (previous !== this.state.activeViewId) this.publishChanged(previous, datasetBoundary ? 'dataset-replaced' : 'readiness-lost');
   }
+
   handleDatasetReplacement() {
     if (this.state.activeViewId === 'WORKSPACE') return;
     const previous = this.state.activeViewId;
-    this.state = createApplicationViewStateV3(this.readiness, {
+    this.state = createApplicationViewStateV4(this.readiness, {
       activeViewId: 'WORKSPACE', version: this.state.version + 1,
     });
     this.view.render(this.state, this.readiness);
     this.publishChanged(previous, 'dataset-replaced');
   }
+
   handleRequest({ viewId, source }) {
     const previous = this.state.activeViewId;
     try {
       const descriptor = workspaceConsumerDescriptor(this.registry, viewId);
       const readiness = this.getReadiness(viewId);
       assertImplementedAvailable(descriptor, readiness);
-      const result = transitionApplicationViewStateV3(this.state, viewId, this.readiness);
+      const result = transitionApplicationViewStateV4(this.state, viewId, this.readiness);
       if (!result.activated) throw viewError('VIEW_NOT_AVAILABLE', `${descriptor.label} is unavailable.`);
       this.state = result.state;
       this.view.render(this.state, this.readiness);
       this.publishChanged(previous, source);
-    } catch (error) { this.publishFailed(viewId, error); }
+    } catch (error) {
+      this.publishFailed(viewId, error);
+    }
   }
+
   activate(viewId) {
     workspaceConsumerDescriptor(this.registry, viewId);
     this.eventBus.publish(APPLICATION_EVENTS.CHANGE_REQUESTED, { viewId, source: 'api' });
     return this.getPublicState();
   }
-  publishChanged(previousViewId, reason) {
-    this.eventBus.publish(APPLICATION_EVENTS.CHANGED, { state: this.state, previousViewId, reason });
-  }
+  publishChanged(previousViewId, reason) { this.eventBus.publish(APPLICATION_EVENTS.CHANGED, { state: this.state, previousViewId, reason }); }
   publishFailed(viewId, error) {
     this.eventBus.publish(APPLICATION_EVENTS.CHANGE_FAILED, {
       viewId, activeViewId: this.state.activeViewId,
@@ -90,12 +110,13 @@ export class ApplicationShellController {
       message: error instanceof Error ? error.message : String(error),
     });
   }
-  buildReadiness() {
-    return createWorkspaceConsumerReadinessRegistry(this.registry, this.context, { workspaceBooted: true });
-  }
+  buildReadiness() { return createWorkspaceConsumerReadinessRegistry(this.registry, this.context, { workspaceBooted: true }); }
   getState() { return this.state; }
   getPublicState() {
-    if (!this.state || this.state.activeViewId === 'THREE_D_CALC') return this.state;
+    if (!this.state || this.state.activeViewId === 'PIPE_SOLVER') return this.state;
+    if (this.state.activeViewId === 'THREE_D_CALC') {
+      return createApplicationViewStateV3(this.readiness, { activeViewId: 'THREE_D_CALC', version: this.state.version });
+    }
     return createApplicationViewStateV2(this.readiness, {
       activeViewId: this.state.activeViewId,
       version: this.state.version,
@@ -109,9 +130,11 @@ export class ApplicationShellController {
   }
   getLoadCalculationReviewModel() { return this.loadCalcController.getReviewModel(); }
   getThreeDCalculationReviewModel() { return this.threeDCalcController.getReviewModel(); }
+  getPipeSolverReviewModel() { return this.pipeSolverController?.getReviewModel() || null; }
   destroy() {
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
+    this.pipeSolverController?.destroy();
     this.threeDCalcController.destroy();
     this.loadCalcController.destroy();
     this.view.destroy();
@@ -126,7 +149,7 @@ export class ApplicationShellView {
     this.rootElement = rootElement;
     this.eventBus = eventBus;
     this.navElement = rootElement?.querySelector('[data-role="application-navigation"]') || null;
-    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC'].map((id) => [
+    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER'].map((id) => [
       id, rootElement?.querySelector(`[data-application-view="${id}"]`) || null,
     ]));
     this.keydownHandler = (event) => this.handleKeydown(event);
@@ -146,12 +169,15 @@ export class ApplicationShellView {
     const wrapper = this.rootElement.ownerDocument.createElement('div');
     wrapper.className = 'application-navigation__item';
     const button = this.rootElement.ownerDocument.createElement('button');
-    button.type = 'button'; button.dataset.applicationNav = descriptor.consumerId; button.textContent = descriptor.label;
+    button.type = 'button';
+    button.dataset.applicationNav = descriptor.consumerId;
+    button.textContent = descriptor.label;
     button.addEventListener('click', () => this.requestChange(descriptor.consumerId));
     const reason = this.rootElement.ownerDocument.createElement('span');
     reason.id = `application-nav-reason-${descriptor.consumerId.toLowerCase()}`;
     reason.className = 'visually-hidden';
-    wrapper.append(button, reason); return wrapper;
+    wrapper.append(button, reason);
+    return wrapper;
   }
   updateButton(button, state, readiness) {
     const available = readiness?.readinessState === 'AVAILABLE';
@@ -175,7 +201,8 @@ export class ApplicationShellView {
     if (!buttons.length) return;
     const current = buttons.indexOf(this.rootElement.ownerDocument.activeElement);
     const target = keyboardTarget(event.key, current, buttons.length);
-    event.preventDefault(); buttons[target].focus();
+    event.preventDefault();
+    buttons[target].focus();
   }
   destroy() {
     this.navElement?.removeEventListener('keydown', this.keydownHandler);
@@ -183,6 +210,13 @@ export class ApplicationShellView {
     this.views.forEach((element, id) => setViewVisibility(element, id === 'WORKSPACE'));
   }
 }
+
+function isDatasetBoundary(previous, current) {
+  return Boolean(previous && current
+    && previous.workspaceVersion !== current.workspaceVersion
+    && current.selectedEntityId === null);
+}
+
 function assertImplementedAvailable(descriptor, readiness) {
   if (descriptor.implementationStatus !== 'IMPLEMENTED') throw viewError('VIEW_NOT_IMPLEMENTED', `${descriptor.label} is not implemented in the current runtime.`);
   if (readiness?.readinessState !== 'AVAILABLE') throw viewError('VIEW_NOT_AVAILABLE', readiness?.diagnostics?.[0]?.message || `${descriptor.label} is unavailable.`);

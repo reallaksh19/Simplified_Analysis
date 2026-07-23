@@ -5,20 +5,23 @@ import {
   WORKSPACE_CONSUMER_REGISTRY_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA,
+  WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA,
 } from './constants.js';
 
 export function createWorkspaceConsumerRegistry() { return canonicalRegistry(1); }
 export function createWorkspaceConsumerRegistryV2() { return canonicalRegistry(2); }
 export function createWorkspaceConsumerRegistryV3() { return canonicalRegistry(3); }
+export function createWorkspaceConsumerRegistryV4() { return canonicalRegistry(4); }
 
 export function validateWorkspaceConsumerRegistry(value) {
-  const supported = [1, 2, 3].map(canonicalRegistry);
+  const supported = [1, 2, 3, 4].map(canonicalRegistry);
   const valid = supported.some((row) => canonicalStringify(value) === canonicalStringify(row));
   return deepFreeze({ ok: valid, errors: valid ? [] : ['Workspace consumer registry does not match a closed supported registry version.'] });
 }
 export function validateWorkspaceConsumerRegistryV1(value) { return validateExact(value, canonicalRegistry(1), WORKSPACE_CONSUMER_REGISTRY_SCHEMA); }
 export function validateWorkspaceConsumerRegistryV2(value) { return validateExact(value, canonicalRegistry(2), WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA); }
 export function validateWorkspaceConsumerRegistryV3(value) { return validateExact(value, canonicalRegistry(3), WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA); }
+export function validateWorkspaceConsumerRegistryV4(value) { return validateExact(value, canonicalRegistry(4), WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA); }
 
 export function workspaceConsumerDescriptor(registry, consumerId) {
   if (!validateWorkspaceConsumerRegistry(registry).ok) throw new TypeError('Workspace consumer registry is invalid.');
@@ -33,26 +36,30 @@ function validateExact(value, expected, schema) {
   if (canonicalStringify(value) !== canonicalStringify(expected)) errors.push(`${schema} does not match its closed canonical descriptor set.`);
   return deepFreeze({ ok: errors.length === 0, errors });
 }
+
 function canonicalRegistry(version) {
   const consumers = descriptorRows(version).map(normalizeDescriptor).sort((a, b) => a.consumerId.localeCompare(b.consumerId));
   const base = { schema: registrySchema(version), consumers };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
+
 function descriptorRows(version) {
   return [
     row(CONSUMER_IDS.WORKSPACE, 'Workspace', 'Current model review and explicit analysis actions.', IMPLEMENTATION_STATUS.IMPLEMENTED, [], allContracts(), workspaceActions(), 'EXISTING_CONTRACT_CLAIMS_ONLY'),
     row(CONSUMER_IDS.REPORTS, 'Reports', 'Review and export the active archived W10.7 package report.', IMPLEMENTATION_STATUS.IMPLEMENTED, reportsRequired(), reportsOptional(), reportsActions(), 'ARCHIVED_REPORT_EVIDENCE_ONLY'),
     loadCalcRow(version),
     threeDCalcRow(version),
-    row(CONSUMER_IDS.PIPE_SOLVER, 'Pipe Solver', 'Future piping solver consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['loadCaseSet','loadPrimitiveSet','restraintCapabilityModel','sharedModel','supportAttachmentModel','topologyGraph'], ['flexuralPropertyProjection','verticalBeamModel'], [], 'NO_ENGINEERING_CLAIMS'),
+    pipeSolverRow(version),
     row(CONSUMER_IDS.QA, 'QA', 'Future contract quality-assurance consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['sharedModel'], allContracts().filter((key) => key !== 'sharedModel'), [], 'NO_ENGINEERING_CLAIMS'),
     row(CONSUMER_IDS.DEBUG, 'Debug', 'Future read-only contract inspection consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, [], allContracts(), [], 'NO_ENGINEERING_CLAIMS'),
   ];
 }
+
 function loadCalcRow(version) {
   if (version === 1) return row(CONSUMER_IDS.LOAD_CALC, 'Load Calc', 'Future reusable load-calculation consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['loadCaseSet','loadPrimitiveSet','modelLoadReadinessAudit','sharedModel'], ['supportLoadScreening','verticalLoadPathModel'], [], 'NO_ENGINEERING_CLAIMS');
   return row(CONSUMER_IDS.LOAD_CALC, 'Load Calc', 'Review exact W10.4 model-load evidence and optional W10.5 tributary screening.', IMPLEMENTATION_STATUS.IMPLEMENTED, ['sharedModel','loadCaseSet','loadPrimitiveSet','modelLoadReadinessAudit'], ['verticalLoadPathModel','supportLoadScreening','supportLoadScreeningAudit'], ['REBUILD_MODEL_LOADS','EXPORT_MODEL_LOADS','REBUILD_VERTICAL_LOAD_PATHS','RUN_TRIBUTARY_SCREENING','EXPORT_TRIBUTARY_SCREENING'], 'MODEL_LOAD_EVIDENCE_AND_OPTIONAL_TRIBUTARY_SCREENING_ONLY');
 }
+
 function threeDCalcRow(version) {
   if (version < 3) return row(CONSUMER_IDS.THREE_D_CALC, '3D Calc', 'Future three-dimensional calculation consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['restraintCapabilityModel','sharedModel','supportAttachmentModel','topologyGraph'], ['loadPrimitiveSet','verticalBeamSolution'], [], 'NO_ENGINEERING_CLAIMS');
   return row(CONSUMER_IDS.THREE_D_CALC, '3D Calc', 'Review exact model, topology, support/restraint and optional vertical-beam evidence.', IMPLEMENTATION_STATUS.IMPLEMENTED,
@@ -61,7 +68,21 @@ function threeDCalcRow(version) {
     ['EXPORT_SHARED_MODEL','REBUILD_TOPOLOGY_EXACT','EXPORT_TOPOLOGY','REBUILD_SUPPORT_EVIDENCE','EXPORT_SUPPORT_RESTRAINT','REBUILD_VERTICAL_BEAM_MODEL','SOLVE_VERTICAL_BEAM','EXPORT_VERTICAL_BEAM'],
     'MODEL_TOPOLOGY_RESTRAINT_AND_OPTIONAL_VERTICAL_BEAM_EVIDENCE_ONLY');
 }
-function registrySchema(version) { return version === 3 ? WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA : version === 2 ? WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA : WORKSPACE_CONSUMER_REGISTRY_SCHEMA; }
+
+function pipeSolverRow(version) {
+  if (version < 4) return row(CONSUMER_IDS.PIPE_SOLVER, 'Pipe Solver', 'Future piping solver consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['loadCaseSet','loadPrimitiveSet','restraintCapabilityModel','sharedModel','supportAttachmentModel','topologyGraph'], ['flexuralPropertyProjection','verticalBeamModel'], [], 'NO_ENGINEERING_CLAIMS');
+  return row(CONSUMER_IDS.PIPE_SOLVER, 'Pipe Solver', 'Review and request the existing guarded pipe-screening capability.', IMPLEMENTATION_STATUS.IMPLEMENTED,
+    ['sharedModel','topologyGraph','topologyAudit'],
+    ['supportAttachmentModel','restraintCapabilityModel','loadCaseSet','loadPrimitiveSet','flexuralPropertyProjection','verticalBeamModel','verticalBeamSolution'],
+    ['OPEN_PIPE_SCREENING_SESSION','UPDATE_PIPE_SCREENING_OVERRIDE','RESET_PIPE_SCREENING_SESSION','RUN_PIPE_SCREENING','CLOSE_PIPE_SCREENING_SESSION','SELECT_ANALYSIS_LEDGER_ENTRY','EXPORT_ANALYSIS_LEDGER'],
+    'EXISTING_BENCHMARKED_SIMPLIFIED_2D_SCREENING_ONLY');
+}
+
+function registrySchema(version) {
+  if (version === 4) return WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA;
+  if (version === 3) return WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA;
+  return version === 2 ? WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA : WORKSPACE_CONSUMER_REGISTRY_SCHEMA;
+}
 function row(consumerId, label, purpose, implementationStatus, required, optional, actions, policy) { return { consumerId, label, purpose, implementationStatus, requiredContractKeys: required, optionalContractKeys: optional, allowedActions: actions, engineeringClaimPolicy: policy }; }
 function normalizeDescriptor(value) {
   if (!stringValue(value.purpose) || !stringValue(value.engineeringClaimPolicy)) throw new TypeError('Consumer descriptor text is required.');
