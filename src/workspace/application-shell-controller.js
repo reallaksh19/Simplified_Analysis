@@ -57,12 +57,17 @@ export class ApplicationShellController {
   handleContext(context) {
     const previous = this.state.activeViewId;
     const datasetBoundary = isDatasetBoundary(this.context, context);
+    const readinessChanged = this.context?.semanticHash !== context?.semanticHash;
     this.context = context;
-    this.readiness = this.buildReadiness();
-    this.state = datasetBoundary && previous !== 'WORKSPACE'
-      ? createApplicationViewStateV4(this.readiness, { activeViewId: 'WORKSPACE', version: this.state.version + 1 })
-      : refreshApplicationViewStateV4(this.state, this.readiness);
-    this.view.render(this.state, this.readiness);
+    if (readinessChanged) this.readiness = this.buildReadiness();
+    if (datasetBoundary && previous !== 'WORKSPACE') {
+      this.state = createApplicationViewStateV4(this.readiness, {
+        activeViewId: 'WORKSPACE', version: this.state.version + 1,
+      });
+    } else if (readinessChanged) {
+      this.state = refreshApplicationViewStateV4(this.state, this.readiness);
+    }
+    if (datasetBoundary || readinessChanged) this.view.render(this.state, this.readiness);
     if (previous !== this.state.activeViewId) this.publishChanged(previous, datasetBoundary ? 'dataset-replaced' : 'readiness-lost');
   }
 
