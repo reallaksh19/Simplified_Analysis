@@ -1,14 +1,10 @@
 import { createSolverResultContract } from '../src/core/solvers/certification/solverResultContract.js';
 import { deepFreeze, semanticHash } from '../src/core/shared-piping-model/index.js';
+import { createWorkspaceConsumerContext } from '../src/core/workspace-consumers/index.js';
 import { buildW1010Context } from './w10.10-fixtures.mjs';
 
 export function buildW1011Fixture(options = {}) {
-  const context = buildW1010Context({
-    requiredOnly: true,
-    datasetId: options.datasetId || 'W10.11-FIXTURE',
-    workspaceVersion: options.workspaceVersion ?? 7,
-    selectedEntityId: options.selectedEntityId === undefined ? 'PIPE-117' : options.selectedEntityId,
-  });
+  const context = buildSourceContext(options);
   const entity = options.selectedEntityId === null ? null : selectedEntity(context.selectedEntityId);
   const inspection = entity ? capabilityInspection(context, options) : null;
   const result = solverResult(options);
@@ -36,6 +32,22 @@ export function forgedResult() {
   const valid = solverResult();
   const payload = { ...structuredClone(valid), results: { flexibilityRatio: 999 } };
   return deepFreeze({ ...payload, semanticHash: semanticHash(valid) });
+}
+
+function buildSourceContext(options) {
+  const selectedEntityId = options.selectedEntityId === undefined ? 'PIPE-117' : options.selectedEntityId;
+  const template = buildW1010Context({
+    requiredOnly: true,
+    datasetId: options.datasetId || 'W10.11-FIXTURE',
+    workspaceVersion: options.workspaceVersion ?? 7,
+    selectedEntityId: 'PIPE-117',
+  });
+  return createWorkspaceConsumerContext({
+    datasetId: template.datasetId,
+    workspaceVersion: template.workspaceVersion,
+    selectedEntityId,
+    contracts: template.contracts,
+  });
 }
 
 function selectedEntity(entityId) {
