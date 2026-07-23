@@ -42,6 +42,7 @@ if (selected === 'all') Object.values(checks).forEach((check) => check());
 else if (checks[selected]) checks[selected]();
 else throw new TypeError(`Unknown W10.11 source-guard check: ${selected}.`);
 if (errors.length) {
+  retainFailure(errors);
   console.error(`W10.11 source guard ${selected} failed with ${errors.length} error(s):`);
   errors.forEach((error) => console.error(` - ${error}`));
   process.exit(1);
@@ -129,6 +130,15 @@ function checkIntegration() {
   requireTokens('src/workspace/workspace-layout.js', ['data-application-view="PIPE_SOLVER"', 'data-role="pipe-solver-consumer-root"'], 'Pipe Solver layout');
   requireTokens('src/workspace/application-shell-controller.js', ['createWorkspaceConsumerRegistryV4', 'createApplicationViewStateV4', 'PipeSolverConsumerController'], 'Application shell v4');
   requireTokens('e2e/w10.11-pipe-solver-consumer.spec.js', ['getPipeSolverReviewModel', 'analysis:requested', 'analysis:exportRequested', 'AnalysisWorkspace.destroy()'], 'Browser proof');
+}
+
+function retainFailure(rows) {
+  const directory = path.join(root, 'test-results');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'w10.11-source-guard-failure.json'), JSON.stringify({
+    selected,
+    errors: rows,
+  }, null, 2));
 }
 
 function addedJavaScript() { return changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file)); }
