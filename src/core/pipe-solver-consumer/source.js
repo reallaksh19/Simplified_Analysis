@@ -14,6 +14,7 @@ import {
   PIPE_SOLVER_SOURCE_SCHEMA,
 } from './constants.js';
 import { freezeEvidenceGraph } from './freeze-evidence.js';
+import { buildPipeSolverSourceIdentity } from './source-identity.js';
 
 export function createPipeSolverConsumerSource(input = {}) {
   const sourceContext = requireSourceContext(input.sourceContext);
@@ -42,7 +43,7 @@ export function createPipeSolverConsumerSource(input = {}) {
   return freezeEvidenceGraph({
     ...identity,
     sourceContext,
-    semanticHash: semanticHash(identity),
+    semanticHash: semanticHash(pipeSolverSourceIdentity(identity)),
   });
 }
 
@@ -264,8 +265,7 @@ function compareLedgerEntries(left, right) {
 }
 
 export function pipeSolverSourceIdentity(value) {
-  const { sourceContext: _sourceContext, semanticHash: _semanticHash, ...identity } = value || {};
-  return identity;
+  return buildPipeSolverSourceIdentity(value);
 }
 
 export function comparePipeSolverLedgerEntries(left, right) {
