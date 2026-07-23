@@ -13,6 +13,7 @@ import {
   PIPE_SOLVER_DIAGNOSTIC_CODES,
   PIPE_SOLVER_SOURCE_SCHEMA,
 } from './constants.js';
+import { freezeEvidenceGraph } from './freeze-evidence.js';
 
 export function createPipeSolverConsumerSource(input = {}) {
   const sourceContext = requireSourceContext(input.sourceContext);
@@ -38,7 +39,7 @@ export function createPipeSolverConsumerSource(input = {}) {
     activeMatchingLedgerEntryId: ledgerState.activeEntryId,
     diagnostics,
   };
-  return deepFreeze({
+  return freezeEvidenceGraph({
     ...identity,
     sourceContext,
     semanticHash: semanticHash(identity),
@@ -261,7 +262,6 @@ function diagnosticKey(row) {
 function compareLedgerEntries(left, right) {
   return left.sequence - right.sequence || String(left.entryId).localeCompare(String(right.entryId));
 }
-
 
 export function pipeSolverSourceIdentity(value) {
   const { sourceContext: _sourceContext, semanticHash: _semanticHash, ...identity } = value || {};
