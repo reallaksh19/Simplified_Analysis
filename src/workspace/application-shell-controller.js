@@ -14,6 +14,9 @@ import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
 import { PipeSolverConsumerController } from './pipe-solver-consumer-controller.js';
 import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
+// Closed compatibility factories remain exported and contract-tested:
+// createWorkspaceConsumerRegistryV2, createWorkspaceConsumerRegistryV3,
+// createApplicationViewStateV2 and createApplicationViewStateV3.
 const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
 
 export class ApplicationShellController {
