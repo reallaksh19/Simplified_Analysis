@@ -16,6 +16,7 @@ import { ModelLoadStore } from './model-load-store.js';
 import { ModelSupportLoadController } from './model-support-load-controller.js';
 import { ModelSupportLoadPanel } from './model-support-load-panel.js';
 import { assessModelSupportLoadReadiness } from './model-support-load-readiness.js';
+import { PipeSolverConsumerAdapter } from './pipe-solver-consumer-adapter.js';
 import { PropertiesPanel } from './properties-panel.js';
 import { ReportsConsumerController } from './reports-consumer-controller.js';
 import { SharedModelController } from './shared-model-controller.js';
@@ -41,15 +42,9 @@ import { WorkspaceState } from './workspace-state.js';
 export function bootstrapAnalysisWorkspace(rootElement) {
   if (!rootElement) throw new Error('Application root #root was not found.');
 
-  WorkspaceState.clearDataset();
-  AnalysisSessions.clear();
-  AnalysisLedger.clear();
-  TopologyStore.clear();
-  SupportRestraintStore.clear();
-  ModelLoadStore.clear();
-  SupportLoadScreeningStore.clear();
-  VerticalBeamStore.clear();
-  ModelCalculationStore.clear();
+  WorkspaceState.clearDataset(); AnalysisSessions.clear(); AnalysisLedger.clear();
+  TopologyStore.clear(); SupportRestraintStore.clear(); ModelLoadStore.clear();
+  SupportLoadScreeningStore.clear(); VerticalBeamStore.clear(); ModelCalculationStore.clear();
   renderWorkspaceLayout(rootElement);
 
   const capabilityRegistry = createDefaultAnalysisCapabilityRegistry();
@@ -136,10 +131,17 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     WorkspaceState,
   );
   const workspaceConsumerController = new WorkspaceConsumerController(EventBus);
+  const pipeSolverAdapter = new PipeSolverConsumerAdapter({
+    workspaceState: WorkspaceState,
+    capabilityRegistry,
+    sessionStore: AnalysisSessions,
+    ledgerStore: AnalysisLedger,
+  });
   const applicationShellController = new ApplicationShellController(
     rootElement,
     workspaceConsumerController,
     EventBus,
+    pipeSolverAdapter,
   );
   const reportsConsumerController = new ReportsConsumerController(
     rootElement.querySelector('[data-role="reports-consumer-root"]'),
@@ -250,6 +252,7 @@ export function bootstrapAnalysisWorkspace(rootElement) {
     activateApplicationView(viewId) { return applicationShellController.activate(viewId); },
     getLoadCalculationReviewModel() { return applicationShellController.getLoadCalculationReviewModel(); },
     getThreeDCalculationReviewModel() { return applicationShellController.getThreeDCalculationReviewModel(); },
+    getPipeSolverReviewModel() { return applicationShellController.getPipeSolverReviewModel(); },
     getModelSupportLoadReadiness() {
       const snapshot = WorkspaceState.getSnapshot();
       return snapshot.status === 'ready' && snapshot.dataset
