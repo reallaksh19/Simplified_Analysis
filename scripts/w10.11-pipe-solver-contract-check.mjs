@@ -5,6 +5,8 @@ import {
   assessPipeSolverActions,
   createPipeSolverConsumerSource,
   createPipeSolverReviewModel,
+  PIPE_SCREENING_METHOD_ID,
+  PIPE_SCREENING_RESULT_METHOD_BY_GEOMETRY,
   PIPE_SOLVER_ACTIONS,
   validatePipeSolverConsumerSource,
   validatePipeSolverReviewModel,
@@ -94,16 +96,24 @@ function checkSessionAndLedgerContainment() {
 }
 
 function checkResultContainment() {
-  const fixture = buildW1011Fixture({ sessionStatus: 'completed', result: forgedResult() });
-  const source = createPipeSolverConsumerSource(fixture);
-  const review = createPipeSolverReviewModel(source);
-  assert.equal(review.currentResult, null);
-  assert.equal(review.diagnostics.some((row) => row.code === 'PIPE_SOLVER_CURRENT_RESULT_INVALID'), true);
-  const validFixture = buildW1011Fixture({ sessionStatus: 'completed' });
-  const validSource = createPipeSolverConsumerSource(validFixture);
-  const validReview = createPipeSolverReviewModel(validSource);
-  assert.equal(validReview.currentResult, validFixture.sessionSnapshot.session.result);
-  assert.equal(validReview.sourceReferences.currentResult, validFixture.sessionSnapshot.session.result);
+  const forged = reviewFor({ sessionStatus: 'completed', result: forgedResult() });
+  assert.equal(forged.currentResult, null);
+  assert.equal(hasResultError(forged, 'semantic hash mismatch'), true);
+  const valid = reviewFor({ sessionStatus: 'completed' });
+  assert.equal(valid.capabilitySummary.methodId, PIPE_SCREENING_METHOD_ID);
+  assert.equal(valid.currentResult.methodId, PIPE_SCREENING_RESULT_METHOD_BY_GEOMETRY.L_SHAPE);
+  assert.equal(valid.currentResult.meta.geometryType, 'L_SHAPE');
+  assert.equal(valid.sourceReferences.currentResult, valid.sourceSnapshot.activeSession.result);
+  const mismatch = reviewFor({
+    sessionStatus: 'completed',
+    methodId: PIPE_SCREENING_RESULT_METHOD_BY_GEOMETRY.Z_SHAPE,
+    geometryType: 'L_SHAPE',
+  });
+  assert.equal(mismatch.currentResult, null);
+  assert.equal(hasResultError(mismatch, 'does not match meta.geometryType'), true);
+  const unknown = reviewFor({ sessionStatus: 'completed', methodId: 'SIMPLIFIED_2D_UNKNOWN' });
+  assert.equal(unknown.currentResult, null);
+  assert.equal(hasResultError(unknown, 'Unexpected Pipe Solver result method'), true);
 }
 
 function checkReviewModel() {
@@ -172,6 +182,13 @@ function checkVersionEvolution() {
   assert.equal(fallback.version, activated.state.version + 1);
 }
 
+function reviewFor(options) {
+  return createPipeSolverReviewModel(createPipeSolverConsumerSource(buildW1011Fixture(options)));
+}
+function hasResultError(review, message) {
+  return review.diagnostics.some((row) => row.code === 'PIPE_SOLVER_CURRENT_RESULT_INVALID'
+    && row.data.errors.some((error) => error.includes(message)));
+}
 function retainFailure(concern, error) {
   const directory = path.join(process.cwd(), 'test-results');
   fs.mkdirSync(directory, { recursive: true });
