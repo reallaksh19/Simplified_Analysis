@@ -16,12 +16,12 @@ export {
 } from './constants.js';
 export { assessPipeSolverActions } from './actions.js';
 export { createPipeSolverReviewModel, validatePipeSolverReviewModel } from './model.js';
+export { validatePipeScreeningResult } from './result-evidence.js';
 export {
   canonicalPipeSolverDiagnostics,
   comparePipeSolverLedgerEntries,
   createPipeSolverConsumerSource,
   isMatchingPipeSolverSession,
   pipeSolverSourceIdentity,
-  validatePipeScreeningResult,
 } from './source.js';
 export { validatePipeSolverConsumerSource } from './source-validation.js';
