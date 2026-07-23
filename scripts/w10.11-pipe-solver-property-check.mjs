@@ -112,7 +112,7 @@ function source(fixture) { return createPipeSolverConsumerSource(fixture); }
 function review(sourceValue) { return createPipeSolverReviewModel(sourceValue); }
 function diagnosticKeys(rows) { return rows.map((row) => `${row.code}\0${row.message}`); }
 function orderKey(row) { return `${String(row.sequence).padStart(8, '0')}\0${row.entryId}`; }
-function sorted(rows) { return [...rows].sort(); }
+function sorted(rows) { return [...rows].sort((left, right) => left.localeCompare(right)); }
 function identityPayload(value) {
   const { sourceSnapshot: _source, sourceReferences: _references, reviewModelId: _id, semanticHash: _hash, ...rest } = value;
   return rest;
