@@ -8,6 +8,10 @@ import {
   PIPE_SOLVER_LIMITATIONS,
   PIPE_SOLVER_REVIEW_MODEL_SCHEMA,
 } from './constants.js';
+import {
+  projectSessionReadiness,
+  projectWorkspaceReadiness,
+} from './session-evidence.js';
 import { validatePipeScreeningResult } from './source.js';
 import { validatePipeSolverConsumerSource } from './source-validation.js';
 
@@ -182,8 +186,8 @@ function projectSession(session) {
     targetId: session.targetId,
     requestId: session.requestId || null,
     fieldErrorCount: Object.keys(session.fieldErrors || {}).length,
-    readiness: session.readiness,
-    workspaceReadiness: session.workspaceReadiness,
+    readiness: projectSessionReadiness(session.readiness),
+    workspaceReadiness: projectWorkspaceReadiness(session.workspaceReadiness),
     failure: session.status === 'failed' ? session.failure : null,
   });
 }
