@@ -30,7 +30,10 @@ function checkDiagnosticOrderInvariance() {
   const normal = source(buildW1011Fixture({ missing: ['alpha', 'Sa'] }));
   const reversed = source(buildW1011Fixture({ missing: ['alpha', 'Sa'], reverseDiagnostics: true }));
   assert.equal(normal.semanticHash, reversed.semanticHash);
-  assert.equal(review(normal).semanticHash, review(reversed).semanticHash);
+  const normalReview = review(normal);
+  const reversedReview = review(reversed);
+  if (normalReview.semanticHash !== reversedReview.semanticHash) retainDifference(normalReview, reversedReview);
+  assert.equal(normalReview.semanticHash, reversedReview.semanticHash);
   assert.deepEqual(diagnosticKeys(normal.capability.diagnostics), sorted(diagnosticKeys(normal.capability.diagnostics)));
 }
 
@@ -83,15 +86,26 @@ function checkExactReferences() {
   assert.equal(reviewValue.sourceReferences.matchingLedgerEntries, sourceValue.matchingLedgerEntries);
 }
 
+function retainDifference(normal, reversed) {
+  writeDiagnostic('w10.11-diagnostic-order-diff.json', {
+    normal: identityPayload(normal),
+    reversed: identityPayload(reversed),
+  });
+}
+
 function retainFailure(error) {
-  const directory = path.join(process.cwd(), 'test-results');
-  fs.mkdirSync(directory, { recursive: true });
-  fs.writeFileSync(path.join(directory, 'w10.11-property-failure.json'), JSON.stringify({
+  writeDiagnostic('w10.11-property-failure.json', {
     seed: SEED,
     name: error?.name || 'Error',
     message: error?.message || String(error),
     stack: error?.stack || null,
-  }, null, 2));
+  });
+}
+
+function writeDiagnostic(fileName, value) {
+  const directory = path.join(process.cwd(), 'test-results');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, fileName), JSON.stringify(value, null, 2));
 }
 
 function source(fixture) { return createPipeSolverConsumerSource(fixture); }
@@ -99,6 +113,10 @@ function review(sourceValue) { return createPipeSolverReviewModel(sourceValue); 
 function diagnosticKeys(rows) { return rows.map((row) => `${row.code}\0${row.message}`); }
 function orderKey(row) { return `${String(row.sequence).padStart(8, '0')}\0${row.entryId}`; }
 function sorted(rows) { return [...rows].sort(); }
+function identityPayload(value) {
+  const { sourceSnapshot: _source, sourceReferences: _references, reviewModelId: _id, semanticHash: _hash, ...rest } = value;
+  return rest;
+}
 function payload(value) {
   const { sourceSnapshot: _source, sourceReferences: _references, ...rest } = value;
   return rest;
