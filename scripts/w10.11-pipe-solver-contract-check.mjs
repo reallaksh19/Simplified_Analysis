@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   assessPipeSolverActions,
   createPipeSolverConsumerSource,
@@ -43,7 +45,12 @@ console.log(`✅ W10.11 Pipe Solver contracts · ${selected} passed.\n`);
 
 function run(name, check) {
   console.log(`Running W10.11 contract concern: ${name}`);
-  check();
+  try {
+    check();
+  } catch (error) {
+    retainFailure(name, error);
+    throw error;
+  }
 }
 
 function checkSourceContract() {
@@ -163,6 +170,17 @@ function checkVersionEvolution() {
   const fallback = refreshApplicationViewStateV4(activated.state, blockedReadiness);
   assert.equal(fallback.activeViewId, 'WORKSPACE');
   assert.equal(fallback.version, activated.state.version + 1);
+}
+
+function retainFailure(concern, error) {
+  const directory = path.join(process.cwd(), 'test-results');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'w10.11-contract-failure.json'), JSON.stringify({
+    concern,
+    name: error?.name || 'Error',
+    message: error?.message || String(error),
+    stack: error?.stack || null,
+  }, null, 2));
 }
 
 function descriptor(registry, id) { return registry.consumers.find((row) => row.consumerId === id); }
