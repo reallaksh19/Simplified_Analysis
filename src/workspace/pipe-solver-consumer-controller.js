@@ -19,7 +19,8 @@ export class PipeSolverConsumerController {
     this.sourceAdapter = sourceAdapter;
     this.eventBus = eventBus;
     this.context = consumerController?.getContext() || null;
-    this.reviewModel = this.buildModel();
+    this.reviewModel = null;
+    this.modelDirty = true;
     this.status = {};
     this.active = false;
     this.unsubscribeCallbacks = [];
@@ -42,14 +43,15 @@ export class PipeSolverConsumerController {
 
   handleContext(context) {
     this.context = context;
-    this.reviewModel = this.buildModel();
-    this.render();
+    this.markModelDirty();
+    if (this.active) this.refreshActiveView();
   }
 
   handleViewState(state) {
     const active = state?.activeViewId === 'PIPE_SOLVER';
     if (this.active === active) return;
     this.active = active;
+    if (active) this.ensureModel();
     this.render();
   }
 
@@ -65,8 +67,8 @@ export class PipeSolverConsumerController {
 
   refresh() {
     this.context = this.consumerController?.getContext() || this.context;
-    this.reviewModel = this.buildModel();
-    this.render();
+    this.markModelDirty();
+    if (this.active) this.refreshActiveView();
   }
 
   publish(action, request = {}) {
@@ -96,6 +98,7 @@ export class PipeSolverConsumerController {
   }
 
   getReviewModel() {
+    this.ensureModel();
     return validatePipeSolverReviewModel(this.reviewModel).ok ? this.reviewModel : null;
   }
 
@@ -110,7 +113,24 @@ export class PipeSolverConsumerController {
 
   refreshModelOnly() {
     this.context = this.consumerController?.getContext() || this.context;
+    this.markModelDirty();
+    this.ensureModel();
+  }
+
+  markModelDirty() {
+    this.modelDirty = true;
+  }
+
+  ensureModel() {
+    if (!this.modelDirty) return this.reviewModel;
     this.reviewModel = this.buildModel();
+    this.modelDirty = false;
+    return this.reviewModel;
+  }
+
+  refreshActiveView() {
+    this.ensureModel();
+    this.render();
   }
 
   destroy() {
@@ -121,6 +141,7 @@ export class PipeSolverConsumerController {
     this.sourceAdapter = null;
     this.context = null;
     this.reviewModel = null;
+    this.modelDirty = true;
     this.status = {};
     this.active = false;
   }
