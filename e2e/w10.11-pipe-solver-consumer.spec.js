@@ -29,8 +29,12 @@ test('adopts existing pipe-screening, delegates events, and exports the current 
   await page.getByRole('button', { name: 'Run Reviewed Pipe Screening' }).click();
   await expect(page.locator('[data-role="pipe-solver-result"]')).toContainText('CALCULATED');
   const model = await page.evaluate(() => AnalysisWorkspace.getPipeSolverReviewModel());
+  expect(model.capabilitySummary.methodId).toBe('SIMPLIFIED_2D_TOPOLOGY_SCREENING');
   expect(model.currentResult.engineeringLevel).toBe('BENCHMARKED_SCREENING');
-  expect(model.currentResult.methodId).toBe('SIMPLIFIED_2D_TOPOLOGY_SCREENING');
+  expect(model.currentResult.methodId).toBe('SIMPLIFIED_2D_L_SHAPE');
+  expect(model.currentResult.meta.geometryType).toBe('L_SHAPE');
+  await expect(page.locator('[data-role="pipe-solver-capability"]')).toContainText('SIMPLIFIED_2D_TOPOLOGY_SCREENING');
+  await expect(page.locator('[data-role="pipe-solver-result"]')).toContainText('SIMPLIFIED_2D_L_SHAPE');
   await expect(page.locator('[data-role="pipe-solver-ledger"]')).toContainText('analysis-ledger-entry-1');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
