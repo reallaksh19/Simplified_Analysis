@@ -12,6 +12,8 @@ export function projectWorkspaceReadiness(value) {
   return deepFreeze({
     schema: value.schema,
     analysisType: value.analysisType,
+    label: value.label,
+    description: value.description,
     targetId: value.targetId,
     datasetId: value.datasetId,
     solverId: value.solverId,
@@ -19,15 +21,19 @@ export function projectWorkspaceReadiness(value) {
     methodId: value.methodId,
     methodVersion: value.methodVersion,
     engineeringLevel: value.engineeringLevel,
+    codeBasis: canonicalStrings(value.codeBasis),
     applicable: value.applicable,
+    applicabilityReason: value.applicabilityReason,
     qualificationStatus: value.qualificationStatus,
-    readyToReview: value.readyToReview,
-    readyToRun: value.readyToRun,
+    requiredInputs: canonicalEvidence(value.requiredInputs),
+    resolvedInputs: canonicalEvidence(value.resolvedInputs),
     missingInputs: canonicalEvidence(value.missingInputs),
     invalidInputs: canonicalEvidence(value.invalidInputs),
+    assumptions: canonicalStrings(value.assumptions),
+    limitations: canonicalStrings(value.limitations),
     diagnostics: canonicalEvidence(value.diagnostics),
-    assumptions: value.assumptions,
-    limitations: value.limitations,
+    readyToReview: value.readyToReview,
+    readyToRun: value.readyToRun,
   });
 }
 
