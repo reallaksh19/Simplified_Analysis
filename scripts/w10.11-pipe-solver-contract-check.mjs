@@ -49,7 +49,7 @@ function run(name, check) {
 function checkSourceContract() {
   const fixture = buildW1011Fixture();
   const source = createPipeSolverConsumerSource(fixture);
-  assert.equal(validatePipeSolverConsumerSource(source).ok, true);
+  assert.deepEqual(validatePipeSolverConsumerSource(source), { ok: true, errors: [] });
   assert.equal(source.sourceContext, fixture.sourceContext);
   assert.equal(source.selectedEntity.sourceAttributes, fixture.selectedEntity.properties.sourceAttributes);
   assert.equal(source.selectedEntity.nativeParams, fixture.selectedEntity.properties.nativeParams);
@@ -63,6 +63,9 @@ function checkSourceContract() {
   assertDeepFrozen(source);
   const noSelectionFixture = buildW1011Fixture({ selectedEntityId: null, noSession: true, entries: [] });
   const noSelection = createPipeSolverConsumerSource(noSelectionFixture);
+  assert.equal(noSelection.sourceContext.selectedEntityId, null);
+  assert.equal(noSelection.selectedEntityId, null);
+  assert.deepEqual(validatePipeSolverConsumerSource(noSelection), { ok: true, errors: [] });
   assert.equal(noSelection.selectedEntity, null);
   assert.equal(noSelection.capability.readyToReview, false);
   assert.equal(noSelection.diagnostics.some((row) => row.code === 'PIPE_SOLVER_NO_SELECTION'), true);
