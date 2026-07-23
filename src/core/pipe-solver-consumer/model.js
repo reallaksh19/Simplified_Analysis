@@ -8,11 +8,11 @@ import {
   PIPE_SOLVER_LIMITATIONS,
   PIPE_SOLVER_REVIEW_MODEL_SCHEMA,
 } from './constants.js';
+import { validatePipeScreeningResult } from './result-evidence.js';
 import {
   projectSessionReadiness,
   projectWorkspaceReadiness,
 } from './session-evidence.js';
-import { validatePipeScreeningResult } from './source.js';
 import { validatePipeSolverConsumerSource } from './source-validation.js';
 
 export function createPipeSolverReviewModel(source) {
