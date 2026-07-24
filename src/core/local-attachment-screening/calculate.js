@@ -11,8 +11,11 @@ import { buildEnvelopes } from './envelopes.js';
 import { attachResultHashes, reconstructScreeningResultHashes } from './result-hashes.js';
 
 export function calculateLocalAttachmentScreening(input) {
-  try { const request=validateLocalAttachmentScreeningRequest(input); return acceptedResult(request); }
-  catch(error){return rejectedResult(input,normalizeError(error));}
+  let request;
+  try { request=validateLocalAttachmentScreeningRequest(input); }
+  catch(error){return rejectedResult(input,normalizeError(error,QUALIFICATION_STATES.REJECTED_REQUEST,'INVALID_SCREENING_REQUEST'));}
+  try { return acceptedResult(request); }
+  catch(error){return rejectedResult(input,normalizeError(error,QUALIFICATION_STATES.NUMERICAL_FAILURE,'UNEXPECTED_NUMERICAL_FAILURE'));}
 }
 export { reconstructScreeningResultHashes };
 function acceptedResult(request) {
@@ -57,16 +60,17 @@ function resultLimitations(request,points) {
 }
 function rejectedResult(input,diagnostic) {
   const base={
-    schema:RESULT_SCHEMA,requestIdentity:safeString(input?.requestIdentity),requestVersion:safeString(input?.requestVersion),
-    sourceEvidence:null,screeningRequestSemanticHash:safeString(input?.semanticHash),
-    qualification:{state:diagnostic.state,engineeringLevel:ENGINEERING_LEVEL,qualificationProfile:safeProfile(input?.qualificationProfile)},
+    schema:RESULT_SCHEMA,requestIdentity:safeString(safeValue(input,'requestIdentity')),requestVersion:safeString(safeValue(input,'requestVersion')),
+    sourceEvidence:null,screeningRequestSemanticHash:safeString(safeValue(input,'semanticHash')),
+    qualification:{state:diagnostic.state,engineeringLevel:ENGINEERING_LEVEL,qualificationProfile:safeProfile(safeValue(input,'qualificationProfile'))},
     formulaTrace:[],diagnostics:[diagnostic],limitations:[...BASE_LIMITATIONS,'NO_AUTHORITATIVE_SECTION_OR_STRESS_EVIDENCE'].sort(),
   };
   return deepFreeze(attachResultHashes(base,null));
 }
-function normalizeError(error) {
+function normalizeError(error,fallbackState,fallbackCode) {
   if(error instanceof ScreeningError)return {state:error.state,code:error.code,path:error.path,message:error.message};
-  return {state:QUALIFICATION_STATES.NUMERICAL_FAILURE,code:'UNEXPECTED_NUMERICAL_FAILURE',path:'calculation',message:error instanceof Error?error.message:'Unknown numerical failure.'};
+  return {state:fallbackState,code:fallbackCode,path:'calculation',message:error instanceof Error?error.message:'Unknown screening failure.'};
 }
+function safeValue(value,key){try{return value&&typeof value==='object'?value[key]:undefined;}catch{return undefined;}}
 function safeString(value){return typeof value==='string'&&value.trim()?value.trim():null;}
-function safeProfile(value){return value&&typeof value==='object'?{schema:safeString(value.schema),identity:safeString(value.identity)}:null;}
+function safeProfile(value){return value&&typeof value==='object'?{schema:safeString(safeValue(value,'schema')),identity:safeString(safeValue(value,'identity'))}:null;}
