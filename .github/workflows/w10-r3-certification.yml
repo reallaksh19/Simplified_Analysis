@@ -36,7 +36,15 @@ jobs:
       - run: npm ci
       - name: Install Chromium
         run: npx playwright install chromium --with-deps
-      - name: Run W10.R3 Settings Authority checks
+      - name: Certify W10.R3 contracts
+        run: npm run check:w10.r3:contracts
+      - name: Certify W10.R3 deterministic properties
+        run: npm run check:w10.r3:properties
+      - name: Certify W10.R3 source and registration boundaries
+        run: npm run check:w10.r3:source
+      - name: Certify W10.R3 browser workflow
+        run: npm run check:w10.r3:browser
+      - name: Run combined W10.R3 certification command
         run: npm run check:w10.r3
       - name: Run full repository checks
         run: npm run check:full
