@@ -20,12 +20,14 @@ const SUPPORT_PACKAGE = {
 
 test('publishes selection without left-panel coupling and detaches on destroy', async ({ page }) => {
   await page.goto('/');
+  const navigation = page.getByRole('navigation', { name: 'Application views' });
+  await expect(navigation).toHaveCount(1);
+  await navigation.getByRole('button', { name: 'Workspace', exact: true }).click();
 
   await expect(page.locator('.workspace-shell')).toBeVisible();
   await expect(page.locator('[data-panel="tree"]')).toHaveCount(1);
   await expect(page.locator('[data-panel="viewport"]')).toHaveCount(1);
   await expect(page.locator('[data-panel="properties"]')).toHaveCount(1);
-  await expect(page.locator('nav')).toHaveCount(0);
 
   await page.evaluate(() => {
     EventBus.publish('viewport:entitySelected', {
