@@ -14,7 +14,7 @@ const allowed = Object.freeze([
   /^scripts\/w10\.r2-[^/]+\.mjs$/,
   /^scripts\/w10\.(?:9-load-calculation|10-three-d-calculation|11-pipe-solver)-source-guard\.mjs$/,
   /^e2e\/w10\.r2-[^/]+\.spec\.js$/,
-  /^e2e\/w10\.8-workspace-consumers\.spec\.js$/,
+  /^e2e\/w10\.(?:8-workspace-consumers|9-load-calc-consumer|10-three-d-calc-consumer|11-pipe-solver-consumer)\.spec\.js$/,
   /^\.github\/workflows\/w10-r2-certification\.yml$/,
 ]);
 
