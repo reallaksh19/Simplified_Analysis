@@ -97,6 +97,8 @@ jobs:
 
       - name: Certify W10.11 guarded Pipe Solver contracts and boundaries
         run: npm run check:w10.11:static
+      - name: Certify LFEA-001 core continuum foundation
+        run: npm run check:lfea.001
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
