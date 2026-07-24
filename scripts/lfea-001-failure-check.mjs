@@ -12,6 +12,10 @@ const thickness=baseModel(); thickness.elements[0].thickness=0; rejected(thickne
 const ancestry=baseModel(); ancestry.elements[0].sourceSemanticHash='stale'; rejected(ancestry);
 const duplicate=baseModel(); duplicate.nodes.push(clone(duplicate.nodes[0])); rejected(duplicate);
 const nonfinite=baseModel(); nonfinite.nodes[0].x=Number.NaN; rejected(nonfinite);
+const numericString=baseModel(); numericString.nodes[0].x='0'; rejected(numericString);
+const profileString=baseModel(); profileString.solverProfile.tolerances.geometryArea='1e-12'; rejected(profileString);
 const unsupported=baseModel(); unsupported.elements[0].type='Q4'; rejected(unsupported);
+const multipleCases=baseModel(); multipleCases.loadCases.push({loadCaseId:'LC2',nodalForces:[],edgeLoads:[]}); rejected(multipleCases);
+assert.equal(solveContinuumModel(multipleCases,'LC2').status,'QUALIFIED');
 const internal=baseModel(); internal.nodes.push({nodeId:'N4',x:1,y:1,sourceSemanticHash:internal.sourceSemanticHash}); internal.elements.push({elementId:'E2',type:'T3',nodeIds:['N2','N4','N3'],materialId:'MAT1',thickness:1,sourceSemanticHash:internal.sourceSemanticHash}); internal.loadCases[0].edgeLoads=[{loadId:'T1',elementId:'E1',edgeNodeIds:['N2','N3'],type:'TRACTION',tx:1,ty:0}]; rejected(internal);
 console.log('LFEA-001 fail-closed fixtures passed.');
