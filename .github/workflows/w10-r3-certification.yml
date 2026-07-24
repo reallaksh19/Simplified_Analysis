@@ -40,8 +40,10 @@ jobs:
         run: npm run check:w10.r3:contracts
       - name: Certify W10.R3 deterministic properties
         run: npm run check:w10.r3:properties
-      - name: Certify W10.R3 source and registration boundaries
-        run: npm run check:w10.r3:source
+      - name: Certify W10.R3 source boundaries
+        run: node scripts/w10.r3-settings-source-guard.mjs
+      - name: Certify W10.R3 registration
+        run: node scripts/w10.r3-registration-check.mjs
       - name: Certify W10.R3 browser workflow
         run: npm run check:w10.r3:browser
       - name: Run combined W10.R3 certification command
