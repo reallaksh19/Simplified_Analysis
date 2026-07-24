@@ -39,12 +39,14 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Preserve LFEA-001 behavioral qualification
-        run: |
-          node scripts/lfea-001-contract-check.mjs
-          node scripts/lfea-001-numerical-check.mjs
-          node scripts/lfea-001-failure-check.mjs
-          node scripts/lfea-001-determinism-check.mjs
+      - name: Preserve LFEA-001 contract behavior
+        run: node scripts/lfea-001-contract-check.mjs
+      - name: Preserve LFEA-001 numerical behavior
+        run: node scripts/lfea-001-numerical-check.mjs
+      - name: Preserve LFEA-001 failure behavior
+        run: node scripts/lfea-001-failure-check.mjs
+      - name: Preserve LFEA-001 determinism behavior
+        run: node scripts/lfea-001-determinism-check.mjs
       - name: Preserve LFEA-002 behavioral qualification
         run: |
           node scripts/lfea-002-contract-check.mjs
