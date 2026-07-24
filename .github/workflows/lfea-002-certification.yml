@@ -27,8 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout exact authorized implementation head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
