@@ -1,4 +1,4 @@
-import { deepFreeze, finiteNumber, stringValue } from '../shared-piping-model/index.js';
+import { deepFreeze } from '../shared-piping-model/index.js';
 import {
   BACKEND_ID,
   DOF_ORDER,
@@ -9,7 +9,7 @@ import {
 } from './constants.js';
 
 export function createLfeaProfile(input) {
-  const source = input && typeof input === 'object' ? input : {};
+  const source = requiredRecord(input, 'profile');
   const formulation = source.formulation;
   if (!Object.values(FORMULATIONS).includes(formulation)) throw new TypeError('LFEA formulation is invalid.');
   const profile = {
@@ -17,7 +17,7 @@ export function createLfeaProfile(input) {
     profileIdentity: requiredText(source.profileIdentity, 'profileIdentity'),
     profileVersion: requiredText(source.profileVersion, 'profileVersion'),
     formulation,
-    units: requiredRecord(source.units, 'units'),
+    units: normalizeUnits(source.units),
     coordinateConvention: requiredText(source.coordinateConvention, 'coordinateConvention'),
     dofOrder: [...DOF_ORDER],
     stressVectorOrder: [...STRESS_ORDER],
@@ -50,6 +50,14 @@ export function validateLfeaProfile(value) {
   catch (error) { return deepFreeze({ ok: false, profile: null, errors: [error.message] }); }
 }
 
+function normalizeUnits(value) {
+  const row = requiredRecord(value, 'units');
+  return {
+    length: requiredText(row.length, 'units.length'),
+    force: requiredText(row.force, 'units.force'),
+    stress: requiredText(row.stress, 'units.stress'),
+  };
+}
 function tolerances(value) {
   const row = requiredRecord(value, 'tolerances');
   return {
@@ -62,9 +70,10 @@ function tolerances(value) {
     momentEquilibriumAbsolute: positive(row.momentEquilibriumAbsolute, 'tolerances.momentEquilibriumAbsolute'),
   };
 }
-function requiredText(value, name) { const text = stringValue(value); if (!text) throw new TypeError(`${name} is required.`); return text; }
+function requiredText(value, name) { if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${name} is required.`); return value.trim(); }
 function requiredRecord(value, name) { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${name} is required.`); return value; }
-function positive(value, name) { const number = finiteNumber(value); if (!(number > 0)) throw new TypeError(`${name} must be positive.`); return number; }
+function finite(value, name) { if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError(`${name} must be finite.`); return value; }
+function positive(value, name) { const number = finite(value, name); if (!(number > 0)) throw new TypeError(`${name} must be positive.`); return number; }
 function positiveInteger(value, name) { const number = positive(value, name); if (!Number.isInteger(number)) throw new TypeError(`${name} must be an integer.`); return number; }
-function textArray(value, name) { if (!Array.isArray(value) || value.some((item) => !stringValue(item))) throw new TypeError(`${name} must contain text.`); return value.map(stringValue).sort(compare); }
+function textArray(value, name) { if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || !item.trim())) throw new TypeError(`${name} must contain text.`); return value.map((item) => item.trim()).sort(compare); }
 function compare(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
