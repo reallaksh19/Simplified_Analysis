@@ -11,6 +11,10 @@ const ALLOWED = Object.freeze([
   /^scripts\/w10\.11-[^/]+\.mjs$/,
   /^e2e\/w10\.11-[^/]+\.spec\.js$/,
   /^docs\/pipe-solver-consumer\//,
+  /^src\/core\/local-stress\//,
+  /^src\/workspace\/local-stress-consumer-[^/]+\.js$/,
+  /^scripts\/local-stress-[^/]+\.mjs$/,
+  /^docs\/local-stress\//,
   /^src\/core\/workspace-consumers\/(?:constants|registry|view-state|event-contracts|index)\.js$/,
   /^src\/workspace\/(?:application-shell-controller|bootstrap|workspace-layout|event-topics)\.js$/,
   /^src\/workspace\/workspace\.css$/,
@@ -128,7 +132,7 @@ function checkContracts() {
 function checkIntegration() {
   requireTokens('src/workspace/bootstrap.js', ['getPipeSolverReviewModel', 'PipeSolverConsumerAdapter'], 'Bootstrap API');
   requireTokens('src/workspace/workspace-layout.js', ['data-application-view="PIPE_SOLVER"', 'data-role="pipe-solver-consumer-root"'], 'Pipe Solver layout');
-  requireTokens('src/workspace/application-shell-controller.js', ['createWorkspaceConsumerRegistryV4', 'createApplicationViewStateV4', 'PipeSolverConsumerController'], 'Application shell v4');
+  requireTokens('src/workspace/application-shell-controller.js', ['createWorkspaceConsumerRegistryV5', 'createApplicationViewStateV4', 'PipeSolverConsumerController'], 'Application shell v4 compatibility');
   requireTokens('e2e/w10.11-pipe-solver-consumer.spec.js', ['getPipeSolverReviewModel', 'analysis:requested', 'analysis:exportRequested', 'AnalysisWorkspace.destroy()'], 'Browser proof');
 }
 
