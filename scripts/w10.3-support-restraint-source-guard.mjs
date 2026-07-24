@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const selected = process.argv[2] || 'all';
 const sharedEvidenceFiles = ['src/core/shared-piping-model/support-evidence.js'];
 const runtimeFiles = [
   ...walk('src/core/support-restraints'),
@@ -20,15 +21,21 @@ const missionFiles = [
 ];
 
 console.log('\n--- W10.3 Support/Restraint Source Guards ---');
-missionFiles.forEach(checkSizeAndExports);
-runtimeFiles.forEach(checkDeterminism);
-walk('src/core/support-restraints').forEach(checkCoreBoundary);
-checkSharedModelDependencyDirection();
-checkSpatialAlgorithm();
-checkRequiredExports();
-checkChangedPaths();
-checkDependencyParity();
-console.log(`✅ ${missionFiles.length} W10.3 files pass scope, size, dependency, and determinism guards.`);
+if (selected === 'paths') {
+  checkChangedPaths();
+  checkDependencyParity();
+} else if (selected === 'all') {
+  missionFiles.forEach(checkSizeAndExports);
+  runtimeFiles.forEach(checkDeterminism);
+  walk('src/core/support-restraints').forEach(checkCoreBoundary);
+  checkSharedModelDependencyDirection();
+  checkSpatialAlgorithm();
+  checkRequiredExports();
+  checkDependencyParity();
+} else {
+  throw new TypeError(`Unknown W10.3 source-guard check: ${selected}.`);
+}
+console.log(`✅ ${missionFiles.length} W10.3 files pass ${selected} scope, size, dependency, and determinism guards.`);
 
 function walk(relativeDir) {
   const absolute = path.join(root, relativeDir);
