@@ -4,32 +4,39 @@ import {
   APPLICATION_VIEW_IDS_V2,
   APPLICATION_VIEW_IDS_V3,
   APPLICATION_VIEW_IDS_V4,
+  APPLICATION_VIEW_IDS_V5,
   APPLICATION_VIEW_STATE_SCHEMA,
   APPLICATION_VIEW_STATE_V2_SCHEMA,
   APPLICATION_VIEW_STATE_V3_SCHEMA,
   APPLICATION_VIEW_STATE_V4_SCHEMA,
+  APPLICATION_VIEW_STATE_V5_SCHEMA,
   CONSUMER_IDS,
   READINESS_STATES,
 } from './constants.js';
 import { validateWorkspaceConsumerReadinessShape } from './readiness.js';
 
-export function createApplicationViewState(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_SCHEMA, APPLICATION_VIEW_IDS, readinessRecords, options); }
-export function createApplicationViewStateV2(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V2_SCHEMA, APPLICATION_VIEW_IDS_V2, readinessRecords, options); }
-export function createApplicationViewStateV3(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V3_SCHEMA, APPLICATION_VIEW_IDS_V3, readinessRecords, options); }
-export function createApplicationViewStateV4(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V4_SCHEMA, APPLICATION_VIEW_IDS_V4, readinessRecords, options); }
+export function createApplicationViewState(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_SCHEMA, APPLICATION_VIEW_IDS, CONSUMER_IDS.WORKSPACE, readinessRecords, options); }
+export function createApplicationViewStateV2(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V2_SCHEMA, APPLICATION_VIEW_IDS_V2, CONSUMER_IDS.WORKSPACE, readinessRecords, options); }
+export function createApplicationViewStateV3(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V3_SCHEMA, APPLICATION_VIEW_IDS_V3, CONSUMER_IDS.WORKSPACE, readinessRecords, options); }
+export function createApplicationViewStateV4(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V4_SCHEMA, APPLICATION_VIEW_IDS_V4, CONSUMER_IDS.WORKSPACE, readinessRecords, options); }
+export function createApplicationViewStateV5(readinessRecords = [], options = {}) { return createState(APPLICATION_VIEW_STATE_V5_SCHEMA, APPLICATION_VIEW_IDS_V5, CONSUMER_IDS.HOME, readinessRecords, options); }
 export function transitionApplicationViewState(current, requestedViewId, readinessRecords) { return transitionState(APPLICATION_VIEW_IDS, createApplicationViewState, current, requestedViewId, readinessRecords); }
 export function transitionApplicationViewStateV2(current, requestedViewId, readinessRecords) { return transitionState(APPLICATION_VIEW_IDS_V2, createApplicationViewStateV2, current, requestedViewId, readinessRecords); }
 export function transitionApplicationViewStateV3(current, requestedViewId, readinessRecords) { return transitionState(APPLICATION_VIEW_IDS_V3, createApplicationViewStateV3, current, requestedViewId, readinessRecords); }
 export function transitionApplicationViewStateV4(current, requestedViewId, readinessRecords) { return transitionState(APPLICATION_VIEW_IDS_V4, createApplicationViewStateV4, current, requestedViewId, readinessRecords); }
+export function transitionApplicationViewStateV5(current, requestedViewId, readinessRecords) { return transitionState(APPLICATION_VIEW_IDS_V5, createApplicationViewStateV5, current, requestedViewId, readinessRecords); }
 export function refreshApplicationViewState(current, readinessRecords) { return refreshState(createApplicationViewState, current, readinessRecords); }
 export function refreshApplicationViewStateV2(current, readinessRecords) { return refreshState(createApplicationViewStateV2, current, readinessRecords); }
 export function refreshApplicationViewStateV3(current, readinessRecords) { return refreshState(createApplicationViewStateV3, current, readinessRecords); }
 export function refreshApplicationViewStateV4(current, readinessRecords) { return refreshState(createApplicationViewStateV4, current, readinessRecords); }
+export function refreshApplicationViewStateV5(current, readinessRecords) { return refreshState(createApplicationViewStateV5, current, readinessRecords); }
 export function validateApplicationViewState(value) { return validateState(value, APPLICATION_VIEW_STATE_SCHEMA, APPLICATION_VIEW_IDS); }
 export function validateApplicationViewStateV2(value) { return validateState(value, APPLICATION_VIEW_STATE_V2_SCHEMA, APPLICATION_VIEW_IDS_V2); }
 export function validateApplicationViewStateV3(value) { return validateState(value, APPLICATION_VIEW_STATE_V3_SCHEMA, APPLICATION_VIEW_IDS_V3); }
 export function validateApplicationViewStateV4(value) { return validateState(value, APPLICATION_VIEW_STATE_V4_SCHEMA, APPLICATION_VIEW_IDS_V4); }
+export function validateApplicationViewStateV5(value) { return validateState(value, APPLICATION_VIEW_STATE_V5_SCHEMA, APPLICATION_VIEW_IDS_V5); }
 export function validateApplicationViewStateAny(value) {
+  if (value?.schema === APPLICATION_VIEW_STATE_V5_SCHEMA) return validateApplicationViewStateV5(value);
   if (value?.schema === APPLICATION_VIEW_STATE_V4_SCHEMA) return validateApplicationViewStateV4(value);
   if (value?.schema === APPLICATION_VIEW_STATE_V3_SCHEMA) return validateApplicationViewStateV3(value);
   if (value?.schema === APPLICATION_VIEW_STATE_V2_SCHEMA) return validateApplicationViewStateV2(value);
@@ -39,13 +46,15 @@ export function assertApplicationViewId(viewId) { assertViewId(viewId, APPLICATI
 export function assertApplicationViewIdV2(viewId) { assertViewId(viewId, APPLICATION_VIEW_IDS_V2); }
 export function assertApplicationViewIdV3(viewId) { assertViewId(viewId, APPLICATION_VIEW_IDS_V3); }
 export function assertApplicationViewIdV4(viewId) { assertViewId(viewId, APPLICATION_VIEW_IDS_V4); }
+export function assertApplicationViewIdV5(viewId) { assertViewId(viewId, APPLICATION_VIEW_IDS_V5); }
 
-function createState(schema, viewIds, readinessRecords, options) {
+function createState(schema, viewIds, defaultViewId, readinessRecords, options) {
   const readiness = normalizeReadiness(readinessRecords, viewIds);
   const availableViewIds = viewIds.filter((id) => readiness[id]?.readinessState === READINESS_STATES.AVAILABLE);
   if (!availableViewIds.includes(CONSUMER_IDS.WORKSPACE)) throw new TypeError('Workspace view must be available.');
-  const requested = options.activeViewId || CONSUMER_IDS.WORKSPACE;
-  const activeViewId = availableViewIds.includes(requested) ? requested : CONSUMER_IDS.WORKSPACE;
+  if (!availableViewIds.includes(defaultViewId)) throw new TypeError(`${defaultViewId} view must be available.`);
+  const requested = options.activeViewId || defaultViewId;
+  const activeViewId = availableViewIds.includes(requested) ? requested : defaultViewId;
   const version = Number.isInteger(options.version) && options.version >= 0 ? options.version : 0;
   return deepFreeze({ schema, activeViewId, availableViewIds, viewReadiness: readiness, version });
 }
