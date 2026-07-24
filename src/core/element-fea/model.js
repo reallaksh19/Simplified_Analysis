@@ -101,6 +101,7 @@ function elementRow(value, sourceHash, nodeMap, materialIds, profile) {
   if (coordinates.some((coordinate) => !coordinate)) throw new TypeError('Element connectivity references a missing node.');
   const area = signedArea(coordinates);
   if (!(area > profile.tolerances.geometryArea)) throw new TypeError('T3 element has zero, near-zero, or inverted signed area.');
+  if (row.signedArea !== undefined && finite(row.signedArea, 'element.signedArea') !== area) throw new TypeError('Element signedArea does not match the coordinates.');
   const materialId = text(row.materialId, 'element.materialId');
   if (!materialIds.has(materialId)) throw new TypeError('Element material assignment is missing.');
   const thickness = profile.formulation === FORMULATIONS.PLANE_STRESS
@@ -216,6 +217,7 @@ function constraintRow(value, label, sourceHash, nodeIds, valueNumber) {
     : ['constraintId','nodeId','component','value','sourceSemanticHash'];
   exactKeys(row, allowed, label);
   ancestry(row, sourceHash, label);
+  if (label === 'restraint' && row.value !== undefined && finite(row.value, 'restraint.value') !== 0) throw new TypeError('A fixed restraint value must be zero.');
   const nodeId = text(row.nodeId, `${label}.nodeId`);
   if (!nodeIds.has(nodeId)) throw new TypeError(`${label} references a missing node.`);
   if (!DOF_ORDER.includes(row.component)) throw new TypeError(`${label} component is invalid.`);
