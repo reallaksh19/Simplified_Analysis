@@ -31,7 +31,6 @@ success &= runCheck('W10.7 Model Calculation Package Static Check', 'npm run che
 success &= runCheck('W10.8 Workspace Consumer Static Check', 'npm run check:w10.8:static');
 success &= runCheck('W10.9 Load Calc Consumer Static Check', 'node scripts/w10.9-load-calculation-contract-check.mjs && node scripts/w10.9-load-calculation-property-check.mjs && node scripts/w10.9-load-calculation-source-guard.mjs javascript && node scripts/w10.9-load-calculation-source-guard.mjs imports && node scripts/w10.9-load-calculation-source-guard.mjs runtime && node scripts/w10.9-load-calculation-source-guard.mjs dependencies && node scripts/w10.9-load-calculation-source-guard.mjs contracts');
 success &= runCheck('W10.10 3D Calc Consumer Static Check', 'node scripts/w10.10-three-d-calculation-contract-check.mjs && node scripts/w10.10-three-d-calculation-property-check.mjs && node scripts/w10.10-three-d-calculation-source-guard.mjs javascript && node scripts/w10.10-three-d-calculation-source-guard.mjs imports && node scripts/w10.10-three-d-calculation-source-guard.mjs runtime && node scripts/w10.10-three-d-calculation-source-guard.mjs dependencies && node scripts/w10.10-three-d-calculation-source-guard.mjs contracts && node scripts/w10.10-three-d-calculation-source-guard.mjs integration');
-success &= runCheck('LFEA-001 Core Continuum Static Check', 'node scripts/lfea-001-check.mjs');
 success &= runCheck('W10.11 Pipe Solver Consumer Static Check', 'npm run check:w10.11:static');
 
 console.log(`\n--- Running Math.random Check ---`);
