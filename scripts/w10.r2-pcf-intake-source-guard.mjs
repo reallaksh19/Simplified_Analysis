@@ -82,8 +82,13 @@ if (errors.length) {
 console.log(`✅ W10.R2 source, ownership, version and dependency boundaries passed for ${changed.length} changed file(s) against ${scopeBase}.`);
 
 function resolveScopeBase() {
-  const row = gitLines(['rev-list', '--parents', '-n', '1', 'HEAD'])[0]?.split(' ') || [];
-  if (row.length > 2) return row[1];
+  try {
+    execFileSync('git', ['fetch', '--no-tags', 'origin', 'main'], { cwd: root, stdio: 'ignore' });
+    const mergeBase = gitLines(['merge-base', 'HEAD', 'origin/main'])[0];
+    if (mergeBase) return mergeBase;
+  } catch {
+    // Fall through to the accepted W10.R1 baseline when main is unavailable.
+  }
   ensureCommit(BASE_SHA);
   return BASE_SHA;
 }
