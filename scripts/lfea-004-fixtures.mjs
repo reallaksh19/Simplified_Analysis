@@ -1,6 +1,6 @@
 import { solveContinuumModel } from '../src/core/element-fea/index.js';
 import {
-  clone, loadCase, material, model, node, nodalForce, prescribed, prescribedField, profile, q4, restraint, t3,
+  clone, loadCase, material, model, node, nodalForce, prescribed, prescribedField, profile, q4, restraint,
 } from './lfea-002-fixtures.mjs';
 
 export { clone };
@@ -27,7 +27,7 @@ export function loadedT3(options = {}) {
   const formulation = options.formulation || 'PLANE_STRESS'; const thickness = formulation === 'PLANE_STRESS' ? 1 : undefined;
   const nodes = [node('N1',0,0),node('N2',2,0),node('N3',0,1)];
   return model({ modelIdentity:'LFEA004-T3', solverProfile:options.sparse === false ? profile(formulation) : sparseProfile(formulation), nodes,
-    materials:[material('MAT1',100,0.25)], elements:[t3('E1',['N1','N2','N3'],'MAT1',thickness)],
+    materials:[material('MAT1',100,0.25)], elements:[t3Fixture('E1',['N1','N2','N3'],'MAT1',thickness,nodes[0].sourceSemanticHash)],
     restraints:[restraint('R1','N1','UX'),restraint('R2','N1','UY'),restraint('R3','N2','UY')],
     loadCases:[loadCase('LC1',[nodalForce('F1','N2',1,0),nodalForce('F2','N3',0.25,-0.5)])] });
 }
@@ -44,9 +44,9 @@ export function loadedQ4(options = {}) {
 export function loadedMixed(options = {}) {
   const formulation = options.formulation || 'PLANE_STRESS'; const thickness = formulation === 'PLANE_STRESS' ? 1 : undefined;
   const nodes=[node('N1',0,0),node('N2',1,0),node('N3',2,0),node('N4',0,1),node('N5',1,1),node('N6',2,1)];
-  const solverProfile = options.sparse === false ? profile(formulation) : sparseProfile(formulation);
+  const solverProfile = options.sparse === false ? profile(formulation) : sparseProfile(formulation); const sourceHash = nodes[0].sourceSemanticHash;
   return model({ modelIdentity:'LFEA004-MIXED', solverProfile, nodes, materials:[material('MAT1',100,0.25)],
-    elements:[q4('E1',['N1','N2','N5','N4'],'MAT1',thickness),t3('E2',['N2','N3','N6'],'MAT1',thickness),t3('E3',['N2','N6','N5'],'MAT1',thickness)],
+    elements:[q4('E1',['N1','N2','N5','N4'],'MAT1',thickness),t3Fixture('E2',['N2','N3','N6'],'MAT1',thickness,sourceHash),t3Fixture('E3',['N2','N6','N5'],'MAT1',thickness,sourceHash)],
     restraints:[restraint('R1','N1','UX'),restraint('R2','N1','UY'),restraint('R3','N4','UX')],
     loadCases:[loadCase('LC1',[nodalForce('F1','N3',0.5,0),nodalForce('F2','N6',0.5,0)])] });
 }
@@ -85,4 +85,5 @@ function sparseStudyLevel(n,declaredOrder,physicalHash){
   return {levelId:`LEVEL_${declaredOrder}`,declaredOrder,sourceSemanticHash:qualified.sourceSemanticHash,modelIdentity:qualified.modelIdentity,modelSemanticHash:qualified.semanticHash,resultIdentity:`RESULT-${n}`,resultSemanticHash:result.semanticHash,model:qualified,result,studyRegion:{regionId:'DOMAIN',elementIds:qualified.elements.map((row)=>row.elementId)},geometryMappings:[{entityId:'GEOM',sourceSemanticHash:physicalHash,signature:'UNIT_SQUARE',targetIds:qualified.elements.map((row)=>row.elementId)}],materialMappings:[{entityId:'MAT',sourceSemanticHash:physicalHash,targetIds:['MAT1']}],loadMappings:[{entityId:'LOAD',sourceSemanticHash:physicalHash,signature:'ZERO_FORCE',targetIds:[zero.loadId]}],restraintMappings:[{entityId:'BC',sourceSemanticHash:physicalHash,signature:'LINEAR_PRESCRIBED_FIELD',targetIds:qualified.prescribedDisplacements.map((row)=>row.constraintId)}],probeMappings:[{probeId:'P1',elementId:`S${n}-E${i}-${j}`,elementType:'Q4',naturalCoordinates:{xi:2*(.3-x0)*n-1,eta:2*(.3-y0)*n-1},reconstructedCoordinates:{x:.3,y:.3},reconstructionResidual:0}],quantityMappings:[]};
 }
 
+function t3Fixture(elementIdValue,nodeIds,materialId,thickness,sourceSemanticHash){const row={elementId:elementIdValue,type:'T3',nodeIds,materialId,sourceSemanticHash};if(thickness!==undefined)row.thickness=thickness;return row;}
 function nodeId(x,y){return `N${pad(x)}_${pad(y)}`;} function elementId(x,y){return `E${pad(x)}_${pad(y)}`;} function pad(value){return String(value).padStart(4,'0');}
