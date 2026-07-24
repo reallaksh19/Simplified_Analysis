@@ -107,6 +107,7 @@ function removableSymmetricPair(pattern, values, row, column, value, tolerance) 
 }
 
 function createCsrEvidence(size, matrix, tolerance, capacityEvidence, columnCount = size) {
+  validateFiniteValues(matrix.values);
   const symmetryEvidence = validateSymmetry(size, matrix, tolerance, columnCount);
   const diagonalEvidence = validateDiagonal(size, matrix);
   const identity = {
@@ -114,6 +115,10 @@ function createCsrEvidence(size, matrix, tolerance, capacityEvidence, columnCoun
     rowPointersHash: semanticHash(Array.from(matrix.rowPointers)), columnIndicesHash: semanticHash(Array.from(matrix.columnIndices)), valuesHash: semanticHash(Array.from(matrix.values)),
   };
   return Object.freeze({ ...identity, matrixIdentity: semanticHash(identity), symmetryEvidence, diagonalEvidence, estimatedStorageBytes: estimateCsrStorageBytes(size, matrix.values.length), capacityEvidence });
+}
+
+function validateFiniteValues(values) {
+  for (let index = 0; index < values.length; index += 1) if (!Number.isFinite(values[index])) throw new TypeError(`CSR coefficient ${index} is non-finite.`);
 }
 
 function validateSymmetry(size, matrix, tolerance, columnCount) {
