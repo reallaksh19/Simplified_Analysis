@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+// Historical closed compatibility remains covered for application-view-state/v4.
 const COMPLETE = packageValue('W10.11-BROWSER', {
   DELTA_T: 180, ALPHA_PER_C: 0.000012, E_MPA: 200000, PIPE_OD: 168.3, SA_MPA: 100,
 });
