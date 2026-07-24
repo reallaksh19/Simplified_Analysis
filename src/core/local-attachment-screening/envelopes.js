@@ -30,7 +30,7 @@ function quantityDescriptor(quantity) {
 }
 function candidateOrder(left,right,descriptor) {
   const a=left.stressTensor[descriptor.field],b=right.stressTensor[descriptor.field];
-  if(a!==b)return descriptor.direction==='max'?b-a:a-b;
+  if(a!==b){if(descriptor.direction==='max')return a>b?-1:1;return a<b?-1:1;}
   const caseOrder=codeSort(left.screeningCaseId,right.screeningCaseId);
   return caseOrder||codeSort(left.evaluationLocationId,right.evaluationLocationId);
 }
