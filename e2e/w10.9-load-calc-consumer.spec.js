@@ -5,7 +5,7 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.9-BROW
   {id:'PIPES',name:'Pipes',type:'BRANCH',children:[pipe('PIPE-A',[0,0,0],[1000,0,0]),pipe('PIPE-B',[1000,0,0],[2000,0,0])]},
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
-const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','Element FEA','QA','Debug'];
 const REQUEST_TOPICS=['modelLoad:rebuildRequested','supportLoadScreening:runRequested','applicationView:changeRequested'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
