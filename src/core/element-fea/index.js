@@ -23,9 +23,14 @@ export { multiplySparseSystem, partitionSparseSystem } from './sparse-partition.
 export { JACOBI_PRECONDITIONER_ID as PCG_JACOBI_ID, SPARSE_BACKEND_ID, SUCCESS_TERMINATION, solveSparsePcg } from './sparse-pcg.js';
 export { equivalentEdgeLoad, createT3Operator, recoverT3Result } from './t3-element.js';
 export { createT3Geometry, outwardEdgeNormal, signedArea, strainDisplacementMatrix } from './t3-geometry.js';
+export {
+  CONVERGENCE_RESULT_SCHEMA, CONVERGENCE_STUDY_SCHEMA, POINT_QUANTITIES,
+  Q4_EXTRAPOLATION_MATRIX_ID, RAW_STRESS_COMPONENTS, REVIEW_PROJECTION_STATUS,
+  SCALAR_CLASSIFICATIONS, STRESS_PROJECTION_SCHEMA, STRESS_TRENDS,
+} from './interpretation-constants.js';
 export { createConvergenceStudy, quantityHistory } from './convergence-study.js';
-export { interpretConvergenceStudy, validateConvergenceResult } from './interpretation-result.js';
 export { deriveRegionMeshMetrics, elementPhysicalArea, refinementRatios } from './mesh-metrics.js';
 export { recoverPointProbe, verifyProbeMapping } from './physical-probes.js';
-export { Q4_GAUSS_TO_CORNER_MATRIX, createStressProjection, validateStressProjection } from './stress-projection.js';
-export { classifyScalarHistory, classifyStressTrend, observedOrderEvidence, richardsonEvidence } from './stress-trend.js';
+export { interpretConvergenceStudy, validateConvergenceResult } from './interpretation-result.js';
+export { classifyScalarSequence, scalarConvergenceEvidence, stressTrendEvidence } from './stress-trend.js';
+export { createStressProjection, Q4_GAUSS_TO_CORNER_MATRIX, validateStressProjection } from './stress-projection.js';
