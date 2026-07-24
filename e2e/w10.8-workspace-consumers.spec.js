@@ -6,7 +6,8 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.8-BROW
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
 const NAVIGATION=['Home','Workspace','Load Calc','PCF','Sketcher','3D Calc','Pipe Solver','Reports','QA','Settings','Debug'];
-const UNAVAILABLE=['Load Calc','Sketcher','3D Calc','Pipe Solver','Reports','QA','Debug'];
+const UNAVAILABLE=['Load Calc','3D Calc','Pipe Solver','Reports','QA','Debug'];
+const DATASET_INDEPENDENT=['PCF','Sketcher','Settings'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
   globalThis.__WORKSPACE_VIEWPORT_BACKEND__='canvas2d';globalThis.__w108UrlAudit={created:0,revoked:0};
@@ -33,8 +34,7 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
     const describedBy=await button.getAttribute('aria-describedby');
     await expect(page.locator(`#${describedBy}`)).not.toHaveText('');
   }
-  await expect(nav.getByRole('button',{name:'PCF',exact:true})).toHaveAttribute('aria-disabled','false');
-  await expect(nav.getByRole('button',{name:'Settings',exact:true})).toHaveAttribute('aria-disabled','false');
+  for(const label of DATASET_INDEPENDENT)await expect(nav.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-disabled','false');
   const initialState=await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState());
   await reportsButton.focus();await page.keyboard.press('Space');
   expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState())).toEqual(initialState);
