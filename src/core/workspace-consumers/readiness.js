@@ -1,5 +1,10 @@
 import { canonicalStringify, deepFreeze, semanticHash } from '../shared-piping-model/index.js';
-import { IMPLEMENTATION_STATUS, READINESS_STATES, WORKSPACE_CONSUMER_READINESS_SCHEMA, WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA } from './constants.js';
+import {
+  IMPLEMENTATION_STATUS,
+  READINESS_STATES,
+  WORKSPACE_CONSUMER_READINESS_SCHEMA,
+  WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA,
+} from './constants.js';
 import { validateWorkspaceConsumerContext } from './context.js';
 import { validateWorkspaceConsumerRegistry, workspaceConsumerDescriptor } from './registry.js';
 
@@ -26,16 +31,20 @@ export function createWorkspaceConsumerReadiness(registry, context, consumerId, 
   };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
+
 export function validateWorkspaceConsumerReadiness(value, registry, context, options = {}) {
   const errors = validateWorkspaceConsumerReadinessShape(value).errors.slice();
   if (!validateWorkspaceConsumerRegistry(registry).ok) errors.push('Workspace consumer readiness registry is invalid.');
   if (!validateWorkspaceConsumerContext(context).ok) errors.push('Workspace consumer readiness context is invalid.');
   if (!errors.length) {
-    try { if (canonicalStringify(value) !== canonicalStringify(createWorkspaceConsumerReadiness(registry, context, value.consumerId, options))) errors.push('Workspace consumer readiness does not match registry and context evidence.'); }
-    catch (error) { errors.push(error.message); }
+    try {
+      const expected = createWorkspaceConsumerReadiness(registry, context, value.consumerId, options);
+      if (canonicalStringify(value) !== canonicalStringify(expected)) errors.push('Workspace consumer readiness does not match registry and context evidence.');
+    } catch (error) { errors.push(error.message); }
   }
   return deepFreeze({ ok: errors.length === 0, errors });
 }
+
 export function validateWorkspaceConsumerReadinessShape(value) {
   const errors = [];
   if (value?.schema !== WORKSPACE_CONSUMER_READINESS_SCHEMA) errors.push('Invalid workspace consumer readiness schema.');
@@ -44,12 +53,15 @@ export function validateWorkspaceConsumerReadinessShape(value) {
   if (!Object.values(READINESS_STATES).includes(value?.readinessState)) errors.push('Workspace consumer readiness state is invalid.');
   if (typeof value?.contextSemanticHash !== 'string' || !value.contextSemanticHash.trim()) errors.push('Workspace consumer readiness contextSemanticHash is invalid.');
   ['availableContractKeys','missingRequiredContractKeys','invalidContractKeys','blockers'].forEach((field) => validateCanonicalStringArray(value?.[field], field, errors));
-  validateDiagnosticArray(value?.diagnostics, errors); validateLogicalState(value, errors);
+  validateDiagnosticArray(value?.diagnostics, errors);
+  validateLogicalState(value, errors);
   if (value?.semanticHash !== semanticHash(withoutHash(value))) errors.push('Workspace consumer readiness semantic hash mismatch.');
   return deepFreeze({ ok: errors.length === 0, errors });
 }
+
 export function createWorkspaceConsumerReadinessRegistry(registry, context, options = {}) {
-  const comparator = registry.schema === WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA ? compareIds : (a,b) => a.consumerId.localeCompare(b.consumerId);
+  const comparator = registry.schema === WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA
+    ? compareIds : (a, b) => a.consumerId.localeCompare(b.consumerId);
   return deepFreeze(registry.consumers.map((row) => createWorkspaceConsumerReadiness(registry, context, row.consumerId, options)).sort(comparator));
 }
 function stateFor(descriptor, invalid, missing, options) {
@@ -72,16 +84,24 @@ function diagnosticsFor(state, invalid, missing) {
   return [];
 }
 function validateLogicalState(value, errors) {
-  const state=value?.readinessState;
-  if(value?.implementationStatus===IMPLEMENTATION_STATUS.NOT_IMPLEMENTED&&state!==READINESS_STATES.NOT_IMPLEMENTED)errors.push('A non-implemented consumer must remain NOT_IMPLEMENTED.');
-  if(value?.implementationStatus===IMPLEMENTATION_STATUS.IMPLEMENTED&&state===READINESS_STATES.NOT_IMPLEMENTED)errors.push('An implemented consumer cannot report NOT_IMPLEMENTED.');
-  if(state===READINESS_STATES.AVAILABLE&&(value?.missingRequiredContractKeys?.length||value?.blockers?.length||value?.diagnostics?.length))errors.push('AVAILABLE readiness contains blockers.');
-  if(state===READINESS_STATES.NOT_IMPLEMENTED&&canonicalStringify(value?.blockers)!==canonicalStringify(['CONSUMER_NOT_IMPLEMENTED']))errors.push('NOT_IMPLEMENTED readiness blockers are inconsistent.');
-  if(state===READINESS_STATES.BLOCKED_MISSING_CONTRACTS&&!value?.missingRequiredContractKeys?.length&&!value?.blockers?.includes('WORKSPACE_NOT_BOOTED'))errors.push('Missing-contract readiness has no missing contract.');
-  if(state===READINESS_STATES.BLOCKED_INVALID_CONTRACTS&&!value?.invalidContractKeys?.length)errors.push('Invalid-contract readiness has no invalid contract.');
+  const state = value?.readinessState;
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.NOT_IMPLEMENTED && state !== READINESS_STATES.NOT_IMPLEMENTED) errors.push('A non-implemented consumer must remain NOT_IMPLEMENTED.');
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.IMPLEMENTED && state === READINESS_STATES.NOT_IMPLEMENTED) errors.push('An implemented consumer cannot report NOT_IMPLEMENTED.');
+  if (state === READINESS_STATES.AVAILABLE && (value?.missingRequiredContractKeys?.length || value?.blockers?.length || value?.diagnostics?.length)) errors.push('AVAILABLE readiness contains blockers.');
+  if (state === READINESS_STATES.NOT_IMPLEMENTED && canonicalStringify(value?.blockers) !== canonicalStringify(['CONSUMER_NOT_IMPLEMENTED'])) errors.push('NOT_IMPLEMENTED readiness blockers are inconsistent.');
+  if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS && !value?.missingRequiredContractKeys?.length && !value?.blockers?.includes('WORKSPACE_NOT_BOOTED')) errors.push('Missing-contract readiness has no missing contract.');
+  if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS && !value?.invalidContractKeys?.length) errors.push('Invalid-contract readiness has no invalid contract.');
 }
-function validateCanonicalStringArray(value, field, errors) { if(!Array.isArray(value)||value.some((row)=>typeof row!=='string')){errors.push(`Workspace consumer readiness ${field} is invalid.`);return;}if(canonicalStringify(value)!==canonicalStringify([...new Set(value)].sort()))errors.push(`Workspace consumer readiness ${field} is not canonical.`); }
-function validateDiagnosticArray(value, errors) { if(!Array.isArray(value)){errors.push('Workspace consumer readiness diagnostics is invalid.');return;}const keys=value.map((row)=>`${row?.code}|${row?.contractKey||''}|${row?.message||''}`);if(canonicalStringify(keys)!==canonicalStringify([...new Set(keys)].sort()))errors.push('Workspace consumer readiness diagnostics are not canonical.');value.forEach((row)=>{if(!row||row.severity!=='INFO'||typeof row.code!=='string'||!row.code||typeof row.message!=='string'||!row.message)errors.push('Workspace consumer readiness diagnostic is invalid.');}); }
-function diagnostic(code,message,contractKey=null){return deepFreeze({code,severity:'INFO',contractKey,message});}
-function withoutHash(value){const{semanticHash:_hash,...base}=value||{};return base;}
-function compareIds(left,right){return left.consumerId<right.consumerId?-1:left.consumerId>right.consumerId?1:0;}
+function validateCanonicalStringArray(value, field, errors) {
+  if (!Array.isArray(value) || value.some((row) => typeof row !== 'string')) { errors.push(`Workspace consumer readiness ${field} is invalid.`); return; }
+  if (canonicalStringify(value) !== canonicalStringify([...new Set(value)].sort())) errors.push(`Workspace consumer readiness ${field} is not canonical.`);
+}
+function validateDiagnosticArray(value, errors) {
+  if (!Array.isArray(value)) { errors.push('Workspace consumer readiness diagnostics is invalid.'); return; }
+  const keys = value.map((row) => `${row?.code}|${row?.contractKey || ''}|${row?.message || ''}`);
+  if (canonicalStringify(keys) !== canonicalStringify([...new Set(keys)].sort())) errors.push('Workspace consumer readiness diagnostics are not canonical.');
+  value.forEach((row) => { if (!row || row.severity !== 'INFO' || typeof row.code !== 'string' || !row.code || typeof row.message !== 'string' || !row.message) errors.push('Workspace consumer readiness diagnostic is invalid.'); });
+}
+function diagnostic(code, message, contractKey = null) { return deepFreeze({ code, severity: 'INFO', contractKey, message }); }
+function withoutHash(value) { const { semanticHash: _hash, ...base } = value || {}; return base; }
+function compareIds(left, right) { return left.consumerId < right.consumerId ? -1 : left.consumerId > right.consumerId ? 1 : 0; }
