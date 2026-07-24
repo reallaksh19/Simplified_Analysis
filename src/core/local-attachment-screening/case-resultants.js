@@ -1,4 +1,6 @@
+import { END_CONDITIONS } from '../local-stress/index.js';
 import { FORMULA_IDS } from './constants.js';
+import { sourceError } from './errors.js';
 import { canonicalNumber, tolerance, within } from './numeric.js';
 export function buildScreeningCaseEvidence(request) {
   const source=request.sourceEvidence.foundationResult;
@@ -10,7 +12,7 @@ function buildCase(row,loadMap,pressureMap,profile) {
   const termEvidence=row.mechanicalTerms.map((term)=>scaledTerm(term,loadMap.get(term.loadCaseId)));
   const summed=sumTerms(termEvidence);
   const pressure=pressureMap.get(row.pressureDefinitionId);
-  const explicit=canonicalNumber((pressure.explicitAxialResultant??0)*row.pressureFactor);
+  const explicit=scaledExplicitAxial(pressure,row.pressureFactor);
   const totalForce=[canonicalNumber(summed.force[0]+explicit),summed.force[1],summed.force[2]];
   const evidence=superpositionEvidence(profile,termEvidence,explicit,totalForce,summed.moment);
   const formulaIds=[FORMULA_IDS.LINEAR_CASE]; if(explicit!==0)formulaIds.push(FORMULA_IDS.EXPLICIT_AXIAL);
@@ -22,6 +24,11 @@ function buildCase(row,loadMap,pressureMap,profile) {
     transverseResultantsRetained:{forceY:totalForce[1],forceZ:totalForce[2]},
     pressureEvidenceIdentity:pressure.identity, formulaIds:formulaIds.sort(), qualification:evidence,
   };
+}
+function scaledExplicitAxial(pressure,factor) {
+  if(pressure.endCondition!==END_CONDITIONS.EXPLICIT_AXIAL_RESULTANT||factor===0)return 0;
+  if(typeof pressure.explicitAxialResultant!=='number'||!Number.isFinite(pressure.explicitAxialResultant))throw sourceError('FOUNDATION_EXPLICIT_AXIAL_RESULTANT_MISSING','sourceEvidence.foundationResult.pressureStressResults','Explicit axial resultant evidence is required.');
+  return canonicalNumber(pressure.explicitAxialResultant*factor);
 }
 function scaledTerm(term,source) {
   return {
