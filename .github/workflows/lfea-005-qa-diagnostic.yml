@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - agent/lfea-005-qa-diagnostic
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
