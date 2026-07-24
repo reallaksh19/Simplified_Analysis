@@ -21,7 +21,7 @@ export function createWorkspaceConsumerReadiness(registry, context, consumerId, 
     missingRequiredContractKeys: missingRequired,
     invalidContractKeys: declared.filter((key) => invalid.has(key)),
     blockers: blockersFor(readinessState, invalidRequired, missingRequired),
-    diagnostics: diagnosticsFor(readinessState, invalidRequired, missingRequired),
+    diagnostics: diagnosticsFor(readinessState, invalidRequired, missingRequired, descriptor.label),
     contextSemanticHash: context?.semanticHash || null,
   };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
@@ -58,6 +58,7 @@ export function createWorkspaceConsumerReadinessRegistry(registry, context, opti
   return deepFreeze(registry.consumers.map((row) => createWorkspaceConsumerReadiness(registry, context, row.consumerId, options)).sort((a, b) => a.consumerId.localeCompare(b.consumerId)));
 }
 function stateFor(descriptor, invalid, missing, options) {
+  if (descriptor.implementationStatus === IMPLEMENTATION_STATUS.RECOVERY_PENDING) return READINESS_STATES.RECOVERY_PENDING;
   if (descriptor.implementationStatus === IMPLEMENTATION_STATUS.NOT_IMPLEMENTED) return READINESS_STATES.NOT_IMPLEMENTED;
   if (descriptor.consumerId === 'WORKSPACE' && options.workspaceBooted !== true) return READINESS_STATES.BLOCKED_MISSING_CONTRACTS;
   if (invalid.length) return READINESS_STATES.BLOCKED_INVALID_CONTRACTS;
@@ -65,22 +66,26 @@ function stateFor(descriptor, invalid, missing, options) {
   return READINESS_STATES.AVAILABLE;
 }
 function blockersFor(state, invalid, missing) {
+  if (state === READINESS_STATES.RECOVERY_PENDING) return ['VIEW_RECOVERY_PENDING'];
   if (state === READINESS_STATES.NOT_IMPLEMENTED) return ['CONSUMER_NOT_IMPLEMENTED'];
   if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS) return invalid.map((key) => `INVALID_CONTRACT:${key}`);
   if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS) return missing.length ? missing.map((key) => `MISSING_CONTRACT:${key}`) : ['WORKSPACE_NOT_BOOTED'];
   return [];
 }
-function diagnosticsFor(state, invalid, missing) {
-  if (state === READINESS_STATES.NOT_IMPLEMENTED) return [diagnostic('CONSUMER_NOT_IMPLEMENTED','This consumer is not implemented in the current runtime.')];
+function diagnosticsFor(state, invalid, missing, label) {
+  if (state === READINESS_STATES.RECOVERY_PENDING) return [diagnostic('VIEW_RECOVERY_PENDING', `${label} is visible for recovery tracking but is not yet migrated to the current runtime.`)];
+  if (state === READINESS_STATES.NOT_IMPLEMENTED) return [diagnostic('CONSUMER_NOT_IMPLEMENTED', `${label} is not implemented in the current runtime.`)];
   if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS) return invalid.map((key) => diagnostic('INVALID_REQUIRED_CONTRACT',`Required contract ${key} is invalid or stale.`,key));
   if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS) return missing.length ? missing.map((key) => diagnostic('MISSING_REQUIRED_CONTRACT',`Required contract ${key} is unavailable.`,key)) : [diagnostic('WORKSPACE_NOT_BOOTED','The current Workspace shell is not booted.')];
   return [];
 }
 function validateLogicalState(value, errors) {
   const state = value?.readinessState;
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.RECOVERY_PENDING && state !== READINESS_STATES.RECOVERY_PENDING) errors.push('A recovery-pending consumer must remain RECOVERY_PENDING.');
   if (value?.implementationStatus === IMPLEMENTATION_STATUS.NOT_IMPLEMENTED && state !== READINESS_STATES.NOT_IMPLEMENTED) errors.push('A non-implemented consumer must remain NOT_IMPLEMENTED.');
-  if (value?.implementationStatus === IMPLEMENTATION_STATUS.IMPLEMENTED && state === READINESS_STATES.NOT_IMPLEMENTED) errors.push('An implemented consumer cannot report NOT_IMPLEMENTED.');
+  if (value?.implementationStatus === IMPLEMENTATION_STATUS.IMPLEMENTED && [READINESS_STATES.RECOVERY_PENDING, READINESS_STATES.NOT_IMPLEMENTED].includes(state)) errors.push('An implemented consumer cannot report a non-runtime readiness state.');
   if (state === READINESS_STATES.AVAILABLE && (value?.missingRequiredContractKeys?.length || value?.blockers?.length || value?.diagnostics?.length)) errors.push('AVAILABLE readiness contains blockers.');
+  if (state === READINESS_STATES.RECOVERY_PENDING && canonicalStringify(value?.blockers) !== canonicalStringify(['VIEW_RECOVERY_PENDING'])) errors.push('RECOVERY_PENDING readiness blockers are inconsistent.');
   if (state === READINESS_STATES.NOT_IMPLEMENTED && canonicalStringify(value?.blockers) !== canonicalStringify(['CONSUMER_NOT_IMPLEMENTED'])) errors.push('NOT_IMPLEMENTED readiness blockers are inconsistent.');
   if (state === READINESS_STATES.BLOCKED_MISSING_CONTRACTS && !value?.missingRequiredContractKeys?.length && !value?.blockers?.includes('WORKSPACE_NOT_BOOTED')) errors.push('Missing-contract readiness has no missing contract.');
   if (state === READINESS_STATES.BLOCKED_INVALID_CONTRACTS && !value?.invalidContractKeys?.length) errors.push('Invalid-contract readiness has no invalid contract.');
