@@ -13,13 +13,15 @@ const ALLOWED = [
   /^scripts\/(?:qa-check|release-candidate-check|u7-browser-qa-check)\.mjs$/,
   /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
 ];
-const changed = git(['diff', '--name-only', `${BASE}...HEAD`]).trim().split('\n').filter(Boolean);
+ensureBaseCommit();
+const head = branchHead();
+const changed = git(['diff', '--name-only', `${BASE}...${head}`]).trim().split('\n').filter(Boolean);
 const forbidden = changed.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
 assert.deepEqual(forbidden, [], `LAFEA.1 scope violation:\n${forbidden.join('\n')}`);
 assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
 checkPackageDependencies();
 checkProductionSources();
-console.log('LAFEA.1 exact-base source scope and production boundaries passed.');
+console.log(`LAFEA.1 exact-base source scope and production boundaries passed for ${changed.length} changed file(s).`);
 
 function checkPackageDependencies() {
   const baseline = JSON.parse(git(['show', `${BASE}:package.json`]));
@@ -51,5 +53,13 @@ function checkSourceFile(file) {
   }
   const externalImports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((match) => match[1]).filter((value) => !value.startsWith('.'));
   assert.deepEqual(externalImports, [], `${relative} must not import dependencies or runtime modules.`);
+}
+function branchHead() {
+  try { return git(['rev-parse', 'HEAD^2']).trim(); }
+  catch { return 'HEAD'; }
+}
+function ensureBaseCommit() {
+  try { execFileSync('git', ['cat-file', '-e', `${BASE}^{commit}`], { cwd: ROOT, stdio: 'ignore' }); }
+  catch { execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', BASE], { cwd: ROOT, stdio: 'ignore' }); }
 }
 function git(args) { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }); }
