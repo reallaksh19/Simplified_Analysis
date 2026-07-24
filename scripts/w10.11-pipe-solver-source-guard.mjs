@@ -15,6 +15,7 @@ const ALLOWED = Object.freeze([
   /^src\/workspace\/element-fea-consumer-[^/]+\.js$/,
   /^scripts\/lfea-001-[^/]+\.mjs$/,
   /^e2e\/lfea-001-[^/]+\.spec\.js$/,
+  /^e2e\/w10\.8-workspace-consumers\.spec\.js$/,
   /^docs\/element-fea\//,
   /^scripts\/full-check\.mjs$/,
   /^src\/core\/workspace-consumers\/(?:constants|registry|readiness|view-state|event-contracts|index)\.js$/,
@@ -170,6 +171,6 @@ function requireTokens(file, tokens, label) { const content = read(file); tokens
 function requireToken(content, token, label) { if (!content.includes(token)) errors.push(`${label} ${token} is missing.`); }
 function assertSame(left, right, label) { if (JSON.stringify(left || {}) !== JSON.stringify(right || {})) errors.push(`package.json ${label} changed.`); }
 function ensureBaseCommit() { try { execFileSync('git', ['cat-file', '-e', `${BASE_SHA}^{commit}`], { cwd: root, stdio: 'ignore' }); } catch { execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', BASE_SHA], { cwd: root, stdio: 'ignore' }); } }
-function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
+function read(file) { return fs.readFileSync(path.join(root, file),'utf8'); }
 function gitLines(args) { return git(args).split(/\r?\n/).filter(Boolean); }
 function git(args) { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }); }

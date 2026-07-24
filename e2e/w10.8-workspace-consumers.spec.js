@@ -5,7 +5,8 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.8-BROW
   {id:'PIPES',name:'Pipes',type:'BRANCH',children:[pipe('PIPE-A',[0,0,0],[1000,0,0]),pipe('PIPE-B',[1000,0,0],[2000,0,0])]},
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
-const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','Element FEA','QA','Debug'];
+const BLOCKED_NAVIGATION=['Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
   globalThis.__WORKSPACE_VIEWPORT_BACKEND__='canvas2d';globalThis.__w108UrlAudit={created:0,revoked:0};
@@ -21,8 +22,9 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
   await expect(nav.getByRole('button')).toHaveText(NAVIGATION);
   const workspace=nav.getByRole('button',{name:'Workspace'}),reportsButton=nav.getByRole('button',{name:'Reports'});
   await expect(workspace).toHaveAttribute('aria-current','page');
+  await expect(nav.getByRole('button',{name:'Element FEA'})).toHaveAttribute('aria-disabled','false');
   await page.keyboard.press('Tab');await expect(workspace).toBeFocused();
-  for(const label of NAVIGATION.slice(1)){
+  for(const label of BLOCKED_NAVIGATION){
     const button=nav.getByRole('button',{name:label});
     expect(await button.evaluate((element)=>element.disabled)).toBe(false);
     await expect(button).toHaveAttribute('aria-disabled','true');

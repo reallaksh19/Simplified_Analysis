@@ -37,6 +37,10 @@
     {
       "path": "scripts/w10.11-pipe-solver-source-guard.mjs",
       "blobSha": "ea3c8fb3c6c36d2f31fc930aff4b0913fd0ddfe7"
+    },
+    {
+      "path": "e2e/w10.8-workspace-consumers.spec.js",
+      "blobSha": "4b5e5e54d5959cb14f6466e078ddb3d76ad46c1a"
     }
   ]
 }
