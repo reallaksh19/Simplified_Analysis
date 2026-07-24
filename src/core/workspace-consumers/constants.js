@@ -4,102 +4,49 @@ export const WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA = 'workspace-consumer-registr
 export const WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA = 'workspace-consumer-registry/v3';
 export const WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA = 'workspace-consumer-registry/v4';
 export const WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA = 'workspace-consumer-registry/v5';
+export const WORKSPACE_CONSUMER_REGISTRY_V6_SCHEMA = 'workspace-consumer-registry/v6';
 export const WORKSPACE_CONSUMER_READINESS_SCHEMA = 'workspace-consumer-readiness/v1';
 export const APPLICATION_VIEW_STATE_SCHEMA = 'application-view-state/v1';
 export const APPLICATION_VIEW_STATE_V2_SCHEMA = 'application-view-state/v2';
 export const APPLICATION_VIEW_STATE_V3_SCHEMA = 'application-view-state/v3';
 export const APPLICATION_VIEW_STATE_V4_SCHEMA = 'application-view-state/v4';
 export const APPLICATION_VIEW_STATE_V5_SCHEMA = 'application-view-state/v5';
+export const APPLICATION_VIEW_STATE_V6_SCHEMA = 'application-view-state/v6';
 
 export const CONTRACT_KEYS = Object.freeze([
-  'sharedModel',
-  'topologyGraph',
-  'topologyAudit',
-  'supportAttachmentModel',
-  'supportAttachmentAudit',
-  'restraintCapabilityModel',
-  'restraintCapabilityAudit',
-  'loadCaseSet',
-  'loadPrimitiveSet',
-  'modelLoadReadinessAudit',
-  'verticalLoadPathModel',
-  'supportLoadScreening',
-  'supportLoadScreeningAudit',
-  'flexuralPropertyProjection',
-  'verticalBeamModel',
-  'verticalBeamSolution',
-  'verticalBeamSolverAudit',
-  'modelCalculationLedger',
-  'activeModelCalculationPackage',
-  'activeModelCalculationReport',
+  'sharedModel', 'topologyGraph', 'topologyAudit', 'supportAttachmentModel',
+  'supportAttachmentAudit', 'restraintCapabilityModel', 'restraintCapabilityAudit',
+  'loadCaseSet', 'loadPrimitiveSet', 'modelLoadReadinessAudit', 'verticalLoadPathModel',
+  'supportLoadScreening', 'supportLoadScreeningAudit', 'flexuralPropertyProjection',
+  'verticalBeamModel', 'verticalBeamSolution', 'verticalBeamSolverAudit',
+  'modelCalculationLedger', 'activeModelCalculationPackage', 'activeModelCalculationReport',
 ]);
 
 export const CONSUMER_IDS = Object.freeze({
-  HOME: 'HOME',
-  WORKSPACE: 'WORKSPACE',
-  LOAD_CALC: 'LOAD_CALC',
-  PCF: 'PCF',
-  SKETCHER: 'SKETCHER',
-  THREE_D_CALC: 'THREE_D_CALC',
-  PIPE_SOLVER: 'PIPE_SOLVER',
-  REPORTS: 'REPORTS',
-  QA: 'QA',
-  SETTINGS: 'SETTINGS',
-  DEBUG: 'DEBUG',
+  HOME: 'HOME', WORKSPACE: 'WORKSPACE', LOAD_CALC: 'LOAD_CALC', PCF: 'PCF',
+  SKETCHER: 'SKETCHER', THREE_D_CALC: 'THREE_D_CALC', PIPE_SOLVER: 'PIPE_SOLVER',
+  REPORTS: 'REPORTS', QA: 'QA', SETTINGS: 'SETTINGS', DEBUG: 'DEBUG',
 });
 
 export const IMPLEMENTATION_STATUS = Object.freeze({
-  IMPLEMENTED: 'IMPLEMENTED',
-  RECOVERY_PENDING: 'RECOVERY_PENDING',
-  NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
+  IMPLEMENTED: 'IMPLEMENTED', RECOVERY_PENDING: 'RECOVERY_PENDING', NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
 });
 
 export const READINESS_STATES = Object.freeze({
-  AVAILABLE: 'AVAILABLE',
-  BLOCKED_MISSING_CONTRACTS: 'BLOCKED_MISSING_CONTRACTS',
-  BLOCKED_INVALID_CONTRACTS: 'BLOCKED_INVALID_CONTRACTS',
-  RECOVERY_PENDING: 'RECOVERY_PENDING',
+  AVAILABLE: 'AVAILABLE', BLOCKED_MISSING_CONTRACTS: 'BLOCKED_MISSING_CONTRACTS',
+  BLOCKED_INVALID_CONTRACTS: 'BLOCKED_INVALID_CONTRACTS', RECOVERY_PENDING: 'RECOVERY_PENDING',
   NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
 });
 
-export const APPLICATION_VIEW_IDS = Object.freeze([
-  CONSUMER_IDS.WORKSPACE,
-  CONSUMER_IDS.REPORTS,
-]);
-
-export const APPLICATION_VIEW_IDS_V2 = Object.freeze([
-  CONSUMER_IDS.WORKSPACE,
-  CONSUMER_IDS.REPORTS,
-  CONSUMER_IDS.LOAD_CALC,
-]);
-
-export const APPLICATION_VIEW_IDS_V3 = Object.freeze([
-  CONSUMER_IDS.WORKSPACE,
-  CONSUMER_IDS.REPORTS,
-  CONSUMER_IDS.LOAD_CALC,
-  CONSUMER_IDS.THREE_D_CALC,
-]);
-
-export const APPLICATION_VIEW_IDS_V4 = Object.freeze([
-  CONSUMER_IDS.WORKSPACE,
-  CONSUMER_IDS.REPORTS,
-  CONSUMER_IDS.LOAD_CALC,
-  CONSUMER_IDS.THREE_D_CALC,
-  CONSUMER_IDS.PIPE_SOLVER,
-]);
-
+export const APPLICATION_VIEW_IDS = Object.freeze([CONSUMER_IDS.WORKSPACE, CONSUMER_IDS.REPORTS]);
+export const APPLICATION_VIEW_IDS_V2 = Object.freeze([...APPLICATION_VIEW_IDS, CONSUMER_IDS.LOAD_CALC]);
+export const APPLICATION_VIEW_IDS_V3 = Object.freeze([...APPLICATION_VIEW_IDS_V2, CONSUMER_IDS.THREE_D_CALC]);
+export const APPLICATION_VIEW_IDS_V4 = Object.freeze([...APPLICATION_VIEW_IDS_V3, CONSUMER_IDS.PIPE_SOLVER]);
 export const APPLICATION_NAVIGATION_ORDER_V5 = Object.freeze([
-  CONSUMER_IDS.HOME,
-  CONSUMER_IDS.WORKSPACE,
-  CONSUMER_IDS.LOAD_CALC,
-  CONSUMER_IDS.PCF,
-  CONSUMER_IDS.SKETCHER,
-  CONSUMER_IDS.THREE_D_CALC,
-  CONSUMER_IDS.PIPE_SOLVER,
-  CONSUMER_IDS.REPORTS,
-  CONSUMER_IDS.QA,
-  CONSUMER_IDS.SETTINGS,
-  CONSUMER_IDS.DEBUG,
+  CONSUMER_IDS.HOME, CONSUMER_IDS.WORKSPACE, CONSUMER_IDS.LOAD_CALC, CONSUMER_IDS.PCF,
+  CONSUMER_IDS.SKETCHER, CONSUMER_IDS.THREE_D_CALC, CONSUMER_IDS.PIPE_SOLVER,
+  CONSUMER_IDS.REPORTS, CONSUMER_IDS.QA, CONSUMER_IDS.SETTINGS, CONSUMER_IDS.DEBUG,
 ]);
-
 export const APPLICATION_VIEW_IDS_V5 = APPLICATION_NAVIGATION_ORDER_V5;
+export const APPLICATION_NAVIGATION_ORDER_V6 = APPLICATION_NAVIGATION_ORDER_V5;
+export const APPLICATION_VIEW_IDS_V6 = APPLICATION_NAVIGATION_ORDER_V6;
