@@ -14,6 +14,7 @@ export function mechanicalStress(caseRow,point,section) {
     sigmaXAxialMembrane:axial,sigmaXBiaxialBending:bending,
     sigmaXMechanical:canonicalNumber(axial+bending),tauXThetaTorsion:torsion,
     retainedResultants:{forceX:fx,forceY:fy,forceZ:fz,momentX:mx,momentY:my,momentZ:mz},
+    signConvention:'SIGMA_X_EQUALS_FX_OVER_A_PLUS_MY_Z_OVER_IY_MINUS_MZ_Y_OVER_IZ;TAU_X_THETA_EQUALS_MX_R_OVER_J',
     formulaIds:[FORMULA_IDS.AXIAL_MEMBRANE,FORMULA_IDS.BIAXIAL_BENDING,FORMULA_IDS.TORSION],
   };
 }
