@@ -28,6 +28,7 @@ test('stages, reviews and explicitly adopts PCF without legacy runtime ownership
 
   await expect(page.locator('[data-role="pcf-status"]')).toContainText('PCF review is ready');
   await expect(page.getByText('PIPE (MODEL)')).toBeVisible();
+  await page.getByText('2 endpoint(s), 0 branch point(s)').click();
   await expect(page.getByText('101.6', { exact: false })).toBeVisible();
   await expect(page.locator('[data-role="pcf-review"] img')).toHaveCount(0);
   expect(await page.evaluate(() => globalThis.__pcfInjected || false)).toBe(false);
@@ -59,10 +60,11 @@ test('cancellation clears staged evidence without changing the active dataset', 
   const before = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
   await page.locator('[data-role="pcf-source-text"]').fill(validPcf);
   await page.getByRole('button', { name: 'Parse and Review' }).click();
-  expect(await page.evaluate(() => AnalysisWorkspace.getPcfReviewModel()?.schema)).toBe('pcf-review-model/v1');
+  await expect(page.getByRole('heading', { name: 'Review summary' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel Staged Intake' }).click();
   await expect(page.locator('[data-role="pcf-source-text"]')).toHaveValue('');
-  expect(await page.evaluate(() => AnalysisWorkspace.getPcfReviewModel())).toBeNull();
+  await expect(page.getByRole('heading', { name: 'Review summary' })).toHaveCount(0);
+  await expect(page.locator('[data-role="pcf-status"]')).toContainText('cancelled');
   const after = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
   expect(after.dataset?.datasetId || null).toBe(before.dataset?.datasetId || null);
 });
