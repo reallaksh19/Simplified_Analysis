@@ -5,58 +5,66 @@ import { canonicalNumber, maxAbs, tolerance } from './numeric.js';
 
 export function solvePartitioned(model, mesh, load) {
   const constraints = constraintData(model, mesh.dofOrdering);
-  const free = mesh.dofOrdering.map((_, index) => index).filter((index) => !constraints.indexSet.has(index));
-  const constrained = constraints.indices;
-  const stiffness = mesh.globalStiffnessMatrix;
-  const force = load.forceVector;
-  const displacement = Array(stiffness.length).fill(0);
-  constrained.forEach((index, position) => { displacement[index] = constraints.values[position]; });
+  const free = freeIndices(mesh.dofOrdering.length, constraints.indexSet);
+  const displacement = prescribedVector(mesh.dofOrdering.length, constraints);
+  const solved = solveFreeSystem(model, mesh.globalStiffnessMatrix, load.forceVector, free, constraints);
+  solved.solution.forEach((value, position) => { displacement[free[position]] = value; });
+  const residual = equilibriumResidual(mesh.globalStiffnessMatrix, displacement, load.forceVector);
+  const qualification = qualifyResiduals(
+    model, mesh.dofOrdering, free, constraints.indices, load.forceVector, residual,
+  );
+  return solutionRecord(
+    mesh.dofOrdering, free, constraints.indices, displacement, residual,
+    solved.evidence, qualification,
+  );
+}
 
-  let solverEvidence = emptySolverEvidence();
-  if (free.length) {
-    const freeStiffness = submatrix(stiffness, free, free);
-    const coupling = submatrix(stiffness, free, constrained);
-    const rightHandSide = free.map((index, row) => canonicalNumber(
-      force[index] - dotRow(coupling[row], constraints.values),
-      'partition rhs',
-    ));
-    const solved = choleskySolve(freeStiffness, rightHandSide, model.qualificationProfile);
-    free.forEach((index, position) => { displacement[index] = solved.solution[position]; });
-    solverEvidence = solved.evidence;
-  }
+function freeIndices(size, constrained) {
+  return Array.from({ length: size }, (_, index) => index).filter((index) => !constrained.has(index));
+}
 
-  const stiffnessDisplacement = matrixVector(stiffness, displacement);
-  const residual = stiffnessDisplacement.map((value, index) => canonicalNumber(
+function prescribedVector(size, constraints) {
+  const displacement = Array(size).fill(0);
+  constraints.indices.forEach((index, position) => {
+    displacement[index] = constraints.values[position];
+  });
+  return displacement;
+}
+
+function solveFreeSystem(model, stiffness, force, free, constraints) {
+  if (!free.length) return { solution: [], evidence: emptySolverEvidence() };
+  const freeStiffness = submatrix(stiffness, free, free);
+  const coupling = submatrix(stiffness, free, constraints.indices);
+  const rightHandSide = free.map((index, row) => canonicalNumber(
+    force[index] - dotRow(coupling[row], constraints.values),
+    'partition rhs',
+  ));
+  return choleskySolve(freeStiffness, rightHandSide, model.qualificationProfile);
+}
+
+function equilibriumResidual(stiffness, displacement, force) {
+  return matrixVector(stiffness, displacement).map((value, index) => canonicalNumber(
     value - force[index],
     'equilibrium residual',
   ));
-  const qualification = qualifyResiduals(
-    model,
-    mesh.dofOrdering,
-    free,
-    constrained,
-    force,
-    residual,
-  );
+}
+
+function solutionRecord(dofs, free, constrained, displacement, residual, solverEvidence, equilibrium) {
   const formulaIds = [FORMULA_IDS.PARTITION, FORMULA_IDS.REACTION, FORMULA_IDS.EQUILIBRIUM];
   if (free.length) formulaIds.push(FORMULA_IDS.CHOLESKY);
-
   return {
     displacementVector: displacement.map((value) => canonicalNumber(value, 'displacement')),
     reactionVector: residual,
-    freeDofIdentities: free.map((index) => mesh.dofOrdering[index]),
-    constrainedDofIdentities: constrained.map((index) => mesh.dofOrdering[index]),
-    freeDofResiduals: free.map((index) => ({
-      dofIdentity: mesh.dofOrdering[index],
-      value: residual[index],
-    })),
+    freeDofIdentities: free.map((index) => dofs[index]),
+    constrainedDofIdentities: constrained.map((index) => dofs[index]),
+    freeDofResiduals: free.map((index) => ({ dofIdentity: dofs[index], value: residual[index] })),
     reactions: constrained.map((index) => ({
-      dofIdentity: mesh.dofOrdering[index],
+      dofIdentity: dofs[index],
       value: residual[index],
       prescribedDisplacement: displacement[index],
     })),
     solverEvidence,
-    equilibrium: qualification,
+    equilibrium,
     formulaIds: formulaIds.sort(),
   };
 }
@@ -83,28 +91,30 @@ function dotRow(row, vector) {
 }
 
 function choleskySolve(matrix, rightHandSide, profile) {
-  const size = matrix.length;
-  const lower = zeros(size, size);
+  const lower = zeros(matrix.length, matrix.length);
   const scale = Math.max(1, ...matrix.map((row, index) => Math.abs(row[index])));
   const limit = tolerance(profile, 'choleskyPivot', scale);
   const pivots = [];
   factorCholesky(matrix, lower, pivots, limit);
-  const intermediate = forward(lower, rightHandSide);
-  const solution = backward(lower, intermediate);
+  const solution = backward(lower, forward(lower, rightHandSide));
   const minimum = Math.min(...pivots);
   const maximum = Math.max(...pivots);
   return {
     solution: solution.map((value) => canonicalNumber(value, 'solved displacement')),
-    evidence: {
-      method: 'DETERMINISTIC_CHOLESKY',
-      pivotScale: scale,
-      pivotTolerance: limit,
-      pivots: pivots.map((value) => canonicalNumber(value, 'pivot')),
-      minimumPivot: canonicalNumber(minimum),
-      maximumPivot: canonicalNumber(maximum),
-      pivotRatio: canonicalNumber(minimum / maximum),
-      accepted: true,
-    },
+    evidence: pivotEvidence(scale, limit, pivots, minimum, maximum),
+  };
+}
+
+function pivotEvidence(scale, limit, pivots, minimum, maximum) {
+  return {
+    method: 'DETERMINISTIC_CHOLESKY',
+    pivotScale: scale,
+    pivotTolerance: limit,
+    pivots: pivots.map((value) => canonicalNumber(value, 'pivot')),
+    minimumPivot: canonicalNumber(minimum),
+    maximumPivot: canonicalNumber(maximum),
+    pivotRatio: canonicalNumber(minimum / maximum),
+    accepted: true,
   };
 }
 
@@ -167,10 +177,13 @@ function qualifyResiduals(model, dofs, free, constrained, force, residual) {
   }
   const totals = equilibriumTotals(dofs, constrained, force, residual);
   const equilibriumLimit = tolerance(model.qualificationProfile, 'reactionEquilibrium', scale);
-  const maximum = Math.max(Math.abs(totals.UX), Math.abs(totals.UY));
-  if (maximum > equilibriumLimit) {
+  if (Math.max(Math.abs(totals.UX), Math.abs(totals.UY)) > equilibriumLimit) {
     throw numericalError('REACTION_EQUILIBRIUM_FAILURE', 'solver', 'Reaction equilibrium did not qualify.');
   }
+  return residualEvidence(scale, freeMaximum, freeLimit, totals, equilibriumLimit);
+}
+
+function residualEvidence(scale, freeMaximum, freeLimit, totals, equilibriumLimit) {
   return {
     residualScale: scale,
     freeDofMaximumResidual: canonicalNumber(freeMaximum),
