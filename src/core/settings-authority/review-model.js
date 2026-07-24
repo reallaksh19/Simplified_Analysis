@@ -29,6 +29,11 @@ export function createSettingsReviewModel({ activeProfile, proposal, audit, pers
   const dependencyRows = ACTIVE_SETTING_DEFINITIONS.flatMap((definition) => definition.invalidationTargets.map((contractKey) => deepFreeze({
     settingId: definition.settingId, consumerIds: definition.runtimeConsumers, contractKey,
   })));
+  const reviewDiagnostics = collectDiagnostics([
+    ...(audit.diagnostics || []),
+    ...normalizeDiagnostics(diagnostics),
+    ...proposalValidation.errors.map((message) => ({ code: 'SETTINGS_PROPOSAL_INVALID', severity: 'ERROR', message })),
+  ]);
   const base = {
     schema: SETTINGS_REVIEW_MODEL_SCHEMA,
     profileIdentity: activeProfile.profileId,
@@ -45,7 +50,7 @@ export function createSettingsReviewModel({ activeProfile, proposal, audit, pers
       recalculationRequired: false,
     } : { changedSettingIds: [], affectedConsumerIds: [], affectedContractKeys: [], stalePreparedEvidence: [], unaffectedEvidence: [], recalculationRequired: false },
     persistenceSummary: deepFreeze({ ...(persistenceSummary || {}) }),
-    diagnostics: deepFreeze([...(audit.diagnostics || []), ...normalizeDiagnostics(diagnostics), ...proposalValidation.errors.map((message) => ({ code: 'SETTINGS_PROPOSAL_INVALID', severity: 'ERROR', message }))]),
+    diagnostics: deepFreeze(reviewDiagnostics),
     limitations: deepFreeze([
       'Only reportTimestampPolicy has a verified shipped-runtime consumer in W10.R3.',
       'Settings changes never run calculations, exports, rebuilds or dataset mutations automatically.',
@@ -65,3 +70,8 @@ export function validateSettingsReviewModel(value, input) {
   return deepFreeze({ ok: errors.length === 0, errors });
 }
 function normalizeDiagnostics(rows) { return (rows || []).map((row) => ({ code: String(row.code || 'SETTINGS_DIAGNOSTIC'), severity: String(row.severity || 'INFO'), message: String(row.message || '') })); }
+function collectDiagnostics(rows) {
+  const normalized = normalizeDiagnostics(rows);
+  const unique = new Map(normalized.map((row) => [canonicalStringify(row), row]));
+  return [...unique.values()].sort((a, b) => canonicalStringify(a).localeCompare(canonicalStringify(b)));
+}
