@@ -45,6 +45,7 @@ function checkSourceFile(file) {
   const lines = source.split('\n').length;
   assert.ok(lines < 300, `${relative} must remain below 300 lines.`);
   assert.equal(/export\s+default\b/.test(source), false, `${relative} must use named exports.`);
+  functionSpans(source).forEach((span) => assert.ok(span.lines <= 40, `${relative} function ${span.name} must remain at or below 40 lines.`));
   for (const token of ['Math.random', 'Date.now(', 'performance.now(', 'new Date(', 'node:fs', 'node:path', 'fetch(', 'XMLHttpRequest', 'WebSocket']) {
     assert.equal(source.includes(token), false, `${relative} contains forbidden production token ${token}.`);
   }
@@ -53,6 +54,21 @@ function checkSourceFile(file) {
   }
   const externalImports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((match) => match[1]).filter((value) => !value.startsWith('.'));
   assert.deepEqual(externalImports, [], `${relative} must not import dependencies or runtime modules.`);
+}
+function functionSpans(source) {
+  const lines = source.split(/\r?\n/), spans = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^\s*(?:export\s+)?function\s+(\w+)\s*\(/);
+    if (!match) continue;
+    let depth = 0, end = index;
+    for (; end < lines.length; end += 1) {
+      depth += (lines[end].match(/{/g) || []).length;
+      depth -= (lines[end].match(/}/g) || []).length;
+      if (depth === 0 && end > index) break;
+    }
+    spans.push({ name: match[1], lines: end - index + 1 });
+  }
+  return spans;
 }
 function branchHead() {
   try { return git(['rev-parse', 'HEAD^2']).trim(); }
