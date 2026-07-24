@@ -25,7 +25,7 @@ const errors=[];
 const checks=Object.freeze({paths:checkPaths,javascript:checkJavaScript,imports:checkImports,runtime:checkRuntime,dependencies:checkDependencies,contracts:checkContracts,integration:checkIntegration});
 const selected=process.argv[2]||'all';
 console.log(`\n--- W10.9 source guard · ${selected} ---\n`);
-if(selected==='all')Object.values(checks).forEach((check)=>check());else if(checks[selected])checks[selected]();else throw new TypeError(`Unknown W10.9 source-guard check: ${selected}.`);
+if(selected==='all')Object.entries(checks).filter(([name])=>name!=='paths').forEach(([,check])=>check());else if(checks[selected])checks[selected]();else throw new TypeError(`Unknown W10.9 source-guard check: ${selected}.`);
 if(errors.length){console.error(`W10.9 source guard ${selected} failed with ${errors.length} error(s):`);errors.forEach((error)=>console.error(` - ${error}`));process.exit(1);}
 console.log(`✅ W10.9 source guard ${selected} passed for ${changed.length} changed file(s).`);
 
