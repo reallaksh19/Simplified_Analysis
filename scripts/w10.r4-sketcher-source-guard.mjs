@@ -18,7 +18,7 @@ const allowed = [
   /^scripts\/w10\.r3-settings-source-guard\.mjs$/,
   /^scripts\/w10\.(?:3-support-restraint|5-support-load-screening)-source-guard\.mjs$/,
   /^scripts\/lafea\.3-source-guard\.mjs$/,
-  /^e2e\/w10\.r4-[^/]+\.spec\.js$/,
+  /^e2e\/(?:w10\.r4-[^/]+|w10\.8-workspace-consumers)\.spec\.js$/,
   /^docs\/main-tab-recovery\/W10\.R4_SKETCHER_RECOVERY\.md$/,
   /^\.github\/workflows\/(?:w10-r4-certification|u0-certification|release-candidate)\.yml$/,
   /^package\.json$/,
