@@ -1,23 +1,19 @@
 export {
-  BACKEND_ID,
-  CONTINUUM_MODEL_SCHEMA,
-  CONTINUUM_RESULT_SCHEMA,
-  DOF_ORDER,
-  EDGE_LOAD_TYPES,
-  ELEMENT_TYPE,
-  FORMULATIONS,
-  LFEA_PROFILE_SCHEMA,
-  PRESSURE_CONVENTION,
-  REACTION_CONVENTION,
-  RESULT_STATUS,
-  STRAIN_ORDER,
-  STRESS_ORDER,
+  BACKEND_ID, CONTINUUM_MODEL_SCHEMA, CONTINUUM_RESULT_SCHEMA, CONTINUUM_RESULT_SCHEMA_V2,
+  DOF_ORDER, EDGE_LOAD_TYPES, ELEMENT_TYPE, ELEMENT_TYPES, FORMULATIONS, LFEA_PROFILE_SCHEMA,
+  PRESSURE_CONVENTION, Q4_INTEGRATION_RULE, Q4_NODE_ORDER, Q4_STRESS_LOCATION,
+  REACTION_CONVENTION, RESULT_STATUS, STRAIN_ORDER, STRESS_ORDER,
 } from './constants.js';
 export { constitutiveMatrix, planeStrainMatrix, planeStressMatrix, principalStress, recoverSigmaZ, vonMisesStress } from './constitutive.js';
 export { createDofMap, elementEquationIndices, equationLookup } from './dof-map.js';
+export { createElementOperator, equivalentElementEdgeLoad, recoverElementResult } from './element-dispatch.js';
+export { assertNoCoincidentNodes, assertNoHangingNodes, assertNoImproperEdgeIntersections, elementEdges, qualifyQ4Geometry } from './element-quality.js';
+export { EDGE_GAUSS_POINTS, Q4_EDGE_DESCRIPTORS, Q4_GAUSS_POINTS, Q4_NATURAL_CORNERS, q4IntegrationRuleEvidence } from './integration-points.js';
 export { solveDenseLdlt } from './linear-backend.js';
 export { createContinuumModel, qualifyContinuumModel } from './model.js';
 export { createLfeaProfile, validateLfeaProfile } from './profile.js';
+export { createQ4Operator, equivalentQ4EdgeLoad, recoverQ4Result } from './q4-element.js';
+export { createQ4IntegrationGeometry, createQ4PointGeometry, determinant2, inverse2, q4GlobalCoordinates, q4GlobalDerivatives, q4Jacobian, q4NaturalDerivatives, q4ShapeFunctions, q4StrainDisplacementMatrix } from './q4-geometry.js';
 export { validateContinuumResult } from './result.js';
 export { solveContinuumModel } from './solver.js';
 export { equivalentEdgeLoad, createT3Operator, recoverT3Result } from './t3-element.js';
