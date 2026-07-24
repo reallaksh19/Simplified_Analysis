@@ -9,20 +9,20 @@ import {
 } from '../local-stress/index.js';
 import {
   FOUNDATION_LEVEL, FOUNDATION_LIMITATIONS, FOUNDATION_MODEL_SCHEMA,
-  FOUNDATION_RESULT_SCHEMA, SOURCE_SCHEMA,
+  FOUNDATION_RESULT_SCHEMA, QUALIFICATION_STATES, SOURCE_SCHEMA,
 } from './constants.js';
 import { sourceError } from './errors.js';
 import { deepClone, exactRecord } from './validation.js';
 
 export function validateFoundationSourceEvidence(input) {
   try { return validateSource(input); }
-  catch (error) { if (error?.state) throw error; throw sourceError('INVALID_FOUNDATION_EVIDENCE','sourceEvidence',error instanceof Error?error.message:'Invalid source evidence.'); }
+  catch(error){if(error?.state===QUALIFICATION_STATES.REJECTED_SOURCE_EVIDENCE)throw error;throw sourceError('INVALID_FOUNDATION_EVIDENCE','sourceEvidence',error instanceof Error?error.message:'Invalid source evidence.');}
 }
 function validateSource(input) {
   exactRecord(input,['schema','foundationModel','foundationResult'],'sourceEvidence');
   if(input.schema!==SOURCE_SCHEMA)throw sourceError('SOURCE_SCHEMA_MISMATCH','sourceEvidence.schema',`schema must be ${SOURCE_SCHEMA}.`);
-  const model=validateCanonicalLocalAttachmentFoundationModel(deepClone(input.foundationModel));
-  const result=deepClone(input.foundationResult);
+  const model=validateCanonicalLocalAttachmentFoundationModel(deepClone(input.foundationModel,'sourceEvidence.foundationModel'));
+  const result=deepClone(input.foundationResult,'sourceEvidence.foundationResult');
   assertFoundationContracts(model,result);
   assertHashes(model,result);
   assertExpectedResult(model,result);
