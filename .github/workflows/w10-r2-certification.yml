@@ -30,7 +30,9 @@ jobs:
       - name: Certify PCF contracts and deterministic evidence
         run: node scripts/w10.r2-pcf-intake-contract-check.mjs
       - name: Certify source and ownership boundaries
-        run: node scripts/w10.r2-pcf-intake-source-guard.mjs
+        run: |
+          set -o pipefail
+          node scripts/w10.r2-pcf-intake-source-guard.mjs 2>&1 | tee w10-r2-source-guard.log
       - name: Install Chromium
         run: npx playwright install chromium --with-deps
       - name: Certify PCF browser workflow
@@ -39,12 +41,13 @@ jobs:
         run: npm run check:full
       - name: Build production application
         run: npm run build
-      - name: Upload browser report
+      - name: Upload certification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: w10-r2-playwright-report
+          name: w10-r2-certification-evidence
           path: |
+            w10-r2-source-guard.log
             playwright-report/
             test-results/
           if-no-files-found: ignore
