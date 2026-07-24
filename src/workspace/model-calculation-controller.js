@@ -1,6 +1,7 @@
 import {
   createModelCalculationExportArtifact, createModelCalculationPackage,
 } from '../core/model-calculation-package/index.js';
+import { applyReportTimestampPolicy } from '../core/settings-authority/index.js';
 import { EVENT_TOPICS } from './event-topics.js';
 import { EventBus } from './event-bus.js';
 import { ModelLoadStore } from './model-load-store.js';
@@ -16,9 +17,21 @@ import { VERTICAL_BEAM_EVENTS } from './vertical-beam-events.js';
 import { WorkspaceState } from './workspace-state.js';
 
 export class ModelCalculationController {
-  constructor(eventBus = EventBus, store = ModelCalculationStore, documentRef = globalThis.document) {
-    this.eventBus = eventBus; this.store = store; this.documentRef = documentRef;
-    this.screeningSnapshot = null; this.beamSnapshot = null; this.unsubscribeCallbacks = [];
+  constructor(
+    eventBus = EventBus,
+    store = ModelCalculationStore,
+    documentRef = globalThis.document,
+    settingsProfileProvider = () => null,
+    clock = () => new globalThis.Date().toISOString(),
+  ) {
+    this.eventBus = eventBus;
+    this.store = store;
+    this.documentRef = documentRef;
+    this.settingsProfileProvider = settingsProfileProvider;
+    this.clock = clock;
+    this.screeningSnapshot = null;
+    this.beamSnapshot = null;
+    this.unsubscribeCallbacks = [];
   }
   init() {
     if (this.unsubscribeCallbacks.length) return;
@@ -70,7 +83,9 @@ export class ModelCalculationController {
     try {
       const packageValue = this.store.getActivePackage(), report = this.store.getActiveReport();
       if (!packageValue || !report) throw new TypeError('Select an archived calculation package before export.');
-      const artifact = createModelCalculationExportArtifact(packageValue, report, format);
+      const baseArtifact = createModelCalculationExportArtifact(packageValue, report, format);
+      const profile = this.settingsProfileProvider?.() || null;
+      const artifact = profile ? applyReportTimestampPolicy(baseArtifact, profile, this.clock()) : baseArtifact;
       triggerModelCalculationDownload(this.documentRef, artifact);
       this.eventBus.publish(MODEL_CALCULATION_EVENTS.EXPORT_COMPLETED, { artifact });
     } catch (error) { this.publishFailure(MODEL_CALCULATION_EVENTS.EXPORT_FAILED, 'MODEL_CALCULATION_EXPORT_FAILED', error); }
@@ -79,8 +94,13 @@ export class ModelCalculationController {
   publishChanged(reason) { this.eventBus.publish(MODEL_CALCULATION_EVENTS.CHANGED, { ...this.store.getSnapshot(), reason }); }
   publishFailure(topic, code, error) { this.eventBus.publish(topic, { code, message: messageOf(error) }); }
   destroy() {
-    this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe()); this.unsubscribeCallbacks = [];
-    this.screeningSnapshot = null; this.beamSnapshot = null; this.store.clear();
+    this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
+    this.unsubscribeCallbacks = [];
+    this.screeningSnapshot = null;
+    this.beamSnapshot = null;
+    this.settingsProfileProvider = null;
+    this.clock = null;
+    this.store.clear();
   }
 }
 
