@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+
 const BASE = 'ce719a719a740d5228b5a404a6848af878954609';
 const ROOT = process.cwd();
 const ALLOWED = [
@@ -13,17 +14,30 @@ const ALLOWED = [
   /^scripts\/(?:qa-check|release-candidate-check|u7-browser-qa-check)\.mjs$/,
   /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
 ];
-ensureBaseCommit();
-const head = branchHead();
-const changed = git(['diff', '--name-only', BASE, head]).trim().split('\n').filter(Boolean);
-const forbidden = changed.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
-assert.deepEqual(forbidden, [], `LAFEA.1 scope violation:\n${forbidden.join('\n')}`);
-assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
-checkPackageDependencies();
-checkProductionSources();
-console.log(`LAFEA.1 exact-base source scope and production boundaries passed for ${changed.length} changed file(s).`);
 
+const checks = Object.freeze({ paths: checkPaths, dependencies: checkPackageDependencies, production: checkProductionSources });
+const selected = process.argv[2] || 'all';
+if (selected === 'all') {
+  checkPackageDependencies();
+  checkProductionSources();
+} else if (checks[selected]) {
+  checks[selected]();
+} else {
+  throw new TypeError(`Unknown LAFEA.1 source-guard check: ${selected}.`);
+}
+console.log(`LAFEA.1 source guard ${selected} passed.`);
+
+function checkPaths() {
+  ensureBaseCommit();
+  const head = branchHead();
+  const changed = git(['diff', '--name-only', BASE, head]).trim().split('\n').filter(Boolean);
+  const forbidden = changed.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
+  assert.deepEqual(forbidden, [], `LAFEA.1 scope violation:\n${forbidden.join('\n')}`);
+  assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
+  console.log(`LAFEA.1 exact-base path scope passed for ${changed.length} changed file(s).`);
+}
 function checkPackageDependencies() {
+  ensureBaseCommit();
   const baseline = JSON.parse(git(['show', `${BASE}:package.json`]));
   const current = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.deepEqual(current.dependencies, baseline.dependencies, 'Dependencies must not change.');
