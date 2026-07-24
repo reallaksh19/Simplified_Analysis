@@ -29,13 +29,17 @@ function configureFoundation(source,ref) {
   source.loadCases=[load('LC-A',[1000,100,-50],[5000,20000,-10000],ref),load('LC-B',[-500,-25,75],[-2000,-5000,15000],ref)];
   source.resultRequests.transformedLoadCaseIdentities=['LC-A','LC-B'];
   source.pressureDefinitions.push({identity:'P-EXTERNAL',internalPressure:{value:0,sourceRef:ref('pressure.P-EXTERNAL.internal')},externalPressure:{value:1,sourceRef:ref('pressure.P-EXTERNAL.external')},endCondition:END_CONDITIONS.CLOSED_END});
-  source.resultRequests.pressure=['P-CLOSED','P-OPEN','P-EXPLICIT','P-EXTERNAL'].map((identity)=>pressureRequest(identity,ref));
+  source.resultRequests.pressure=[
+    pressureRequest('P-CLOSED',ref,true),pressureRequest('P-OPEN',ref,true),
+    pressureRequest('P-EXPLICIT',ref,true),pressureRequest('P-EXTERNAL',ref,true),
+    pressureRequest('P-UNSPECIFIED',ref,false),
+  ];
 }
 function load(identity,force,moment,ref) {
   return {identity,sourceCoordinateSystem:COORDINATE_SYSTEMS.PIPE_LOCAL,sourceReferencePointIdentity:'TARGET',targetReferencePointIdentity:'TARGET',actionSense:ACTION_SENSES.SUPPORT_ON_PIPE,force:{value:force,sourceRef:ref(`loads.${identity}.force`)},moment:{value:moment,sourceRef:ref(`loads.${identity}.moment`)}};
 }
-function pressureRequest(identity,ref) {
-  return {identity:`PR-${identity}`,pressureDefinitionIdentity:identity,requestedRadii:[490,495,500].map((value,index)=>({value,sourceRef:ref(`requests.${identity}.radius.${index}`)})),includeAxialPressureStress:true,includeThinWallComparison:false};
+function pressureRequest(identity,ref,includeAxialPressureStress) {
+  return {identity:`PR-${identity}`,pressureDefinitionIdentity:identity,requestedRadii:[490,495,500].map((value,index)=>({value,sourceRef:ref(`requests.${identity}.radius.${index}`)})),includeAxialPressureStress,includeThinWallComparison:false};
 }
 function defaultCases() {
   return [{screeningCaseId:'CASE-A',mechanicalTerms:[{loadCaseId:'LC-A',factor:1}],pressureDefinitionId:'P-CLOSED',pressureFactor:1,sourceReference:'CASE#A'},{screeningCaseId:'CASE-B',mechanicalTerms:[{loadCaseId:'LC-B',factor:2},{loadCaseId:'LC-A',factor:-0.5}],pressureDefinitionId:'P-OPEN',pressureFactor:0.5,sourceReference:'CASE#B'}];
