@@ -36,8 +36,12 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Preserve LFEA-001 T3 qualification
-        run: node scripts/lfea-001-check.mjs
+      - name: Preserve LFEA-001 T3 numerical and evidence behavior
+        run: |
+          node scripts/lfea-001-contract-check.mjs
+          node scripts/lfea-001-numerical-check.mjs
+          node scripts/lfea-001-failure-check.mjs
+          node scripts/lfea-001-determinism-check.mjs
       - name: Run LFEA-002 qualification suite
         run: node scripts/lfea-002-check.mjs
       - name: Run strict syntax validation
