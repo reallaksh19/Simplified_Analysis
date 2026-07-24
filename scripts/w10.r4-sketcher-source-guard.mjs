@@ -20,7 +20,7 @@ const allowed = [
   /^scripts\/lafea\.3-source-guard\.mjs$/,
   /^e2e\/w10\.r4-[^/]+\.spec\.js$/,
   /^docs\/main-tab-recovery\/W10\.R4_SKETCHER_RECOVERY\.md$/,
-  /^\.github\/workflows\/w10-r4-certification\.yml$/,
+  /^\.github\/workflows\/(?:w10-r4|u0)-certification\.yml$/,
   /^package\.json$/,
 ];
 
