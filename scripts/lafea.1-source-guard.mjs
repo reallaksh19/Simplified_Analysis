@@ -15,7 +15,7 @@ const ALLOWED = [
 ];
 ensureBaseCommit();
 const head = branchHead();
-const changed = git(['diff', '--name-only', `${BASE}...${head}`]).trim().split('\n').filter(Boolean);
+const changed = git(['diff', '--name-only', BASE, head]).trim().split('\n').filter(Boolean);
 const forbidden = changed.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
 assert.deepEqual(forbidden, [], `LAFEA.1 scope violation:\n${forbidden.join('\n')}`);
 assert.equal(changed.includes('package-lock.json'), false, 'package-lock.json must not change.');
