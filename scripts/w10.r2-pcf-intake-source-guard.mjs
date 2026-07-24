@@ -17,9 +17,9 @@ const allowed = Object.freeze([
   /^\.github\/workflows\/w10-r2-certification\.yml$/,
 ]);
 
-ensureBaseCommit();
-const changed = gitLines(['diff', '--name-only', BASE_SHA, 'HEAD']);
-const added = new Set(gitLines(['diff', '--name-only', '--diff-filter=A', BASE_SHA, 'HEAD']));
+const scopeBase = resolveScopeBase();
+const changed = gitLines(['diff', '--name-only', scopeBase, 'HEAD']);
+const added = new Set(gitLines(['diff', '--name-only', '--diff-filter=A', scopeBase, 'HEAD']));
 const errors = [];
 
 changed.forEach((file) => {
@@ -49,12 +49,11 @@ productionFiles().forEach((file) => {
 
 requireTokens('src/core/workspace-consumers/constants.js', [
   'workspace-consumer-registry/v5', 'workspace-consumer-registry/v6',
-  'application-view-state/v5', 'application-view-state/v6',
-  "PCF: 'PCF'",
+  'application-view-state/v5', 'application-view-state/v6', "PCF: 'PCF'",
 ], 'Versioned consumer constants');
 requireTokens('src/core/workspace-consumers/registry.js', [
   'createWorkspaceConsumerRegistryV5', 'createWorkspaceConsumerRegistryV6',
-  "SOURCE_INTAKE_AND_EXPLICIT_WORKSPACE_ADOPTION_ONLY",
+  'SOURCE_INTAKE_AND_EXPLICIT_WORKSPACE_ADOPTION_ONLY',
 ], 'Registry evolution');
 requireTokens('src/core/workspace-consumers/view-state.js', [
   'createApplicationViewStateV5', 'createApplicationViewStateV6',
@@ -70,7 +69,7 @@ requireTokens('src/workspace/workspace-layout.js', [
 const layout = read('src/workspace/workspace-layout.js');
 assert.equal((layout.match(/data-webgl-host/g) || []).length, 1, 'W10.R2 must retain one viewport host.');
 const packageJson = JSON.parse(read('package.json'));
-const basePackage = JSON.parse(git(['show', `${BASE_SHA}:package.json`]));
+const basePackage = JSON.parse(git(['show', `${scopeBase}:package.json`]));
 assert.deepEqual(packageJson.dependencies, basePackage.dependencies, 'W10.R2 dependencies must remain unchanged.');
 assert.deepEqual(packageJson.devDependencies, basePackage.devDependencies, 'W10.R2 devDependencies must remain unchanged.');
 
@@ -79,24 +78,24 @@ if (errors.length) {
   errors.forEach((error) => console.error(` - ${error}`));
   process.exit(1);
 }
-console.log(`✅ W10.R2 source, ownership, version and dependency boundaries passed for ${changed.length} changed file(s).`);
+console.log(`✅ W10.R2 source, ownership, version and dependency boundaries passed for ${changed.length} changed file(s) against ${scopeBase}.`);
 
-function addedJavaScript() {
-  return changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file));
+function resolveScopeBase() {
+  const row = gitLines(['rev-list', '--parents', '-n', '1', 'HEAD'])[0]?.split(' ') || [];
+  if (row.length > 2) return row[1];
+  ensureCommit(BASE_SHA);
+  return BASE_SHA;
 }
-function productionFiles() {
-  return changed.filter((file) => file.startsWith('src/core/pcf-intake/') || /^src\/workspace\/pcf-consumer-/.test(file));
-}
-function importClauses(content) {
-  return [...content.matchAll(/import[\s\S]*?from\s+['"][^'"]+['"]/g)].map((row) => row[0]).join('\n');
-}
+function addedJavaScript() { return changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file)); }
+function productionFiles() { return changed.filter((file) => file.startsWith('src/core/pcf-intake/') || /^src\/workspace\/pcf-consumer-/.test(file)); }
+function importClauses(content) { return [...content.matchAll(/import[\s\S]*?from\s+['"][^'"]+['"]/g)].map((row) => row[0]).join('\n'); }
 function requireTokens(file, tokens, label) {
   const content = read(file);
   tokens.forEach((token) => { if (!content.includes(token)) errors.push(`${label} token ${token} is missing.`); });
 }
-function ensureBaseCommit() {
-  try { execFileSync('git', ['cat-file', '-e', `${BASE_SHA}^{commit}`], { cwd: root, stdio: 'ignore' }); }
-  catch { execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', BASE_SHA], { cwd: root, stdio: 'ignore' }); }
+function ensureCommit(sha) {
+  try { execFileSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: root, stdio: 'ignore' }); }
+  catch { execFileSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', sha], { cwd: root, stdio: 'ignore' }); }
 }
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
 function gitLines(args) { return git(args).split(/\r?\n/).filter(Boolean); }
