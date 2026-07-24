@@ -72,9 +72,14 @@ console.log(`✅ W10.R3 source, ownership, runtime and dependency boundaries pas
 
 function resolveScopeBase() {
   try {
-    execFileSync('git', ['fetch', '--no-tags', 'origin', 'main'], { cwd: root, stdio: 'ignore' });
+    fetchMainHistory();
     return gitLines(['merge-base', 'HEAD', 'origin/main'])[0] || BASE_SHA;
   } catch { ensureCommit(BASE_SHA); return BASE_SHA; }
+}
+function fetchMainHistory() {
+  const shallow = git(['rev-parse', '--is-shallow-repository']).trim() === 'true';
+  if (shallow) execFileSync('git', ['fetch', '--no-tags', '--unshallow', 'origin'], { cwd: root, stdio: 'ignore' });
+  execFileSync('git', ['fetch', '--no-tags', 'origin', 'main'], { cwd: root, stdio: 'ignore' });
 }
 function addedJavaScript() { return changed.filter((file) => added.has(file) && /\.(?:js|mjs)$/.test(file)); }
 function productionFiles() { return changed.filter((file) => file.startsWith('src/core/settings-authority/') || /^src\/workspace\/(?:settings-|bootstrap|application-shell-controller|model-calculation-controller)/.test(file)); }
