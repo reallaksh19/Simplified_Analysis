@@ -22,7 +22,7 @@ export class ModelCalculationController {
     store = ModelCalculationStore,
     documentRef = globalThis.document,
     settingsProfileProvider = () => null,
-    clock = () => new Date().toISOString(),
+    clock = () => new globalThis.Date().toISOString(),
   ) {
     this.eventBus = eventBus;
     this.store = store;
