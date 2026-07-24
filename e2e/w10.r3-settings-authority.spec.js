@@ -43,7 +43,7 @@ test('invalid proposals fail closed and resets never alter the active profile be
   await page.evaluate(() => EventBus.publish('engineeringSettings:proposalChanged', {
     settingId: 'reportTimestampPolicy', value: 'invalid-policy',
   }));
-  await expect(page.getByText(/must be one of/)).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /must be one of/ })).toBeVisible();
   await page.getByRole('button', { name: 'Apply Settings Profile' }).click();
   expect((await page.evaluate(() => AnalysisWorkspace.getEngineeringSettingsProfile())).profileId).toBe(initial.profileId);
   await expect(page.getByText(/SETTINGS_APPLY_REJECTED/)).toBeVisible();
