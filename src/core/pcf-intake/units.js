@@ -33,7 +33,6 @@ export function addPcfUnitDiagnostics(units, parsedComponents, diagnostics) {
   const hasBore = parsedComponents.some((component) => Number(component?.bore) > 0 || (component?.points || []).some((point) => Number(point?.bore) > 0));
   if (hasBore && !units.bore) diagnostics.push(pcfDiagnostic('ERROR', 'PCF_BORE_UNITS_MISSING', 'UNITS-BORE must be declared when bore values are present.'));
   else if (units.bore && !units.bore.unit) diagnostics.push(pcfDiagnostic('ERROR', 'PCF_BORE_UNITS_UNSUPPORTED', `Unsupported bore unit ${units.bore.token}.`, { lineNumber: units.bore.lineNumber }));
-  if (units.coordinate?.unit && units.bore?.unit && units.coordinate.unit !== units.bore.unit) diagnostics.push(pcfDiagnostic('ERROR', 'PCF_UNITS_INCONSISTENT', `Coordinate unit ${units.coordinate.unit} and bore unit ${units.bore.unit} are inconsistent.`));
   ['CO-ORDS', 'BORE'].filter((kind) => units.declarations.filter((row) => row.kind === kind).length > 1)
     .forEach((kind) => diagnostics.push(pcfDiagnostic('ERROR', 'PCF_UNIT_DECLARATION_DUPLICATE', `UNITS-${kind} is declared more than once.`)));
 }
