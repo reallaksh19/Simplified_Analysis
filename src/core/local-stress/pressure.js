@@ -6,10 +6,25 @@ export function calculateRequestedPressureResults(model) {
   return model.resultRequests.pressure.map((request) => calculatePressure(model, definitions.get(request.pressureDefinitionIdentity), request));
 }
 export function calculatePressure(model, definition, request) {
+  validatePressureRequest(definition, request);
+  const state = pressureState(model, definition);
+  const points = request.requestedRadii.map((radius) => pressurePoint(radius.value, state.ri, state.ro, state.a, state.b, model));
+  const inner = pressurePoint(state.ri, state.ri, state.ro, state.a, state.b, model);
+  const outer = pressurePoint(state.ro, state.ri, state.ro, state.a, state.b, model);
+  const boundaryEvidence = boundaryAssessment(model, definition, inner, outer);
+  const axial = axialEvidence(definition, request.includeAxialPressureStress, state.a);
+  const result = pressureResult(model, definition, request, state, points, boundaryEvidence, axial);
+  if (request.includeThinWallComparison) addThinWallComparison(result, state);
+  result.formulaIds.sort();
+  return result;
+}
+function validatePressureRequest(definition, request) {
   if (!definition) throw modelError('PRESSURE_DEFINITION_MISSING', request.identity, 'Pressure definition is missing.');
   if (definition.endCondition === END_CONDITIONS.UNSPECIFIED && request.includeAxialPressureStress) {
     throw unsupportedError('UNSPECIFIED_AXIAL_PRESSURE_REQUEST', request.identity, 'Axial pressure stress requires a declared end condition.');
   }
+}
+function pressureState(model, definition) {
   const ro = canonicalNumber(model.pipeGeometry.outsideDiameter.value / 2, 'outer radius');
   const t = model.thicknessBasis.assessmentPipeThickness.value;
   const ri = canonicalNumber(ro - t, 'inner radius');
@@ -19,42 +34,43 @@ export function calculatePressure(model, definition, request) {
   const denominator = canonicalNumber(ro ** 2 - ri ** 2, 'Lamé denominator');
   const a = canonicalNumber((pi * ri ** 2 - po * ro ** 2) / denominator, 'Lamé A');
   const b = canonicalNumber(((pi - po) * ri ** 2 * ro ** 2) / denominator, 'Lamé B');
-  const points = request.requestedRadii.map((radius) => pressurePoint(radius.value, ri, ro, a, b, model));
-  const inner = pressurePoint(ri, ri, ro, a, b, model);
-  const outer = pressurePoint(ro, ri, ro, a, b, model);
-  const boundaryEvidence = boundaryAssessment(model, definition, inner, outer);
-  const axial = axialEvidence(definition, request.includeAxialPressureStress, a);
-  const formulaIds = [FORMULA_IDS.LAME_A, FORMULA_IDS.LAME_B, FORMULA_IDS.RADIAL_STRESS, FORMULA_IDS.HOOP_STRESS, FORMULA_IDS.PRESSURE_BOUNDARY, ...axial.formulaIds];
-  const result = {
+  return { ro, t, ri, pi, po, a, b };
+}
+function pressureResult(model, definition, request, state, points, boundaryEvidence, axial) {
+  return {
     identity: request.identity,
     pressureDefinitionIdentity: definition.identity,
-    innerRadius: ri,
-    outerRadius: ro,
-    assessmentPipeThickness: t,
+    innerRadius: state.ri,
+    outerRadius: state.ro,
+    assessmentPipeThickness: state.t,
     pressureWallBasis: model.thicknessBasis.pressureWallBasis,
-    internalPressure: pi,
-    externalPressure: po,
-    coefficientA: a,
-    coefficientB: b,
+    internalPressure: state.pi,
+    externalPressure: state.po,
+    coefficientA: state.a,
+    coefficientB: state.b,
     requestedPoints: points,
     boundaryEvidence,
     endCondition: definition.endCondition,
     axialPressureStress: axial.axialPressureStress,
     explicitAxialResultant: axial.explicitAxialResultant,
-    limitations: po > 0 ? PRESSURE_LIMITATIONS : ['ELASTIC_PRESSURE_STRESS_ONLY'],
-    sourceReferences: {
-      internalPressure: definition.internalPressure.sourceRef,
-      externalPressure: definition.externalPressure.sourceRef,
-      assessmentPipeThickness: model.thicknessBasis.assessmentPipeThickness.sourceRef,
-    },
-    formulaIds,
+    limitations: state.po > 0 ? PRESSURE_LIMITATIONS : ['ELASTIC_PRESSURE_STRESS_ONLY'],
+    sourceReferences: pressureSourceReferences(model, definition),
+    formulaIds: baseFormulaIds(axial),
   };
-  if (request.includeThinWallComparison) {
-    result.thinWallComparison = thinWallComparison(pi, po, ri, ro, t);
-    result.formulaIds.push(FORMULA_IDS.THIN_WALL_COMPARISON);
-  }
-  result.formulaIds.sort();
-  return result;
+}
+function pressureSourceReferences(model, definition) {
+  return {
+    internalPressure: definition.internalPressure.sourceRef,
+    externalPressure: definition.externalPressure.sourceRef,
+    assessmentPipeThickness: model.thicknessBasis.assessmentPipeThickness.sourceRef,
+  };
+}
+function baseFormulaIds(axial) {
+  return [FORMULA_IDS.LAME_A, FORMULA_IDS.LAME_B, FORMULA_IDS.RADIAL_STRESS, FORMULA_IDS.HOOP_STRESS, FORMULA_IDS.PRESSURE_BOUNDARY, ...axial.formulaIds];
+}
+function addThinWallComparison(result, state) {
+  result.thinWallComparison = thinWallComparison(state.pi, state.po, state.ri, state.ro, state.t);
+  result.formulaIds.push(FORMULA_IDS.THIN_WALL_COMPARISON);
 }
 function pressurePoint(radius, ri, ro, a, b, model) {
   const tolerance = toleranceFor(model.qualificationProfile, 'length', radius, ri, ro);
