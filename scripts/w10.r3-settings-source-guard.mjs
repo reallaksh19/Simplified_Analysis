@@ -48,7 +48,8 @@ requireTokens('src/core/workspace-consumers/constants.js', ['workspace-consumer-
 requireTokens('src/core/workspace-consumers/registry.js', ['createWorkspaceConsumerRegistryV6','createWorkspaceConsumerRegistryV7','EXPLICIT_TRANSACTIONAL_SETTINGS_AUTHORITY_ONLY'], 'Registry evolution');
 requireTokens('src/core/workspace-consumers/view-state.js', ['createApplicationViewStateV6','createApplicationViewStateV7','validateApplicationViewStateV7'], 'View-state evolution');
 requireTokens('src/workspace/settings-controller.js', ['SETTINGS_EVENTS.CHANGED','SETTINGS_EVENTS.APPLY_FAILED','SettingsPersistenceAdapter'], 'Settings ownership');
-requireTokens('src/workspace/settings-persistence-adapter.js', ['simplified-analysis:engineering-settings:v1','REJECTED'], 'Persistence boundary');
+requireTokens('src/core/settings-authority/constants.js', ['simplified-analysis:engineering-settings:v1'], 'Persistence key definition');
+requireTokens('src/workspace/settings-persistence-adapter.js', ['ENGINEERING_SETTINGS_PERSISTENCE_KEY','REJECTED'], 'Persistence adapter boundary');
 requireTokens('src/workspace/workspace-layout.js', ['data-application-view="SETTINGS"','data-role="settings-consumer-root"'], 'Settings layout');
 requireTokens('src/workspace/bootstrap.js', ['getEngineeringSettingsProfile','getEngineeringSettingsAudit','getSettingsReviewModel'], 'Bounded public evidence');
 requireTokens('src/workspace/model-calculation-controller.js', ['applyReportTimestampPolicy','settingsProfileProvider'], 'Verified Reports consumer');
