@@ -5,7 +5,7 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.10-BRO
   {id:'PIPES',name:'Pipes',type:'BRANCH',children:[pipe('PIPE-A',[0,0,0],[1000,0,0]),pipe('PIPE-B',[1000,0,0],[2000,0,0])]},
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
-const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const NAVIGATION=['Home','Workspace','Load Calc','PCF','Sketcher','3D Calc','Pipe Solver','Reports','QA','Settings','Debug'];
 const REQUEST_TOPICS=['sharedModel:exportRequested','topology:rebuildExactRequested','topology:exportRequested','supportRestraint:rebuildEvidenceRequested','supportRestraint:exportRequested','verticalBeam:rebuildRequested','verticalBeam:solveRequested','verticalBeam:exportRequested','applicationView:changeRequested'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
@@ -17,22 +17,21 @@ test.beforeEach(async({page})=>{await page.addInitScript(()=>{
 
 test('adopts exact model/topology/support evidence and delegates guarded actions',async({page})=>{
   await page.goto('/');await installEventAudit(page);
-  const nav=page.locator('[data-role="application-navigation"]');
+  const nav=applicationNavigation(page);
   await expect(nav.getByRole('button')).toHaveText(NAVIGATION);
-  const workspace=nav.getByRole('button',{name:'Workspace'}),threeD=nav.getByRole('button',{name:'3D Calc'});
+  const home=navButton(nav,'Home'),workspace=navButton(nav,'Workspace'),threeD=navButton(nav,'3D Calc');
+  await expect(home).toHaveAttribute('aria-current','page');
+  await home.focus();await page.keyboard.press('ArrowRight');await expect(workspace).toBeFocused();
+  await workspace.click();
   await expect(threeD).toHaveAttribute('aria-disabled','true');
   await expect(page.locator('[data-role="three-d-calc-consumer-root"]')).toBeEmpty();
   expect(await threeD.evaluate((element)=>element.disabled)).toBe(false);
   const reasonId=await threeD.getAttribute('aria-describedby');
   await expect(page.locator(`#${reasonId}`)).toContainText('Required contract');
-  await page.keyboard.press('Tab');await expect(workspace).toBeFocused();
-  await workspace.focus();await page.keyboard.press('ArrowRight');await expect(nav.getByRole('button',{name:'Reports'})).toBeFocused();
-  await page.keyboard.press('ArrowRight');await expect(nav.getByRole('button',{name:'Load Calc'})).toBeFocused();
-  await page.keyboard.press('ArrowRight');await expect(threeD).toBeFocused();
-  await page.keyboard.press('Space');expect((await eventCounts(page)).viewFailures).toBe(1);
-  await page.keyboard.press('End');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
-  await page.keyboard.press('Home');await expect(workspace).toBeFocused();
-  await page.keyboard.press('ArrowLeft');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
+  await threeD.focus();await page.keyboard.press('Space');expect((await eventCounts(page)).viewFailures).toBe(1);
+  await page.keyboard.press('End');await expect(navButton(nav,'Debug')).toBeFocused();
+  await page.keyboard.press('Home');await expect(home).toBeFocused();
+  await page.keyboard.press('ArrowLeft');await expect(navButton(nav,'Debug')).toBeFocused();
 
   await uploadJson(page,'w10.10-browser.json',STAGED_PACKAGE);
   await page.locator('[data-entity-id="PIPE-A"]').click();
@@ -75,22 +74,23 @@ test('adopts exact model/topology/support evidence and delegates guarded actions
 
 test('preserves Workspace, Load Calc, Reports and W10.4-W10.9 state',async({page})=>{
   await page.goto('/');await installEventAudit(page);await uploadJson(page,'w10.10-preserve.json',STAGED_PACKAGE);
+  const nav=applicationNavigation(page);
   await page.locator('[data-entity-id="PIPE-A"]').click();
   await page.getByRole('button',{name:'Run Tributary Screening'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getSupportLoadScreening()?.semanticHash||null)).not.toBeNull();
-  await page.getByRole('button',{name:'3D Calc'}).click();
+  await navButton(nav,'3D Calc').click();
   await page.getByRole('button',{name:'Solve Vertical Beam'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getVerticalBeamSolution()?.semanticHash||null)).not.toBeNull();
-  await page.getByRole('button',{name:'Workspace'}).click();
+  await navButton(nav,'Workspace').click();
   await expect(page.locator('[data-role="three-d-calc-consumer-root"]')).toBeEmpty();
   await page.locator('[data-model-calculation-control="mode"]').selectOption('SCREENING_AND_VERTICAL_BEAM');
   await page.getByRole('button',{name:'Create Calculation Package'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getActiveModelCalculationPackage()?.semanticHash||null)).not.toBeNull();
   const before=await preservedState(page),actions=await eventCounts(page);
-  await page.getByRole('button',{name:'Load Calc'}).click();await expect(page.locator('[data-role="load-calc-consumer"]')).toBeVisible();
-  await page.getByRole('button',{name:'Reports'}).click();await expect(page.locator('[data-role="reports-consumer"]')).toContainText('SCREENING_AND_VERTICAL_BEAM');
-  await page.getByRole('button',{name:'3D Calc'}).click();await expect(page.locator('[data-role="three-d-calc-beam"]')).toContainText('signedSupportForceN');
-  await page.getByRole('button',{name:'Workspace'}).click();
+  await navButton(nav,'Load Calc').click();await expect(page.locator('[data-role="load-calc-consumer"]')).toBeVisible();
+  await navButton(nav,'Reports').click();await expect(page.locator('[data-role="reports-consumer"]')).toContainText('SCREENING_AND_VERTICAL_BEAM');
+  await navButton(nav,'3D Calc').click();await expect(page.locator('[data-role="three-d-calc-beam"]')).toContainText('signedSupportForceN');
+  await navButton(nav,'Workspace').click();
   expect(await preservedState(page)).toEqual(before);
   const after=await eventCounts(page);
   for(const key of ['sharedExports','topologyRebuilds','topologyExports','supportRebuilds','supportExports','beamRebuilds','beamSolves','beamExports'])expect(after[key]).toBe(actions[key]);
@@ -99,15 +99,16 @@ test('preserves Workspace, Load Calc, Reports and W10.4-W10.9 state',async({page
 test('same-ID replacement, clear and teardown remove stale 3D Calc state',async({page})=>{
   let downloads=0;page.on('download',()=>{downloads+=1;});
   await page.goto('/');await uploadJson(page,'w10.10-first.json',STAGED_PACKAGE);
+  const nav=applicationNavigation(page),threeD=navButton(nav,'3D Calc');
   const datasetId=await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId);
-  await page.getByRole('button',{name:'3D Calc'}).click();
+  await threeD.click();
   await uploadJson(page,'w10.10-replacement.json',STAGED_PACKAGE);
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
   expect(await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId)).toBe(datasetId);
-  await expect(page.getByRole('button',{name:'3D Calc'})).toHaveAttribute('aria-disabled','false');
+  await expect(threeD).toHaveAttribute('aria-disabled','false');
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   expect(await page.evaluate(()=>AnalysisWorkspace.getThreeDCalculationReviewModel())).toBeNull();
-  await expect(page.getByRole('button',{name:'3D Calc'})).toHaveAttribute('aria-disabled','true');
+  await expect(threeD).toHaveAttribute('aria-disabled','true');
   const before=await listenerCounts(page);
   await page.evaluate(()=>AnalysisWorkspace.destroy());await expect(page.locator('#root')).toBeEmpty();
   const after=await listenerCounts(page);Object.keys(before).forEach((topic)=>expect(after[topic]).toBeLessThan(before[topic]));
@@ -119,6 +120,8 @@ test('same-ID replacement, clear and teardown remove stale 3D Calc state',async(
   await page.waitForTimeout(50);expect(downloads).toBe(0);expect(await page.evaluate(()=>globalThis.__w1010UrlAudit)).toEqual({created:0,revoked:0});
 });
 
+function applicationNavigation(page){return page.getByRole('navigation',{name:'Application views'});}
+function navButton(nav,name){return nav.getByRole('button',{name,exact:true});}
 async function installEventAudit(page){await page.evaluate(()=>{
   globalThis.__w1010Events={viewFailures:0,viewChanges:0,sharedExports:0,topologyRebuilds:0,topologyExports:0,supportRebuilds:0,supportExports:0,beamRebuilds:0,beamSolves:0,beamExports:0};
   const count=(key)=>()=>{globalThis.__w1010Events[key]+=1;};
