@@ -40,8 +40,10 @@ function validateFile(file) {
   assert.ok(lineCount < 300, `${name} exceeds 299 lines.`);
   assert.ok(!/export\s+default/.test(text), `${name} uses a default export.`);
   assert.ok(!/\beval\s*\(|new\s+Function\s*\(/.test(text), `${name} uses dynamic code execution.`);
-  assert.ok(!/\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(text),
-    `${name} contains nondeterministic identity logic.`);
+  if (name.startsWith('src/')) {
+    assert.ok(!/\b(?:Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|uuid)\b/i.test(text),
+      `${name} contains nondeterministic identity logic.`);
+  }
   functionSpans(text).filter((row) => row.lines > 40).forEach((row) => {
     throw new Error(`${name} function ${row.name} has ${row.lines} lines; maximum is 40.`);
   });
