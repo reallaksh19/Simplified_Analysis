@@ -9,7 +9,10 @@ jobs:
   certify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact workflow head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -73,6 +76,8 @@ jobs:
         run: node scripts/w10.10-three-d-calculation-source-guard.mjs javascript && node scripts/w10.10-three-d-calculation-source-guard.mjs imports && node scripts/w10.10-three-d-calculation-source-guard.mjs runtime && node scripts/w10.10-three-d-calculation-source-guard.mjs dependencies && node scripts/w10.10-three-d-calculation-source-guard.mjs contracts && node scripts/w10.10-three-d-calculation-source-guard.mjs integration
       - name: Certify W10.11 guarded Pipe Solver contracts and boundaries
         run: npm run check:w10.11:static
+      - name: Certify LAFEA.1 canonical attachment foundation
+        run: npm run check:lafea.1
       - run: npx playwright install chromium --with-deps
       - name: Certify Phase 1 workspace contracts
         run: npm run check:phase1-workspace:static
