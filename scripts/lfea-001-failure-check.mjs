@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { solveContinuumModel } from '../src/core/element-fea/index.js';
+import { baseModel, clone, unrestrainedModel } from './lfea-001-fixtures.mjs';
+
+const rejected = (model, status='REJECTED_INVALID') => assert.equal(solveContinuumModel(model).status,status);
+const disconnected=baseModel(); disconnected.nodes.push({nodeId:'N4',x:4,y:4,sourceSemanticHash:disconnected.sourceSemanticHash}); rejected(disconnected);
+rejected(unrestrainedModel(),'REJECTED_SINGULAR');
+const zero=baseModel(); zero.nodes[2].x=2; zero.nodes[2].y=0; rejected(zero);
+const inverted=baseModel(); inverted.elements[0].nodeIds=['N1','N3','N2']; rejected(inverted);
+const material=baseModel(); material.materials[0].E=0; rejected(material);
+const thickness=baseModel(); thickness.elements[0].thickness=0; rejected(thickness);
+const ancestry=baseModel(); ancestry.elements[0].sourceSemanticHash='stale'; rejected(ancestry);
+const duplicate=baseModel(); duplicate.nodes.push(clone(duplicate.nodes[0])); rejected(duplicate);
+const nonfinite=baseModel(); nonfinite.nodes[0].x=Number.NaN; rejected(nonfinite);
+const unsupported=baseModel(); unsupported.elements[0].type='Q4'; rejected(unsupported);
+const internal=baseModel(); internal.nodes.push({nodeId:'N4',x:1,y:1,sourceSemanticHash:internal.sourceSemanticHash}); internal.elements.push({elementId:'E2',type:'T3',nodeIds:['N2','N4','N3'],materialId:'MAT1',thickness:1,sourceSemanticHash:internal.sourceSemanticHash}); internal.loadCases[0].edgeLoads=[{loadId:'T1',elementId:'E1',edgeNodeIds:['N2','N3'],type:'TRACTION',tx:1,ty:0}]; rejected(internal);
+console.log('LFEA-001 fail-closed fixtures passed.');

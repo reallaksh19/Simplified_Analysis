@@ -1,0 +1,38 @@
+{
+  "baselineCommit": "ce719a719a740d5228b5a404a6848af878954609",
+  "policy": "Every edited existing file is recoverable exactly from the immutable baseline commit and recorded blob SHA.",
+  "files": [
+    {
+      "path": "src/core/workspace-consumers/constants.js",
+      "blobSha": "d6cccdb22b000276c985d37633cb4612bee2d310"
+    },
+    {
+      "path": "src/core/workspace-consumers/registry.js",
+      "blobSha": "0317aeea73aed2383ee7fd5b6cb0e2cefc95cfb2"
+    },
+    {
+      "path": "src/core/workspace-consumers/view-state.js",
+      "blobSha": "a07406ec9020992f696077f850820ba563b617d6"
+    },
+    {
+      "path": "src/core/workspace-consumers/index.js",
+      "blobSha": "1d52ea3216c731ce607a6b03b3f53cc54ac784ac"
+    },
+    {
+      "path": "src/workspace/application-shell-controller.js",
+      "blobSha": "952122ea1dc7095c0cfb210504df3b99e6009dcf"
+    },
+    {
+      "path": "src/workspace/workspace-layout.js",
+      "blobSha": "e26a2394f9361ce1299657a9f7d676972cd34b47"
+    },
+    {
+      "path": "scripts/full-check.mjs",
+      "blobSha": "88a071bae1109cbf3ba2aeabeca512b5a4621bfa"
+    },
+    {
+      "path": "src/core/workspace-consumers/readiness.js",
+      "blobSha": "e9c541783bac0b71f86f709766c0de2da56ee6c6"
+    }
+  ]
+}

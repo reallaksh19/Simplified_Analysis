@@ -6,7 +6,8 @@ const checks = [
   ['npm', ['run', 'syntax:strict']],
   ['npm', ['run', 'check:registry']],
   ['npm', ['run', 'check:benchmarks']],
-  ['npm', ['run', 'check:smoke']]
+  [process.execPath, ['scripts/lfea-001-check.mjs']],
+  ['npm', ['run', 'check:smoke']],
 ];
 
 for (const [cmd, args] of checks) {
@@ -18,5 +19,4 @@ for (const [cmd, args] of checks) {
     process.exit(result.status ?? 1);
   }
 }
-
 console.log('\nFull check completed successfully.');
