@@ -66,11 +66,11 @@ test('malformed persistence fails closed and dataset replacement does not reset 
   await page.locator('[data-settings-field="reportTimestampPolicy"]').selectOption('include-in-export-content');
   await page.getByRole('button', { name: 'Apply Settings Profile' }).click();
   const applied = await page.evaluate(() => AnalysisWorkspace.getEngineeringSettingsProfile());
-  const ledgerBefore = await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger());
+  const historicalEntries = await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger().entries);
   await page.evaluate(() => EventBus.publish('dataset:loadRequested', {
     sourceName: 'settings-boundary.json',
     rawPackage: { schema: 'inputxml-managed-stage/v1', objects: [{ id: 'P1', type: 'PIPE', name: 'P1', points: [{ x: 0, y: 0, z: 0 }, { x: 1000, y: 0, z: 0 }] }] },
   }));
   expect((await page.evaluate(() => AnalysisWorkspace.getEngineeringSettingsProfile())).profileId).toBe(applied.profileId);
-  expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger())).toEqual(ledgerBefore);
+  expect(await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger().entries)).toEqual(historicalEntries);
 });
