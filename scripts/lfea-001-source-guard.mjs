@@ -11,10 +11,8 @@ const files = [...walk(core), ...walk(scripts).filter(isLfeaScript)];
 const allowedPaths = Object.freeze([
   /^src\/core\/element-fea\//,
   /^scripts\/lfea-001-[^/]+\.mjs$/,
-  /^docs\/element-fea\//,
-  /^package\.json$/,
-  /^scripts\/(?:qa-check|release-candidate-check|u7-browser-qa-check)\.mjs$/,
-  /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
+  /^docs\/element-fea\/LFEA-001_IMPLEMENTATION\.md$/,
+  /^\.github\/workflows\/lfea-001-certification\.yml$/,
 ]);
 
 ensureBaseCommit();
@@ -23,7 +21,7 @@ files.forEach(validateFile);
 validateProductionImports();
 validateScopeBoundary();
 validateDependencies();
-validateRegistration();
+validateCertification();
 console.log(`LFEA-001 exact-base source and certification guards passed for ${files.length} files.`);
 
 function validateChangedPaths() {
@@ -87,21 +85,17 @@ function validateDependencies() {
   assert.deepEqual(current.devDependencies, previous.devDependencies, 'devDependencies must remain unchanged.');
 }
 
-function validateRegistration() {
-  const packageText = readFileSync(join(root, 'package.json'), 'utf8');
-  requireTokens(packageText, [
-    '"check:lfea.001": "node scripts/lfea-001-check.mjs"',
-    'w10.11-pipe-solver-source-guard.mjs javascript',
-    'w10.11-pipe-solver-source-guard.mjs integration',
-  ], 'package registration');
-  const qa = readFileSync(join(root, 'scripts/qa-check.mjs'), 'utf8');
-  requireTokens(qa, ['LFEA-001 Core Continuum Static Check', 'npm run check:lfea.001'], 'QA registration');
-  const workflows = [
-    '.github/workflows/u0-certification.yml',
-    '.github/workflows/release-candidate.yml',
-  ].map((path) => readFileSync(join(root, path), 'utf8')).join('\n');
-  requireTokens(workflows, ['Certify LFEA-001 core continuum foundation', 'npm run check:lfea.001'],
-    'exact-head workflow registration');
+function validateCertification() {
+  const workflow = readFileSync(join(root, '.github/workflows/lfea-001-certification.yml'), 'utf8');
+  requireTokens(workflow, [
+    'name: LFEA-001 Core Certification',
+    'node scripts/lfea-001-check.mjs',
+    'node scripts/lfea-001-source-guard.mjs',
+    "'src/core/element-fea/**'",
+    "'scripts/lfea-001-*.mjs'",
+  ], 'dedicated LFEA workflow');
+  assert.equal(workflow.includes('w10.11'), false,
+    'Dedicated LFEA workflow must not invoke W10.11 authority.');
 }
 
 function functionSpans(content) {
