@@ -1,4 +1,4 @@
-import { deepFreeze, finiteNumber, semanticHash, stringValue } from '../shared-piping-model/index.js';
+import { deepFreeze, semanticHash } from '../shared-piping-model/index.js';
 import { CONTINUUM_MODEL_SCHEMA, DOF_ORDER, ELEMENT_TYPE, FORMULATIONS, LOAD_TYPES } from './constants.js';
 import { signedArea } from './t3-geometry.js';
 import { createLfeaProfile } from './profile.js';
@@ -107,8 +107,8 @@ function normalizeRestraints(value, nodes) {
 function normalizePrescribed(value, nodes, restraints) {
   const nodeIds = new Set(nodes.map((row) => row.nodeId));
   const rows = array(value, 'prescribedDisplacements').map((row) => {
-    const normalized = dofRecord(row, 'prescribed displacement', nodeIds, finite(record(row, 'prescribed').value, 'prescribed.value'));
-    return { ...normalized, value: finite(record(row, 'prescribed').value, 'prescribed.value') };
+    const source = record(row, 'prescribed displacement');
+    return dofRecord(source, 'prescribed displacement', nodeIds, finite(source.value, 'prescribed.value'));
   });
   assertUnique(rows, 'constraintId', 'prescribed displacement');
   assertUniqueDofs(rows, 'prescribed displacement');
@@ -197,8 +197,8 @@ function sortById(rows, key) { return [...rows].sort((a,b) => compare(a[key],b[k
 function compare(left, right) { return left < right ? -1 : left > right ? 1 : 0; }
 function record(value, name) { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${name} must be a record.`); return value; }
 function array(value, name) { if (!Array.isArray(value)) throw new TypeError(`${name} must be an array.`); return value; }
-function text(value, name) { const result = stringValue(value); if (!result) throw new TypeError(`${name} is required.`); return result; }
-function finite(value, name) { const result = finiteNumber(value); if (result === null) throw new TypeError(`${name} must be finite.`); return result; }
+function text(value, name) { if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${name} is required.`); return value.trim(); }
+function finite(value, name) { if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError(`${name} must be finite.`); return value; }
 function positive(value, name) { const result = finite(value, name); if (!(result > 0)) throw new TypeError(`${name} must be positive.`); return result; }
-function textArray(value, name) { return array(value, name).map((item) => text(item, name)).sort(compare); }
+function textArray(value, name) { const rows = array(value, name).map((item) => text(item, name)); if (new Set(rows).size !== rows.length) throw new TypeError(`${name} contains duplicate text.`); return rows.sort(compare); }
 function diagnostic(code, message) { return { code, severity: 'ERROR', message }; }
