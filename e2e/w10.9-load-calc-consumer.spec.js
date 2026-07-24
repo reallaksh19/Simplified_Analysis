@@ -51,7 +51,7 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
   expect(await page.evaluate(()=>AnalysisWorkspace.getLoadCalculationReviewModel().schema)).toBe('load-calculation-review-model/v1');
   expect(await page.evaluate(()=>AnalysisWorkspace.listWorkspaceConsumers().find((row)=>row.consumerId==='LOAD_CALC').implementationStatus)).toBe('IMPLEMENTED');
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerReadiness('LOAD_CALC').readinessState)).toBe('AVAILABLE');
-  expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v7');
+  expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v8');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 
   await page.getByRole('button',{name:'Rebuild Model Loads'}).click();
