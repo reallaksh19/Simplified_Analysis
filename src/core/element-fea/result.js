@@ -20,39 +20,9 @@ export function rejectedResult(input, status, diagnostics, limitations = []) {
 
 export function qualifiedResult(model, loadCase, evidence) {
   const base = {
-    schema: CONTINUUM_RESULT_SCHEMA,
-    status: RESULT_STATUS.QUALIFIED,
-    qualifiedResults: 'complete',
-    modelIdentity: model.modelIdentity,
-    modelVersion: model.modelVersion,
-    sourceSemanticHash: model.sourceSemanticHash,
-    modelSemanticHash: model.semanticHash,
-    modelEvidence: model,
-    solverProfile: model.solverProfile,
-    backendTrace: evidence.backendTrace,
-    runtimeTrace: { runtimeIdentity: model.solverProfile.runtimeIdentity },
-    loadCaseIdentity: loadCase.loadCaseId,
-    dofMap: evidence.dofMap,
-    constraintPartition: evidence.constraintPartition,
-    directNodalLoads: evidence.directNodalLoads,
-    equivalentEdgeLoads: evidence.equivalentEdgeLoads,
-    edgeLoadEvidence: evidence.edgeLoadEvidence,
-    effectiveFreeLoad: evidence.effectiveFreeLoad,
-    nodalDisplacements: evidence.nodalDisplacements,
-    reactions: evidence.reactions,
-    elementStrains: evidence.elementStrains,
-    elementStresses: evidence.elementStresses,
-    principalStresses: evidence.principalStresses,
-    vonMisesStress: evidence.vonMisesStress,
-    elementInternalForces: evidence.elementInternalForces,
-    elementStrainEnergy: evidence.elementStrainEnergy,
-    freeDofResidual: evidence.freeDofResidual,
-    globalResidual: evidence.globalResidual,
-    appliedLoadTotals: evidence.appliedLoadTotals,
-    reactionTotals: evidence.reactionTotals,
-    strainEnergy: evidence.strainEnergy,
-    diagnostics: evidence.diagnostics,
-    limitations: [...model.limitations, ...model.solverProfile.limitations],
+    ...qualifiedIdentity(model, loadCase),
+    ...systemEvidence(evidence),
+    ...recoveryEvidence(model, evidence),
   };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
@@ -69,6 +39,51 @@ export function validateContinuumResult(value) {
   return deepFreeze({ ok: errors.length === 0, errors });
 }
 
+function qualifiedIdentity(model, loadCase) {
+  return {
+    schema: CONTINUUM_RESULT_SCHEMA,
+    status: RESULT_STATUS.QUALIFIED,
+    qualifiedResults: 'complete',
+    modelIdentity: model.modelIdentity,
+    modelVersion: model.modelVersion,
+    sourceSemanticHash: model.sourceSemanticHash,
+    modelSemanticHash: model.semanticHash,
+    modelEvidence: model,
+    solverProfile: model.solverProfile,
+    runtimeTrace: { runtimeIdentity: model.solverProfile.runtimeIdentity },
+    loadCaseIdentity: loadCase.loadCaseId,
+  };
+}
+function systemEvidence(evidence) {
+  return {
+    backendTrace: evidence.backendTrace,
+    dofMap: evidence.dofMap,
+    constraintPartition: evidence.constraintPartition,
+    directNodalLoads: evidence.directNodalLoads,
+    equivalentEdgeLoads: evidence.equivalentEdgeLoads,
+    edgeLoadEvidence: evidence.edgeLoadEvidence,
+    effectiveFreeLoad: evidence.effectiveFreeLoad,
+  };
+}
+function recoveryEvidence(model, evidence) {
+  return {
+    nodalDisplacements: evidence.nodalDisplacements,
+    reactions: evidence.reactions,
+    elementStrains: evidence.elementStrains,
+    elementStresses: evidence.elementStresses,
+    principalStresses: evidence.principalStresses,
+    vonMisesStress: evidence.vonMisesStress,
+    elementInternalForces: evidence.elementInternalForces,
+    elementStrainEnergy: evidence.elementStrainEnergy,
+    freeDofResidual: evidence.freeDofResidual,
+    globalResidual: evidence.globalResidual,
+    appliedLoadTotals: evidence.appliedLoadTotals,
+    reactionTotals: evidence.reactionTotals,
+    strainEnergy: evidence.strainEnergy,
+    diagnostics: evidence.diagnostics,
+    limitations: [...model.limitations, ...model.solverProfile.limitations],
+  };
+}
 function validateModelEvidence(value, errors) {
   if (value?.modelEvidence === null) {
     if (value?.modelSemanticHash !== null) errors.push('LFEA result model identity is inconsistent.');
