@@ -21,8 +21,15 @@ export function transformLoadCase(model, frame, loadCase) {
   const forceProof = proveVectorRoundTrip(frame, pipeForce, 'force', model.qualificationProfile);
   const momentProof = proveVectorRoundTrip(frame, targetMoment, 'moment', model.qualificationProfile);
   const commonOrigin = commonOriginProof(model, pipeForce, pipeMoment, targetMoment, sourcePoint, targetPoint, frame.originGlobal);
-  const formulaIds = [FORMULA_IDS.GLOBAL_TO_LOCAL, FORMULA_IDS.LOCAL_TO_GLOBAL, FORMULA_IDS.MOMENT_TRANSFER, FORMULA_IDS.FORCE_CONSERVATION, FORMULA_IDS.MOMENT_CONSERVATION];
-  if (reversed) formulaIds.push(FORMULA_IDS.ACTION_REVERSAL);
+  return loadResult(loadCase, {
+    sourcePoint, targetPoint, sourceForce, sourceMoment, reversed, pipeForce,
+    pipeMoment, leverArm, targetMoment, forceProof, momentProof, commonOrigin,
+  });
+}
+function loadResult(loadCase, evidence) {
+  const { sourcePoint, targetPoint, sourceForce, sourceMoment, reversed, pipeForce } = evidence;
+  const { pipeMoment, leverArm, targetMoment, forceProof, momentProof, commonOrigin } = evidence;
+  const formulaIds = transferFormulaIds(reversed);
   return {
     identity: loadCase.identity,
     sourceCoordinateSystem: loadCase.sourceCoordinateSystem,
@@ -49,8 +56,13 @@ export function transformLoadCase(model, frame, loadCase) {
     commonOriginMomentResidualGlobal: commonOrigin.residual,
     tolerances: { force: forceProof.tolerance, moment: momentProof.tolerance, commonOriginMoment: commonOrigin.tolerance },
     sourceReferences: { force: loadCase.force.sourceRef, moment: loadCase.moment.sourceRef },
-    formulaIds: formulaIds.sort(),
+    formulaIds,
   };
+}
+function transferFormulaIds(reversed) {
+  const formulaIds = [FORMULA_IDS.GLOBAL_TO_LOCAL, FORMULA_IDS.LOCAL_TO_GLOBAL, FORMULA_IDS.MOMENT_TRANSFER, FORMULA_IDS.FORCE_CONSERVATION, FORMULA_IDS.MOMENT_CONSERVATION];
+  if (reversed) formulaIds.push(FORMULA_IDS.ACTION_REVERSAL);
+  return formulaIds.sort();
 }
 function globalVector(vector, coordinateSystem, frame) {
   return coordinateSystem === COORDINATE_SYSTEMS.GLOBAL ? vector : localToGlobal(frame, vector);
