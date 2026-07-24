@@ -17,6 +17,9 @@ const ALLOWED = Object.freeze([
   /^package\.json$/,
   /^\.github\/workflows\/(?:u0-certification|release-candidate)\.yml$/,
   /^scripts\/(?:qa-check|u7-browser-qa-check|release-candidate-check)\.mjs$/,
+  /^src\/core\/element-fea\//,
+  /^scripts\/lfea-001-[^/]+\.mjs$/,
+  /^docs\/element-fea\/LFEA-001_IMPLEMENTATION\.md$/,
 ]);
 const OWNER_CONSTRUCTIONS = Object.freeze([
   'new AnalysisCapabilityRegistry', 'new AnalysisSessionStore', 'new AnalysisLedgerStore',
