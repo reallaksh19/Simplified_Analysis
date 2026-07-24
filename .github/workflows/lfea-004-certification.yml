@@ -39,19 +39,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Capture LFEA-001 contract behavior
-        id: lfea001_contract
-        continue-on-error: true
-        run: node scripts/lfea-001-contract-check.mjs > lfea-001-contract.log 2>&1
-      - name: Upload LFEA-001 contract assertion
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lfea-001-contract-assertion
-          path: lfea-001-contract.log
-      - name: Enforce LFEA-001 contract behavior
-        if: steps.lfea001_contract.outcome != 'success'
-        run: exit 1
+      - name: Preserve LFEA-001 contract behavior
+        run: node scripts/lfea-001-contract-check.mjs
       - name: Preserve LFEA-001 numerical behavior
         run: node scripts/lfea-001-numerical-check.mjs
       - name: Preserve LFEA-001 failure behavior
@@ -70,8 +59,19 @@ jobs:
           node scripts/lfea-003-numerical-check.mjs
           node scripts/lfea-003-failure-check.mjs
           node scripts/lfea-003-determinism-check.mjs
-      - name: Run complete LFEA-004 qualification suite
-        run: node scripts/lfea-004-check.mjs
+      - name: Capture complete LFEA-004 qualification suite
+        id: lfea004_suite
+        continue-on-error: true
+        run: node scripts/lfea-004-check.mjs > lfea-004-suite.log 2>&1
+      - name: Upload LFEA-004 suite assertion
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfea-004-suite-assertion
+          path: lfea-004-suite.log
+      - name: Enforce complete LFEA-004 qualification suite
+        if: steps.lfea004_suite.outcome != 'success'
+        run: exit 1
       - name: Run strict syntax validation
         run: |
           find src/core/element-fea scripts -type f \( -name '*.js' -o -name 'lfea-004-*.mjs' \) -print0 \
