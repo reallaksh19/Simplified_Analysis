@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
+const selected = process.argv[2] || 'all';
 const coreDir = path.join(repoRoot, 'src/core/support-load-screening');
 const workspaceDir = path.join(repoRoot, 'src/workspace');
 const coreFiles = jsFiles(coreDir).map((name) => path.join(coreDir, name));
@@ -16,12 +17,17 @@ const allowedCoreImports = new Set([
   '../model-loads/index.js',
 ]);
 
-assert(coreFiles.length >= 13, 'Expected W10.5 core modules.');
-for (const file of [...coreFiles, ...workspaceFiles]) checkModule(file, coreFiles.includes(file));
-checkDomainEvidence();
-checkChangedPaths();
-await import('./w10.5-owner-regression-check.mjs');
-console.log(`✅ W10.5 source guards passed for ${coreFiles.length} core and ${workspaceFiles.length} Workspace modules.`);
+if (selected === 'paths') {
+  checkChangedPaths();
+} else if (selected === 'all') {
+  assert(coreFiles.length >= 13, 'Expected W10.5 core modules.');
+  for (const file of [...coreFiles, ...workspaceFiles]) checkModule(file, coreFiles.includes(file));
+  checkDomainEvidence();
+  await import('./w10.5-owner-regression-check.mjs');
+} else {
+  throw new TypeError(`Unknown W10.5 source-guard check: ${selected}.`);
+}
+console.log(`✅ W10.5 source guard ${selected} passed for ${coreFiles.length} core and ${workspaceFiles.length} Workspace modules.`);
 
 function checkModule(file, core) {
   const relative = path.relative(repoRoot, file).replaceAll('\\', '/');
