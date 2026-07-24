@@ -1,6 +1,6 @@
 import { deepFreeze } from '../shared-piping-model/index.js';
 import { assembleContinuumSystem, partitionSystem, reconstructDisplacement } from './assembly.js';
-import { RESULT_STATUS } from './constants.js';
+import { BACKEND_ID, RESULT_STATUS } from './constants.js';
 import { solveDenseLdlt } from './linear-backend.js';
 import { dot, multiplyMatrixVector, subtractVectors, vectorNormInfinity } from './matrix.js';
 import { qualifyContinuumModel } from './model.js';
@@ -12,7 +12,7 @@ export function solveContinuumModel(input, loadCaseIdentity) {
   if (!qualification.ok) return rejectedResult(input, RESULT_STATUS.REJECTED_INVALID, qualification.diagnostics);
   const model = qualification.model;
   const loadCase = selectLoadCase(model, loadCaseIdentity);
-  if (!loadCase) return rejectedResult(model, RESULT_STATUS.REJECTED_INVALID, [diagnostic('LOAD_CASE_MISSING', 'Requested load case is not present.')], model.limitations);
+  if (!loadCase) return rejectedResult(model, RESULT_STATUS.REJECTED_INVALID, [diagnostic('LOAD_CASE_MISSING', 'An exact load-case identity is required and must exist.')], model.limitations);
   try { return solveQualifiedModel(model, loadCase); }
   catch (error) { return rejectedResult(model, RESULT_STATUS.REJECTED_INVALID, [diagnostic('SOLVER_REJECTED', error.message)], model.limitations); }
 }
@@ -29,7 +29,7 @@ function solveQualifiedModel(model, loadCase) {
 }
 
 function solveFreeSystem(partition, tolerances) {
-  if (!partition.free.length) return deepFreeze({ ok: true, solution: [], pivotRatio: 1, pivots: [], backendIdentity: 'dense-ldlt-reference/v1' });
+  if (!partition.free.length) return deepFreeze({ ok: true, solution: [], pivotRatio: 1, pivots: [], backendIdentity: BACKEND_ID });
   return solveDenseLdlt(partition.Kff, partition.effectiveFreeLoad, tolerances);
 }
 
@@ -112,5 +112,8 @@ function componentTotals(nodes, dofMap, values) {
     totals.mz += node.x * force.fy - node.y * force.fx; return totals;
   }, { fx: 0, fy: 0, mz: 0 });
 }
-function selectLoadCase(model, identity) { return identity ? model.loadCases.find((row) => row.loadCaseId === identity) : model.loadCases[0]; }
+function selectLoadCase(model, identity) {
+  if (identity !== undefined && identity !== null) return model.loadCases.find((row) => row.loadCaseId === identity) || null;
+  return model.loadCases.length === 1 ? model.loadCases[0] : null;
+}
 function diagnostic(code, message) { return { code, severity: 'ERROR', message }; }
