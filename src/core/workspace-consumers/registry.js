@@ -1,12 +1,12 @@
 import { canonicalStringify, deepFreeze, semanticHash, stringValue } from '../shared-piping-model/index.js';
 import { CONSUMER_IDS,IMPLEMENTATION_STATUS,WORKSPACE_CONSUMER_REGISTRY_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V6_SCHEMA,WORKSPACE_CONSUMER_REGISTRY_V7_SCHEMA } from './constants.js';
-export function createWorkspaceConsumerRegistry(){return canonicalRegistry(1)}
-export function createWorkspaceConsumerRegistryV2(){return canonicalRegistry(2)}
-export function createWorkspaceConsumerRegistryV3(){return canonicalRegistry(3)}
-export function createWorkspaceConsumerRegistryV4(){return canonicalRegistry(4)}
-export function createWorkspaceConsumerRegistryV5(){return canonicalRegistry(5)}
-export function createWorkspaceConsumerRegistryV6(){return canonicalRegistry(6)}
-export function createWorkspaceConsumerRegistryV7(){return canonicalRegistry(7)}
+export function createWorkspaceConsumerRegistry() { return canonicalRegistry(1); }
+export function createWorkspaceConsumerRegistryV2() { return canonicalRegistry(2); }
+export function createWorkspaceConsumerRegistryV3() { return canonicalRegistry(3); }
+export function createWorkspaceConsumerRegistryV4() { return canonicalRegistry(4); }
+export function createWorkspaceConsumerRegistryV5() { return canonicalRegistry(5); }
+export function createWorkspaceConsumerRegistryV6() { return canonicalRegistry(6); }
+export function createWorkspaceConsumerRegistryV7() { return canonicalRegistry(7); }
 export function validateWorkspaceConsumerRegistry(value){const valid=[1,2,3,4,5,6,7].map(canonicalRegistry).some((row)=>canonicalStringify(value)===canonicalStringify(row));return deepFreeze({ok:valid,errors:valid?[]:['Workspace consumer registry does not match a closed supported registry version.']})}
 export const validateWorkspaceConsumerRegistryV1=(v)=>validateExact(v,canonicalRegistry(1),WORKSPACE_CONSUMER_REGISTRY_SCHEMA);
 export const validateWorkspaceConsumerRegistryV2=(v)=>validateExact(v,canonicalRegistry(2),WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA);
