@@ -18,7 +18,7 @@ test('adopts existing pipe-screening, delegates events, and exports the current 
   const pipeSolver = navButton(nav, 'Pipe Solver');
   await expect(pipeSolver).toHaveAttribute('aria-disabled', 'false');
   await pipeSolver.click();
-  expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v6');
+  expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v7');
   expect(await page.evaluate(() => AnalysisWorkspace.getPipeSolverReviewModel().schema)).toBe('pipe-solver-review-model/v1');
   await expect(page.locator('[data-role="pipe-solver-consumer"]')).toContainText('Not final piping-code stress analysis.');
   expect((await audit(page)).automaticActions).toBe(0);
