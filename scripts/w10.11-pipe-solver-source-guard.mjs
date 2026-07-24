@@ -10,6 +10,7 @@ const ALLOWED = Object.freeze([
   /^src\/workspace\/pipe-solver-consumer-[^/]+\.js$/,
   /^scripts\/w10\.11-[^/]+\.mjs$/,
   /^e2e\/w10\.11-[^/]+\.spec\.js$/,
+  /^e2e\/w10\.8-workspace-consumers\.spec\.js$/,
   /^docs\/pipe-solver-consumer\//,
   /^src\/core\/local-stress\//,
   /^src\/workspace\/local-stress-consumer-[^/]+\.js$/,
