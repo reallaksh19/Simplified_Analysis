@@ -50,7 +50,7 @@ function normalizeElements(value, sourceHash, nodes, materials, profile) {
 }
 
 function elementRow(value, sourceHash, nodeMap, materialIds, profile) {
-  const row = record(value, 'element'); exactKeys(row, ['elementId','type','nodeIds','materialId','thickness','sourceSemanticHash','signedArea'], 'element'); ancestry(row, sourceHash, 'element');
+  const row = record(value, 'element'); exactKeys(row, ['elementId','type','nodeIds','materialId','thickness','sourceSemanticHash','signedArea','qualityEvidence'], 'element'); ancestry(row, sourceHash, 'element');
   if (!Object.values(ELEMENT_TYPES).includes(row.type)) throw new TypeError(`Unsupported element type: ${row.type}.`);
   const nodeIds = array(row.nodeIds, 'element.nodeIds').map((id) => text(id, 'element.nodeId')); const expected = row.type === ELEMENT_TYPES.Q4 ? 4 : 3;
   if (nodeIds.length !== expected || new Set(nodeIds).size !== expected) throw new TypeError(`${row.type} connectivity requires ${expected} distinct nodes.`);
@@ -61,6 +61,7 @@ function elementRow(value, sourceHash, nodeMap, materialIds, profile) {
 }
 
 function t3Row(row, nodeIds, materialId, thickness, coordinates, sourceHash, profile) {
+  if (row.qualityEvidence !== undefined) throw new TypeError('T3 elements do not accept Q4 qualityEvidence.');
   const area = signedArea(coordinates); if (!(area > profile.tolerances.geometryArea)) throw new TypeError('T3 element has zero, near-zero, or inverted signed area.');
   if (row.signedArea !== undefined && finite(row.signedArea, 'element.signedArea') !== area) throw new TypeError('Element signedArea does not match the coordinates.');
   return { elementId: text(row.elementId, 'elementId'), type: ELEMENT_TYPES.T3, nodeIds, materialId, thickness, signedArea: area, sourceSemanticHash: sourceHash };
@@ -68,6 +69,7 @@ function t3Row(row, nodeIds, materialId, thickness, coordinates, sourceHash, pro
 function q4Row(row, nodeIds, materialId, thickness, coordinates, sourceHash, profile) {
   if (row.signedArea !== undefined) throw new TypeError('Q4 elements do not accept T3 signedArea evidence.');
   const qualityEvidence = qualifyQ4Geometry(coordinates, profile.tolerances.geometryArea);
+  if (row.qualityEvidence !== undefined && semanticHash(row.qualityEvidence) !== semanticHash(qualityEvidence)) throw new TypeError('Q4 qualityEvidence does not match the coordinates.');
   return { elementId: text(row.elementId, 'elementId'), type: ELEMENT_TYPES.Q4, nodeIds, materialId, thickness, qualityEvidence, sourceSemanticHash: sourceHash };
 }
 
@@ -86,7 +88,7 @@ function normalizeLoadCases(value, sourceHash, nodes, elements, ownership) {
 function loadCaseRow(value, sourceHash, nodeIds, elementMap, ownership) {
   const row = record(value, 'loadCase'); exactKeys(row, ['loadCaseId','nodalForces','edgeLoads','sourceSemanticHash'], 'load case'); ancestry(row, sourceHash, 'load case');
   const nodalForces = array(row.nodalForces, 'nodalForces').map((value) => nodalForce(value, sourceHash, nodeIds)); const edgeLoads = array(row.edgeLoads, 'edgeLoads').map((value) => edgeLoad(value, sourceHash, elementMap, ownership));
-  assertUnique([...nodalForces, ...edgeLoads], 'loadId', 'load'); if (new Set(edgeLoads.map(edgeLoadKey)).size !== edgeLoads.length) throw new TypeError('Duplicate edge load application is prohibited.');
+  assertUnique([...nodalForces, ...edgeLoads], 'loadId', 'load'); if (hasAmbiguousDuplicateEdgeLoads(edgeLoads, elementMap)) throw new TypeError('Duplicate edge load application is prohibited.');
   return { loadCaseId: text(row.loadCaseId, 'loadCaseId'), sourceSemanticHash: sourceHash, nodalForces: sortById(nodalForces, 'loadId'), edgeLoads: sortById(edgeLoads, 'loadId') };
 }
 function nodalForce(value, sourceHash, nodeIds) {
@@ -119,6 +121,18 @@ function ancestry(row, expected, label) { if (row.sourceSemanticHash !== expecte
 function edgeOwnership(elements) { const ownership = new Map(); elements.forEach((element) => elementEdges(element).forEach((edge) => { const key = canonicalEdge(edge); ownership.set(key, [...(ownership.get(key) || []), element.elementId]); })); return ownership; }
 function canonicalEdge(edge) { return [...edge].sort(compare).join('|'); }
 function edgeLoadKey(load) { return canonicalEdge(load.edgeNodeIds); }
+function hasAmbiguousDuplicateEdgeLoads(loads, elementMap) {
+  const groups = new Map(); loads.forEach((load) => { const key = edgeLoadKey(load); groups.set(key, [...(groups.get(key) || []), load]); });
+  return [...groups.values()].some((group) => group.length > 1 && !group.every((load) => isAdapterGeneratedEdgeLoad(load, elementMap.get(load.elementId))));
+}
+function isAdapterGeneratedEdgeLoad(load, element) {
+  if (!element) return false; const localEdgeId = localEdgeIdentity(element, load.edgeNodeIds);
+  return Boolean(localEdgeId && load.loadId.includes(':') && load.loadId.endsWith(`:${element.elementId}:${localEdgeId}`));
+}
+function localEdgeIdentity(element, edge) {
+  const index = elementEdges(element).findIndex((pair) => pair.includes(edge[0]) && pair.includes(edge[1]));
+  return index < 0 ? null : `${element.type}_E${index + 1}`;
+}
 function adjacentEdge(element, edge) { return elementEdges(element).some((pair) => pair.includes(edge[0]) && pair.includes(edge[1])); }
 function assertUnique(rows, key, label) { if (new Set(rows.map((row) => row[key])).size !== rows.length) throw new TypeError(`Duplicate ${label} identity.`); }
 function assertUniqueDofs(rows, label) { if (new Set(rows.map(dofKey)).size !== rows.length) throw new TypeError(`Contradictory or duplicate ${label} DOF.`); }
