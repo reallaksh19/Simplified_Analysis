@@ -34,3 +34,15 @@ export { recoverPointProbe, verifyProbeMapping } from './physical-probes.js';
 export { interpretConvergenceStudy, validateConvergenceResult } from './interpretation-result.js';
 export { classifyScalarSequence, scalarConvergenceEvidence, stressTrendEvidence } from './stress-trend.js';
 export { createStressProjection, Q4_GAUSS_TO_CORNER_MATRIX, validateStressProjection } from './stress-projection.js';
+
+export {
+  CONSTRAINT_COMPONENT_TYPES, EDGE_CLASSIFICATIONS, LOCAL_EDGE_IDS, MAPPING_STATUS,
+  MESH_ADAPTER_PROFILE_SCHEMA, MESH_ADAPTER_RESULT_SCHEMA, MESH_ADAPTER_STATUS,
+  MESH_COORDINATE_SYSTEM, MESH_PACKAGE_SCHEMA, MESH_PACKAGE_UNITS, SELECTOR_TYPES,
+} from './mesh-package-constants.js';
+export { createMeshAdapterProfile, createMeshPackage, validateMeshAdapterProfile, validateMeshPackage } from './mesh-package-contract.js';
+export { buildMeshPackageTopology } from './mesh-package-topology.js';
+export { resolveMeshPackageEntities } from './mesh-package-entities.js';
+export { resolveMeshPackageAssignments } from './mesh-package-assignments.js';
+export { adaptMeshPackage } from './mesh-package-adapter.js';
+export { createAcceptedMeshAdapterResult, createRejectedMeshAdapterResult, validateMeshAdapterResult } from './mesh-package-result.js';
