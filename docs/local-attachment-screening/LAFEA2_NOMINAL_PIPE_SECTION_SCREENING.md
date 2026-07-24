@@ -74,7 +74,7 @@ tauXThetaTorsion = Mx*r/J
 
 ## Pressure reuse and same-point tensor
 
-Pressure is sourced from the matching accepted LAFEA.1 pressure result. An emitted point at the declared radius is reused exactly; otherwise the retained LAFEA.1 Lamé coefficients recover that radius under the same pressure convention. Closed/open/explicit-resultant semantics remain unchanged.
+Pressure is sourced from the matching accepted LAFEA.1 pressure result. An emitted point at the declared radius is reused exactly; otherwise the retained LAFEA.1 Lamé coefficients recover that radius under the same pressure convention. Closed-end and open-end axial pressure components require retained LAFEA.1 axial evidence. Explicit axial resultants remain mechanical resultants. A non-zero pressure factor with `UNSPECIFIED` axial end semantics fails closed; it is never represented as zero axial pressure stress. A zero pressure factor may retain an unspecified source because no pressure component enters the tensor.
 
 An explicit axial resultant is superposed as mechanical axial force and is never relabelled as pressure stress.
 
