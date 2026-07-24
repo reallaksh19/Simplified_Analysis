@@ -30,20 +30,23 @@ export function profile(formulation = 'PLANE_STRESS', overrides = {}) {
     backendIdentity: 'dense-ldlt-reference/v1',
     runtimeIdentity: 'node-es-module',
     outOfPlaneScale: 1,
-    tolerances: {
-      geometryArea: 1e-12,
-      pivotAbsolute: 1e-12,
-      pivotRatio: 1e-12,
-      matrixSymmetryAbsolute: 1e-12,
-      residualForceAbsolute: 1e-9,
-      residualForceRelative: 1e-10,
-      forceEquilibriumAbsolute: 1e-9,
-      momentEquilibriumAbsolute: 1e-8,
-      energyAbsolute: 1e-9,
-    },
+    tolerances: fixtureTolerances(),
     referenceBackendMaxDofs: 100,
     limitations: ['Dense small-model reference backend only.', 'T3 linear elasticity only.'],
     ...overrides,
+  };
+}
+function fixtureTolerances() {
+  return {
+    geometryArea: 1e-12,
+    pivotAbsolute: 1e-12,
+    pivotRatio: 1e-12,
+    matrixSymmetryAbsolute: 1e-12,
+    residualForceAbsolute: 1e-9,
+    residualForceRelative: 1e-10,
+    forceEquilibriumAbsolute: 1e-9,
+    momentEquilibriumAbsolute: 1e-8,
+    energyAbsolute: 1e-9,
   };
 }
 
