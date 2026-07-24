@@ -6,15 +6,17 @@ import {
   WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA,
   WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA,
+  WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA,
 } from './constants.js';
 
 export function createWorkspaceConsumerRegistry() { return canonicalRegistry(1); }
 export function createWorkspaceConsumerRegistryV2() { return canonicalRegistry(2); }
 export function createWorkspaceConsumerRegistryV3() { return canonicalRegistry(3); }
 export function createWorkspaceConsumerRegistryV4() { return canonicalRegistry(4); }
+export function createWorkspaceConsumerRegistryV5() { return canonicalRegistry(5); }
 
 export function validateWorkspaceConsumerRegistry(value) {
-  const supported = [1, 2, 3, 4].map(canonicalRegistry);
+  const supported = [1, 2, 3, 4, 5].map(canonicalRegistry);
   const valid = supported.some((row) => canonicalStringify(value) === canonicalStringify(row));
   return deepFreeze({ ok: valid, errors: valid ? [] : ['Workspace consumer registry does not match a closed supported registry version.'] });
 }
@@ -22,6 +24,7 @@ export function validateWorkspaceConsumerRegistryV1(value) { return validateExac
 export function validateWorkspaceConsumerRegistryV2(value) { return validateExact(value, canonicalRegistry(2), WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA); }
 export function validateWorkspaceConsumerRegistryV3(value) { return validateExact(value, canonicalRegistry(3), WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA); }
 export function validateWorkspaceConsumerRegistryV4(value) { return validateExact(value, canonicalRegistry(4), WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA); }
+export function validateWorkspaceConsumerRegistryV5(value) { return validateExact(value, canonicalRegistry(5), WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA); }
 
 export function workspaceConsumerDescriptor(registry, consumerId) {
   if (!validateWorkspaceConsumerRegistry(registry).ok) throw new TypeError('Workspace consumer registry is invalid.');
@@ -44,7 +47,7 @@ function canonicalRegistry(version) {
 }
 
 function descriptorRows(version) {
-  return [
+  const rows = [
     row(CONSUMER_IDS.WORKSPACE, 'Workspace', 'Current model review and explicit analysis actions.', IMPLEMENTATION_STATUS.IMPLEMENTED, [], allContracts(), workspaceActions(), 'EXISTING_CONTRACT_CLAIMS_ONLY'),
     row(CONSUMER_IDS.REPORTS, 'Reports', 'Review and export the active archived W10.7 package report.', IMPLEMENTATION_STATUS.IMPLEMENTED, reportsRequired(), reportsOptional(), reportsActions(), 'ARCHIVED_REPORT_EVIDENCE_ONLY'),
     loadCalcRow(version),
@@ -53,6 +56,8 @@ function descriptorRows(version) {
     row(CONSUMER_IDS.QA, 'QA', 'Future contract quality-assurance consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, ['sharedModel'], allContracts().filter((key) => key !== 'sharedModel'), [], 'NO_ENGINEERING_CLAIMS'),
     row(CONSUMER_IDS.DEBUG, 'Debug', 'Future read-only contract inspection consumer.', IMPLEMENTATION_STATUS.NOT_IMPLEMENTED, [], allContracts(), [], 'NO_ENGINEERING_CLAIMS'),
   ];
+  if (version >= 5) rows.push(localStressRow());
+  return rows;
 }
 
 function loadCalcRow(version) {
@@ -78,7 +83,21 @@ function pipeSolverRow(version) {
     'EXISTING_BENCHMARKED_SIMPLIFIED_2D_SCREENING_ONLY');
 }
 
+function localStressRow() {
+  return row(
+    CONSUMER_IDS.LOCAL_STRESS,
+    'Local stress',
+    'Independent pipe-local load-transfer and elastic pressure-stress foundation calculator.',
+    IMPLEMENTATION_STATUS.IMPLEMENTED,
+    [],
+    allContracts(),
+    [],
+    'LOAD_TRANSFER_AND_PRESSURE_BASELINE_ONLY',
+  );
+}
+
 function registrySchema(version) {
+  if (version === 5) return WORKSPACE_CONSUMER_REGISTRY_V5_SCHEMA;
   if (version === 4) return WORKSPACE_CONSUMER_REGISTRY_V4_SCHEMA;
   if (version === 3) return WORKSPACE_CONSUMER_REGISTRY_V3_SCHEMA;
   return version === 2 ? WORKSPACE_CONSUMER_REGISTRY_V2_SCHEMA : WORKSPACE_CONSUMER_REGISTRY_SCHEMA;

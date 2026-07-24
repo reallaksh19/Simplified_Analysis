@@ -2,31 +2,34 @@ import {
   createApplicationViewStateV2,
   createApplicationViewStateV3,
   createApplicationViewStateV4,
+  createApplicationViewStateV5,
   createWorkspaceConsumerReadinessRegistry,
-  createWorkspaceConsumerRegistryV4,
-  refreshApplicationViewStateV4,
-  transitionApplicationViewStateV4,
+  createWorkspaceConsumerRegistryV5,
+  refreshApplicationViewStateV5,
+  transitionApplicationViewStateV5,
   workspaceConsumerDescriptor,
 } from '../core/workspace-consumers/index.js';
 import { EventBus } from './event-bus.js';
 import { APPLICATION_EVENTS, EVENT_TOPICS } from './event-topics.js';
 import { LoadCalcConsumerController } from './load-calc-consumer-controller.js';
+import { LocalStressConsumerController } from './local-stress-consumer-controller.js';
 import { PipeSolverConsumerController } from './pipe-solver-consumer-controller.js';
 import { ThreeDCalcConsumerController } from './three-d-calc-consumer-controller.js';
 
 // Closed compatibility factories remain exported and contract-tested:
 // createWorkspaceConsumerRegistryV2, createWorkspaceConsumerRegistryV3,
-// createApplicationViewStateV2 and createApplicationViewStateV3.
-const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','QA','DEBUG']);
+// createApplicationViewStateV2, createApplicationViewStateV3 and v4.
+const NAVIGATION_ORDER = Object.freeze(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','LOCAL_STRESS','QA','DEBUG']);
+const DATASET_BOUND_VIEWS = Object.freeze(['REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER']);
 
 export class ApplicationShellController {
   constructor(rootElement, consumerController, eventBus = EventBus, pipeSolverAdapter = null) {
     this.eventBus = eventBus;
     this.consumerController = consumerController;
     this.context = consumerController.getContext();
-    this.registry = createWorkspaceConsumerRegistryV4();
+    this.registry = createWorkspaceConsumerRegistryV5();
     this.readiness = this.buildReadiness();
-    this.state = createApplicationViewStateV4(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
+    this.state = createApplicationViewStateV5(this.readiness, { activeViewId: 'WORKSPACE', version: 0 });
     this.view = new ApplicationShellView(rootElement, eventBus);
     this.loadCalcController = new LoadCalcConsumerController(
       rootElement?.querySelector('[data-role="load-calc-consumer-root"]'), consumerController, eventBus,
@@ -37,6 +40,9 @@ export class ApplicationShellController {
     this.pipeSolverController = pipeSolverAdapter ? new PipeSolverConsumerController(
       rootElement?.querySelector('[data-role="pipe-solver-consumer-root"]'), consumerController, pipeSolverAdapter, eventBus,
     ) : null;
+    this.localStressController = new LocalStressConsumerController(
+      rootElement?.querySelector('[data-role="local-stress-consumer-root"]'),
+    );
     this.unsubscribeCallbacks = [];
   }
 
@@ -46,6 +52,7 @@ export class ApplicationShellController {
     this.loadCalcController.init();
     this.threeDCalcController.init();
     this.pipeSolverController?.init();
+    this.localStressController.init();
     this.unsubscribeCallbacks = [
       this.eventBus.subscribe(APPLICATION_EVENTS.CONTEXT_CHANGED, ({ context }) => this.handleContext(context)),
       this.eventBus.subscribe(APPLICATION_EVENTS.CHANGE_REQUESTED, (payload) => this.handleRequest(payload)),
@@ -60,21 +67,21 @@ export class ApplicationShellController {
     const readinessChanged = this.context?.semanticHash !== context?.semanticHash;
     this.context = context;
     if (readinessChanged) this.readiness = this.buildReadiness();
-    if (datasetBoundary && previous !== 'WORKSPACE') {
-      this.state = createApplicationViewStateV4(this.readiness, {
+    if (datasetBoundary && DATASET_BOUND_VIEWS.includes(previous)) {
+      this.state = createApplicationViewStateV5(this.readiness, {
         activeViewId: 'WORKSPACE', version: this.state.version + 1,
       });
     } else if (readinessChanged) {
-      this.state = refreshApplicationViewStateV4(this.state, this.readiness);
+      this.state = refreshApplicationViewStateV5(this.state, this.readiness);
     }
     if (datasetBoundary || readinessChanged) this.view.render(this.state, this.readiness);
     if (previous !== this.state.activeViewId) this.publishChanged(previous, datasetBoundary ? 'dataset-replaced' : 'readiness-lost');
   }
 
   handleDatasetReplacement() {
-    if (this.state.activeViewId === 'WORKSPACE') return;
+    if (!DATASET_BOUND_VIEWS.includes(this.state.activeViewId)) return;
     const previous = this.state.activeViewId;
-    this.state = createApplicationViewStateV4(this.readiness, {
+    this.state = createApplicationViewStateV5(this.readiness, {
       activeViewId: 'WORKSPACE', version: this.state.version + 1,
     });
     this.view.render(this.state, this.readiness);
@@ -87,7 +94,7 @@ export class ApplicationShellController {
       const descriptor = workspaceConsumerDescriptor(this.registry, viewId);
       const readiness = this.getReadiness(viewId);
       assertImplementedAvailable(descriptor, readiness);
-      const result = transitionApplicationViewStateV4(this.state, viewId, this.readiness);
+      const result = transitionApplicationViewStateV5(this.state, viewId, this.readiness);
       if (!result.activated) throw viewError('VIEW_NOT_AVAILABLE', `${descriptor.label} is unavailable.`);
       this.state = result.state;
       this.view.render(this.state, this.readiness);
@@ -113,7 +120,10 @@ export class ApplicationShellController {
   buildReadiness() { return createWorkspaceConsumerReadinessRegistry(this.registry, this.context, { workspaceBooted: true }); }
   getState() { return this.state; }
   getPublicState() {
-    if (!this.state || this.state.activeViewId === 'PIPE_SOLVER') return this.state;
+    if (!this.state || this.state.activeViewId === 'LOCAL_STRESS') return this.state;
+    if (this.state.activeViewId === 'PIPE_SOLVER') {
+      return createApplicationViewStateV4(this.readiness, { activeViewId: 'PIPE_SOLVER', version: this.state.version });
+    }
     if (this.state.activeViewId === 'THREE_D_CALC') {
       return createApplicationViewStateV3(this.readiness, { activeViewId: 'THREE_D_CALC', version: this.state.version });
     }
@@ -131,9 +141,11 @@ export class ApplicationShellController {
   getLoadCalculationReviewModel() { return this.loadCalcController.getReviewModel(); }
   getThreeDCalculationReviewModel() { return this.threeDCalcController.getReviewModel(); }
   getPipeSolverReviewModel() { return this.pipeSolverController?.getReviewModel() || null; }
+  getLocalStressResult() { return this.localStressController.getResult(); }
   destroy() {
     this.unsubscribeCallbacks.forEach((unsubscribe) => unsubscribe());
     this.unsubscribeCallbacks = [];
+    this.localStressController.destroy();
     this.pipeSolverController?.destroy();
     this.threeDCalcController.destroy();
     this.loadCalcController.destroy();
@@ -149,7 +161,7 @@ export class ApplicationShellView {
     this.rootElement = rootElement;
     this.eventBus = eventBus;
     this.navElement = rootElement?.querySelector('[data-role="application-navigation"]') || null;
-    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER'].map((id) => [
+    this.views = new Map(['WORKSPACE','REPORTS','LOAD_CALC','THREE_D_CALC','PIPE_SOLVER','LOCAL_STRESS'].map((id) => [
       id, rootElement?.querySelector(`[data-application-view="${id}"]`) || null,
     ]));
     this.keydownHandler = (event) => this.handleKeydown(event);
