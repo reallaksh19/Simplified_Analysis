@@ -3,6 +3,10 @@
   "policy": "Every edited existing file is recoverable exactly from the immutable baseline commit and recorded blob SHA.",
   "files": [
     {
+      "path": "package.json",
+      "blobSha": "ccb9720979c36c8c4c0a483f4fb10113a59a86e3"
+    },
+    {
       "path": "src/core/workspace-consumers/constants.js",
       "blobSha": "d6cccdb22b000276c985d37633cb4612bee2d310"
     },
@@ -41,6 +45,14 @@
     {
       "path": "e2e/w10.8-workspace-consumers.spec.js",
       "blobSha": "4b5e5e54d5959cb14f6466e078ddb3d76ad46c1a"
+    },
+    {
+      "path": "e2e/w10.9-load-calc-consumer.spec.js",
+      "blobSha": "3dd302bfa8525ec499f500bc6ee23e254e374784"
+    },
+    {
+      "path": "e2e/w10.10-three-d-calc-consumer.spec.js",
+      "blobSha": "e37b666c96313ea35ad475a9251551d29f8a3ca5"
     }
   ]
 }
