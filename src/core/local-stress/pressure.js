@@ -1,12 +1,13 @@
 import { END_CONDITIONS, FORMULA_IDS, PRESSURE_LIMITATIONS } from './constants.js';
 import { modelError, unsupportedError } from './errors.js';
 import { canonicalNumber, toleranceFor } from './numeric.js';
+const PRESSURE_WALL_BASIS = 'ASSESSMENT_PIPE_THICKNESS_ONLY';
 export function calculateRequestedPressureResults(model) {
   const definitions = new Map(model.pressureDefinitions.map((row) => [row.identity, row]));
   return model.resultRequests.pressure.map((request) => calculatePressure(model, definitions.get(request.pressureDefinitionIdentity), request));
 }
 export function calculatePressure(model, definition, request) {
-  validatePressureRequest(definition, request);
+  validatePressureRequest(model, definition, request);
   const state = pressureState(model, definition);
   const points = request.requestedRadii.map((radius) => pressurePoint(radius.value, state.ri, state.ro, state.a, state.b, model));
   const inner = pressurePoint(state.ri, state.ri, state.ro, state.a, state.b, model);
@@ -18,8 +19,11 @@ export function calculatePressure(model, definition, request) {
   result.formulaIds.sort();
   return result;
 }
-function validatePressureRequest(definition, request) {
+function validatePressureRequest(model, definition, request) {
   if (!definition) throw modelError('PRESSURE_DEFINITION_MISSING', request.identity, 'Pressure definition is missing.');
+  if (model.thicknessBasis.pressureWallBasis !== PRESSURE_WALL_BASIS) {
+    throw modelError('PRESSURE_WALL_BASIS_INVALID', 'thicknessBasis.pressureWallBasis', 'Pressure must use assessment pipe thickness only.');
+  }
   if (definition.endCondition === END_CONDITIONS.UNSPECIFIED && request.includeAxialPressureStress) {
     throw unsupportedError('UNSPECIFIED_AXIAL_PRESSURE_REQUEST', request.identity, 'Axial pressure stress requires a declared end condition.');
   }
@@ -43,7 +47,7 @@ function pressureResult(model, definition, request, state, points, boundaryEvide
     innerRadius: state.ri,
     outerRadius: state.ro,
     assessmentPipeThickness: state.t,
-    pressureWallBasis: model.thicknessBasis.pressureWallBasis,
+    pressureWallBasis: PRESSURE_WALL_BASIS,
     internalPressure: state.pi,
     externalPressure: state.po,
     coefficientA: state.a,
