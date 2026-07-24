@@ -17,6 +17,7 @@ export { createReferenceExampleModel } from './example.js';
 export { solveDenseLdlt } from './linear-backend.js';
 export { createContinuumModel, qualifyContinuumModel } from './model.js';
 export { createLfeaProfile, validateLfeaProfile } from './profile.js';
+export { validateContinuumResult } from './result.js';
 export { solveContinuumModel } from './solver.js';
 export { equivalentEdgeLoad, createT3Operator, recoverT3Result } from './t3-element.js';
 export { createT3Geometry, outwardEdgeNormal, signedArea, strainDisplacementMatrix } from './t3-geometry.js';
