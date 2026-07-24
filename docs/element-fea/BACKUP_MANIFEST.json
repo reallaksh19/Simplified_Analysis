@@ -11,6 +11,10 @@
       "blobSha": "0317aeea73aed2383ee7fd5b6cb0e2cefc95cfb2"
     },
     {
+      "path": "src/core/workspace-consumers/readiness.js",
+      "blobSha": "e9c541783bac0b71f86f709766c0de2da56ee6c6"
+    },
+    {
       "path": "src/core/workspace-consumers/view-state.js",
       "blobSha": "a07406ec9020992f696077f850820ba563b617d6"
     },
@@ -31,8 +35,8 @@
       "blobSha": "88a071bae1109cbf3ba2aeabeca512b5a4621bfa"
     },
     {
-      "path": "src/core/workspace-consumers/readiness.js",
-      "blobSha": "e9c541783bac0b71f86f709766c0de2da56ee6c6"
+      "path": "scripts/w10.11-pipe-solver-source-guard.mjs",
+      "blobSha": "ea3c8fb3c6c36d2f31fc930aff4b0913fd0ddfe7"
     }
   ]
 }
