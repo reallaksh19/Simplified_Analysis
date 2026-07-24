@@ -5,12 +5,22 @@ import {
 import { modelError } from './errors.js';
 import { nonNegativeNumber, positiveNumber } from './numeric.js';
 import {
-  arrayValue, booleanValue, enumValue, record, scalarEvidence, sortByIdentity,
-  sortedStrings, sourceRef, stringValue, uniqueByIdentity, vectorEvidence,
+  arrayValue, booleanValue, enumValue, exactKeys, record, scalarEvidence,
+  sortByIdentity, sortedStrings, sourceRef, stringValue, uniqueByIdentity,
+  uniqueStrings, vectorEvidence,
 } from './validation.js';
 
+const MODEL_KEYS = [
+  'schema', 'modelIdentity', 'modelVersion', 'sourceAncestry', 'units',
+  'pipeGeometry', 'pipeCoordinateSystem', 'materials', 'thicknessBasis',
+  'pressureDefinitions', 'loadReferencePoints', 'loadCases', 'resultRequests',
+  'qualificationProfile', 'limitations',
+];
+const UNIT_KEYS = ['length', 'force', 'moment', 'pressure', 'stress'];
+const TOLERANCE_KEYS = ['dimensionless', 'length', 'force', 'moment', 'stress'];
+
 export function normalizeSourceModel(input) {
-  const source = record(input, 'model');
+  const source = closed(input, MODEL_KEYS, 'model');
   if (source.schema !== MODEL_SCHEMA) throw modelError('SCHEMA_MISMATCH', 'schema', `schema must be ${MODEL_SCHEMA}.`);
   const identity = stringValue(source.modelIdentity, 'modelIdentity');
   const version = stringValue(source.modelVersion, 'modelVersion');
@@ -20,7 +30,7 @@ export function normalizeSourceModel(input) {
     modelIdentity: identity,
     modelVersion: version,
     sourceAncestry: ancestry,
-    units: record(source.units, 'units'),
+    units: closed(source.units, UNIT_KEYS, 'units'),
     pipeGeometry: normalizeGeometry(source.pipeGeometry, ancestry),
     pipeCoordinateSystem: normalizeCoordinateSystem(source.pipeCoordinateSystem, ancestry),
     materials: normalizeMaterials(source.materials, ancestry),
@@ -37,7 +47,7 @@ export function normalizeSourceModel(input) {
 }
 
 function normalizeAncestry(value) {
-  const source = record(value, 'sourceAncestry');
+  const source = closed(value, ['sourceModelIdentity', 'sourceVersion', 'adapterIdentity', 'adapterVersion'], 'sourceAncestry');
   return {
     sourceModelIdentity: stringValue(source.sourceModelIdentity, 'sourceAncestry.sourceModelIdentity'),
     sourceVersion: stringValue(source.sourceVersion, 'sourceAncestry.sourceVersion'),
@@ -45,14 +55,17 @@ function normalizeAncestry(value) {
     adapterVersion: stringValue(source.adapterVersion, 'sourceAncestry.adapterVersion'),
   };
 }
+
 function normalizeGeometry(value, ancestry) {
-  const source = record(value, 'pipeGeometry');
+  const source = closed(value, ['outsideDiameter'], 'pipeGeometry');
   const outsideDiameter = scalarEvidence(source.outsideDiameter, ancestry, 'pipeGeometry.outsideDiameter');
   positiveNumber(outsideDiameter.value, 'pipeGeometry.outsideDiameter.value');
   return { outsideDiameter };
 }
+
 function normalizeCoordinateSystem(value, ancestry) {
-  const source = record(value, 'pipeCoordinateSystem');
+  const keys = ['identity', 'origin', 'axialDirection', 'radialHint', 'circumferentialHint'];
+  const source = closed(value, keys, 'pipeCoordinateSystem');
   return {
     identity: stringValue(source.identity, 'pipeCoordinateSystem.identity'),
     origin: vectorEvidence(source.origin, ancestry, 'pipeCoordinateSystem.origin'),
@@ -61,20 +74,28 @@ function normalizeCoordinateSystem(value, ancestry) {
     circumferentialHint: vectorEvidence(source.circumferentialHint, ancestry, 'pipeCoordinateSystem.circumferentialHint'),
   };
 }
+
 function normalizeMaterials(value, ancestry) {
   const materials = arrayValue(value, 'materials').map((item, index) => {
-    const source = record(item, `materials[${index}]`);
+    const path = `materials[${index}]`;
+    const source = closed(item, ['identity', 'role', 'sourceRef'], path);
     return {
-      identity: stringValue(source.identity, `materials[${index}].identity`),
-      role: stringValue(source.role, `materials[${index}].role`),
-      sourceRef: sourceRef(source.sourceRef, ancestry, `materials[${index}].sourceRef`),
+      identity: stringValue(source.identity, `${path}.identity`),
+      role: stringValue(source.role, `${path}.role`),
+      sourceRef: sourceRef(source.sourceRef, ancestry, `${path}.sourceRef`),
     };
   });
   uniqueByIdentity(materials, 'materials');
   return sortByIdentity(materials);
 }
+
 function normalizeThickness(value, ancestry) {
-  const source = record(value, 'thicknessBasis');
+  const keys = [
+    'policy', 'nominalPipeThickness', 'corrosionAllowance',
+    'assessmentPipeThickness', 'wearPadThickness', 'cradleThickness',
+    'effectiveAnalyticalThickness',
+  ];
+  const source = closed(value, keys, 'thicknessBasis');
   const result = {
     policy: enumValue(source.policy, THICKNESS_POLICIES, 'thicknessBasis.policy'),
     nominalPipeThickness: scalarEvidence(source.nominalPipeThickness, ancestry, 'thicknessBasis.nominalPipeThickness'),
@@ -93,9 +114,11 @@ function normalizeThickness(value, ancestry) {
   }
   return result;
 }
+
 function normalizePressures(value, ancestry) {
   const rows = arrayValue(value, 'pressureDefinitions').map((item, index) => {
-    const path = `pressureDefinitions[${index}]`; const source = record(item, path);
+    const path = `pressureDefinitions[${index}]`;
+    const source = closed(item, ['identity', 'internalPressure', 'externalPressure', 'endCondition', 'explicitAxialResultant'], path);
     const row = {
       identity: stringValue(source.identity, `${path}.identity`),
       internalPressure: scalarEvidence(source.internalPressure, ancestry, `${path}.internalPressure`),
@@ -113,22 +136,32 @@ function normalizePressures(value, ancestry) {
     }
     return row;
   });
-  uniqueByIdentity(rows, 'pressureDefinitions'); return sortByIdentity(rows);
+  uniqueByIdentity(rows, 'pressureDefinitions');
+  return sortByIdentity(rows);
 }
+
 function normalizeReferencePoints(value, ancestry) {
   const rows = arrayValue(value, 'loadReferencePoints').map((item, index) => {
-    const path = `loadReferencePoints[${index}]`; const source = record(item, path);
+    const path = `loadReferencePoints[${index}]`;
+    const source = closed(item, ['identity', 'coordinateSystem', 'point'], path);
     return {
       identity: stringValue(source.identity, `${path}.identity`),
       coordinateSystem: enumValue(source.coordinateSystem, COORDINATE_SYSTEMS, `${path}.coordinateSystem`),
       point: vectorEvidence(source.point, ancestry, `${path}.point`),
     };
   });
-  uniqueByIdentity(rows, 'loadReferencePoints'); return sortByIdentity(rows);
+  uniqueByIdentity(rows, 'loadReferencePoints');
+  return sortByIdentity(rows);
 }
+
 function normalizeLoadCases(value, ancestry) {
   const rows = arrayValue(value, 'loadCases').map((item, index) => {
-    const path = `loadCases[${index}]`; const source = record(item, path);
+    const path = `loadCases[${index}]`;
+    const keys = [
+      'identity', 'sourceCoordinateSystem', 'sourceReferencePointIdentity',
+      'targetReferencePointIdentity', 'actionSense', 'force', 'moment',
+    ];
+    const source = closed(item, keys, path);
     return {
       identity: stringValue(source.identity, `${path}.identity`),
       sourceCoordinateSystem: enumValue(source.sourceCoordinateSystem, COORDINATE_SYSTEMS, `${path}.sourceCoordinateSystem`),
@@ -139,13 +172,18 @@ function normalizeLoadCases(value, ancestry) {
       moment: vectorEvidence(source.moment, ancestry, `${path}.moment`),
     };
   });
-  uniqueByIdentity(rows, 'loadCases'); return sortByIdentity(rows);
+  uniqueByIdentity(rows, 'loadCases');
+  return sortByIdentity(rows);
 }
+
 function normalizeRequests(value, ancestry) {
-  const source = record(value, 'resultRequests');
-  const requestedAnalyses = sortedStrings(arrayValue(source.requestedAnalyses, 'resultRequests.requestedAnalyses').map((row, index) => stringValue(row, `resultRequests.requestedAnalyses[${index}]`)));
+  const source = closed(value, ['requestedAnalyses', 'transformedLoadCaseIdentities', 'pressure'], 'resultRequests');
+  const requestedAnalyses = normalizeIdentityStrings(source.requestedAnalyses, 'resultRequests.requestedAnalyses');
+  const transformed = normalizeIdentityStrings(source.transformedLoadCaseIdentities, 'resultRequests.transformedLoadCaseIdentities');
   const pressure = arrayValue(source.pressure, 'resultRequests.pressure').map((item, index) => {
-    const path = `resultRequests.pressure[${index}]`; const row = record(item, path);
+    const path = `resultRequests.pressure[${index}]`;
+    const keys = ['identity', 'pressureDefinitionIdentity', 'requestedRadii', 'includeAxialPressureStress', 'includeThinWallComparison'];
+    const row = closed(item, keys, path);
     const radii = arrayValue(row.requestedRadii, `${path}.requestedRadii`).map((radius, radiusIndex) => scalarEvidence(radius, ancestry, `${path}.requestedRadii[${radiusIndex}]`));
     return {
       identity: stringValue(row.identity, `${path}.identity`),
@@ -156,35 +194,48 @@ function normalizeRequests(value, ancestry) {
     };
   });
   uniqueByIdentity(pressure, 'resultRequests.pressure');
-  return {
-    requestedAnalyses,
-    transformedLoadCaseIdentities: sortedStrings(arrayValue(source.transformedLoadCaseIdentities, 'resultRequests.transformedLoadCaseIdentities').map((row, index) => stringValue(row, `resultRequests.transformedLoadCaseIdentities[${index}]`))),
-    pressure: sortByIdentity(pressure),
-  };
+  return { requestedAnalyses, transformedLoadCaseIdentities: transformed, pressure: sortByIdentity(pressure) };
 }
+
 function normalizeProfile(value) {
-  const profile = record(value, 'qualificationProfile');
+  const keys = ['schema', 'identity', 'frameMinimumSine', 'handednessMinimumAlignment', 'tolerances'];
+  const profile = closed(value, keys, 'qualificationProfile');
   if (profile.schema !== QUALIFICATION_PROFILE_SCHEMA) throw modelError('QUALIFICATION_SCHEMA_MISMATCH', 'qualificationProfile.schema', 'Qualification profile schema is invalid.');
-  const tolerances = record(profile.tolerances, 'qualificationProfile.tolerances');
+  const tolerances = closed(profile.tolerances, TOLERANCE_KEYS, 'qualificationProfile.tolerances');
   const normalized = {
     schema: profile.schema,
     identity: stringValue(profile.identity, 'qualificationProfile.identity'),
-    frameMinimumSine: positiveNumber(profile.frameMinimumSine, 'qualificationProfile.frameMinimumSine'),
-    handednessMinimumAlignment: positiveNumber(profile.handednessMinimumAlignment, 'qualificationProfile.handednessMinimumAlignment'),
+    frameMinimumSine: unitInterval(profile.frameMinimumSine, 'qualificationProfile.frameMinimumSine'),
+    handednessMinimumAlignment: unitInterval(profile.handednessMinimumAlignment, 'qualificationProfile.handednessMinimumAlignment'),
     tolerances: {},
   };
-  for (const quantity of ['dimensionless', 'length', 'force', 'moment', 'stress']) {
-    const rule = record(tolerances[quantity], `qualificationProfile.tolerances.${quantity}`);
+  for (const quantity of TOLERANCE_KEYS) {
+    const path = `qualificationProfile.tolerances.${quantity}`;
+    const rule = closed(tolerances[quantity], ['absolute', 'relative'], path);
     normalized.tolerances[quantity] = {
-      absolute: nonNegativeNumber(rule.absolute, `qualificationProfile.tolerances.${quantity}.absolute`),
-      relative: nonNegativeNumber(rule.relative, `qualificationProfile.tolerances.${quantity}.relative`),
+      absolute: nonNegativeNumber(rule.absolute, `${path}.absolute`),
+      relative: nonNegativeNumber(rule.relative, `${path}.relative`),
     };
   }
   return normalized;
 }
+
 function normalizeLimitations(value) {
   return sortedStrings(arrayValue(value, 'limitations').map((row, index) => stringValue(row, `limitations[${index}]`)));
 }
+
+function normalizeIdentityStrings(value, path) {
+  const rows = arrayValue(value, path).map((row, index) => stringValue(row, `${path}[${index}]`));
+  uniqueStrings(rows, path);
+  return sortedStrings(rows);
+}
+
+function unitInterval(value, path) {
+  const result = positiveNumber(value, path);
+  if (result > 1) throw modelError('DIMENSIONLESS_RANGE_INVALID', path, `${path} must be greater than zero and not greater than one.`);
+  return result;
+}
+
 function validateReferences(model) {
   const pointIds = new Set(model.loadReferencePoints.map((row) => row.identity));
   model.loadCases.forEach((row) => {
@@ -200,3 +251,5 @@ function validateReferences(model) {
     if (!pressureIds.has(row.pressureDefinitionIdentity)) throw modelError('UNKNOWN_PRESSURE_DEFINITION', `resultRequests.pressure.${row.identity}`, 'Pressure definition is unknown.');
   });
 }
+
+function closed(value, keys, path) { return exactKeys(record(value, path), keys, path); }
