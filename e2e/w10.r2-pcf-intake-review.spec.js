@@ -18,7 +18,8 @@ END-POINT 1000 0 0 4
 
 test('stages, reviews and explicitly adopts PCF without legacy runtime ownership', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'PCF', exact: true }).click();
+  const navigation = page.getByRole('navigation', { name: 'Application views' });
+  await navigation.getByRole('button', { name: 'PCF', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'PCF', exact: true })).toBeVisible();
 
   const before = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
@@ -36,13 +37,13 @@ test('stages, reviews and explicitly adopts PCF without legacy runtime ownership
   expect(afterReview.dataset?.datasetId || null).toBe(before.dataset?.datasetId || null);
 
   await page.getByRole('button', { name: 'Adopt into Workspace' }).click();
-  await expect(page.getByRole('button', { name: 'Workspace', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(navigation.getByRole('button', { name: 'Workspace', exact: true })).toHaveAttribute('aria-current', 'page');
   const adopted = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
   expect(adopted.status).toBe('ready');
   expect(adopted.dataset.sourceSchema).toBe('inputxml-managed-stage/v1');
   expect(adopted.dataset.summary.pipes).toBe(1);
 
-  await page.getByRole('button', { name: 'PCF', exact: true }).click();
+  await navigation.getByRole('button', { name: 'PCF', exact: true }).click();
   const adoptedId = adopted.dataset.datasetId;
   await page.locator('[data-role="pcf-source-text"]').fill(invalidPcf);
   await page.getByRole('button', { name: 'Parse and Review' }).click();
@@ -53,7 +54,8 @@ test('stages, reviews and explicitly adopts PCF without legacy runtime ownership
 
 test('cancellation clears staged evidence without changing the active dataset', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'PCF', exact: true }).click();
+  const navigation = page.getByRole('navigation', { name: 'Application views' });
+  await navigation.getByRole('button', { name: 'PCF', exact: true }).click();
   const before = await page.evaluate(() => AnalysisWorkspace.getSnapshot());
   await page.locator('[data-role="pcf-source-text"]').fill(validPcf);
   await page.getByRole('button', { name: 'Parse and Review' }).click();
