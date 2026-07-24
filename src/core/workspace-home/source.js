@@ -1,31 +1,23 @@
 import { canonicalStringify, deepFreeze, semanticHash } from '../shared-piping-model/index.js';
 import {
-  APPLICATION_NAVIGATION_ORDER_V5,
-  READINESS_STATES,
-  validateWorkspaceConsumerContext,
-  validateWorkspaceConsumerReadinessShape,
-  validateWorkspaceConsumerRegistryV5,
+  APPLICATION_NAVIGATION_ORDER_V6, READINESS_STATES,
+  validateWorkspaceConsumerContext, validateWorkspaceConsumerReadinessShape,
+  validateWorkspaceConsumerRegistry,
 } from '../workspace-consumers/index.js';
 import { WORKSPACE_HOME_APPLICATION_TITLE, WORKSPACE_HOME_SOURCE_SCHEMA } from './constants.js';
 
 export function createWorkspaceHomeSource(input = {}) {
-  const registry = input.registry;
-  const context = input.context;
-  const readiness = input.readiness;
+  const { registry, context, readiness } = input;
   assertInput(registry, context, readiness);
   const descriptors = new Map(registry.consumers.map((row) => [row.consumerId, row]));
   const readinessById = new Map(readiness.map((row) => [row.consumerId, row]));
-  const tabs = APPLICATION_NAVIGATION_ORDER_V5.map((consumerId) => tabSource(descriptors.get(consumerId), readinessById.get(consumerId)));
+  const tabs = APPLICATION_NAVIGATION_ORDER_V6.map((consumerId) => tabSource(descriptors.get(consumerId), readinessById.get(consumerId)));
   const base = {
-    schema: WORKSPACE_HOME_SOURCE_SCHEMA,
-    applicationTitle: WORKSPACE_HOME_APPLICATION_TITLE,
-    datasetStatus: context.datasetId ? 'READY' : 'EMPTY',
-    datasetId: context.datasetId,
-    tabs,
+    schema: WORKSPACE_HOME_SOURCE_SCHEMA, applicationTitle: WORKSPACE_HOME_APPLICATION_TITLE,
+    datasetStatus: context.datasetId ? 'READY' : 'EMPTY', datasetId: context.datasetId, tabs,
   };
   return deepFreeze({ ...base, semanticHash: semanticHash(base) });
 }
-
 export function validateWorkspaceHomeSource(value) {
   const errors = [];
   if (value?.schema !== WORKSPACE_HOME_SOURCE_SCHEMA) errors.push('Invalid Workspace Home source schema.');
@@ -37,44 +29,35 @@ export function validateWorkspaceHomeSource(value) {
   if (value?.semanticHash !== semanticHash(withoutHash(value))) errors.push('Workspace Home source semantic hash mismatch.');
   return deepFreeze({ ok: errors.length === 0, errors });
 }
-
 function assertInput(registry, context, readiness) {
-  const registryValidation = validateWorkspaceConsumerRegistryV5(registry);
-  if (!registryValidation.ok) throw new TypeError(`Workspace Home requires registry v5: ${registryValidation.errors.join(' ')}`);
+  const registryValidation = validateWorkspaceConsumerRegistry(registry);
+  if (!registryValidation.ok || registry.consumers?.length !== APPLICATION_NAVIGATION_ORDER_V6.length) throw new TypeError('Workspace Home requires a supported 11-tab registry.');
+  const registryIds = registry.consumers.map((row) => row.consumerId);
+  if (APPLICATION_NAVIGATION_ORDER_V6.some((id) => !registryIds.includes(id))) throw new TypeError('Workspace Home registry identities are incomplete.');
   const contextValidation = validateWorkspaceConsumerContext(context);
   if (!contextValidation.ok) throw new TypeError(`Workspace Home context is invalid: ${contextValidation.errors.join(' ')}`);
-  if (!Array.isArray(readiness) || readiness.length !== APPLICATION_NAVIGATION_ORDER_V5.length) throw new TypeError('Workspace Home requires readiness for all application tabs.');
+  if (!Array.isArray(readiness) || readiness.length !== APPLICATION_NAVIGATION_ORDER_V6.length) throw new TypeError('Workspace Home requires readiness for all application tabs.');
   const ids = readiness.map((row) => row?.consumerId);
-  if (new Set(ids).size !== APPLICATION_NAVIGATION_ORDER_V5.length || APPLICATION_NAVIGATION_ORDER_V5.some((id) => !ids.includes(id))) throw new TypeError('Workspace Home readiness identities are incomplete.');
+  if (new Set(ids).size !== APPLICATION_NAVIGATION_ORDER_V6.length || APPLICATION_NAVIGATION_ORDER_V6.some((id) => !ids.includes(id))) throw new TypeError('Workspace Home readiness identities are incomplete.');
   readiness.forEach((row) => {
     const validation = validateWorkspaceConsumerReadinessShape(row);
     if (!validation.ok) throw new TypeError(`Workspace Home readiness ${row?.consumerId || ''} is invalid: ${validation.errors.join(' ')}`);
     if (row.contextSemanticHash !== context.semanticHash) throw new TypeError('Workspace Home readiness must reference the current consumer context.');
   });
 }
-
 function tabSource(descriptor, readiness) {
   if (!descriptor || !readiness) throw new TypeError('Workspace Home tab evidence is incomplete.');
   const diagnostic = readiness.diagnostics[0] || null;
   return deepFreeze({
-    consumerId: descriptor.consumerId,
-    label: descriptor.label,
-    purpose: descriptor.purpose,
-    implementationStatus: descriptor.implementationStatus,
-    readinessState: readiness.readinessState,
+    consumerId: descriptor.consumerId, label: descriptor.label, purpose: descriptor.purpose,
+    implementationStatus: descriptor.implementationStatus, readinessState: readiness.readinessState,
     available: readiness.readinessState === READINESS_STATES.AVAILABLE,
-    diagnosticCode: diagnostic?.code || null,
-    diagnosticMessage: diagnostic?.message || null,
+    diagnosticCode: diagnostic?.code || null, diagnosticMessage: diagnostic?.message || null,
   });
 }
-
 function validateTabs(tabs, errors) {
-  if (!Array.isArray(tabs) || tabs.length !== APPLICATION_NAVIGATION_ORDER_V5.length) {
-    errors.push('Workspace Home tabs are incomplete.');
-    return;
-  }
-  const ids = tabs.map((row) => row?.consumerId);
-  if (canonicalStringify(ids) !== canonicalStringify(APPLICATION_NAVIGATION_ORDER_V5)) errors.push('Workspace Home tab order is invalid.');
+  if (!Array.isArray(tabs) || tabs.length !== APPLICATION_NAVIGATION_ORDER_V6.length) { errors.push('Workspace Home tabs are incomplete.'); return; }
+  if (canonicalStringify(tabs.map((row) => row?.consumerId)) !== canonicalStringify(APPLICATION_NAVIGATION_ORDER_V6)) errors.push('Workspace Home tab order is invalid.');
   tabs.forEach((row) => {
     if (!row || typeof row.label !== 'string' || !row.label || typeof row.purpose !== 'string' || !row.purpose) errors.push('Workspace Home tab text is invalid.');
     if (typeof row?.available !== 'boolean') errors.push('Workspace Home tab availability is invalid.');

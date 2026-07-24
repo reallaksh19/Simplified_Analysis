@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+// Historical closed compatibility remains covered for application-view-state/v4.
 const COMPLETE = packageValue('W10.11-BROWSER', {
   DELTA_T: 180, ALPHA_PER_C: 0.000012, E_MPA: 200000, PIPE_OD: 168.3, SA_MPA: 100,
 });
@@ -13,15 +14,16 @@ test('adopts existing pipe-screening, delegates events, and exports the current 
   await page.goto('/');
   await installAudit(page);
   await upload(page, 'complete.json', COMPLETE);
-  const pipeSolver = page.getByRole('button', { name: 'Pipe Solver' });
+  const nav = applicationNavigation(page);
+  const pipeSolver = navButton(nav, 'Pipe Solver');
   await expect(pipeSolver).toHaveAttribute('aria-disabled', 'false');
   await pipeSolver.click();
-  expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v4');
+  expect(await page.evaluate(() => AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v6');
   expect(await page.evaluate(() => AnalysisWorkspace.getPipeSolverReviewModel().schema)).toBe('pipe-solver-review-model/v1');
   await expect(page.locator('[data-role="pipe-solver-consumer"]')).toContainText('Not final piping-code stress analysis.');
   expect((await audit(page)).automaticActions).toBe(0);
 
-  await page.getByRole('button', { name: 'Workspace' }).click();
+  await navButton(nav, 'Workspace').click();
   await page.locator('[data-entity-id="PIPE-A"]').click();
   await pipeSolver.click();
   await page.getByRole('button', { name: 'Open Input Review' }).click();
@@ -48,9 +50,11 @@ test('keeps generic readiness separate and sends raw override values to the exis
   await page.goto('/');
   await installAudit(page);
   await upload(page, 'missing.json', INCOMPLETE);
-  await expect(page.getByRole('button', { name: 'Pipe Solver' })).toHaveAttribute('aria-disabled', 'false');
+  const nav = applicationNavigation(page);
+  const pipeSolver = navButton(nav, 'Pipe Solver');
+  await expect(pipeSolver).toHaveAttribute('aria-disabled', 'false');
   await page.locator('[data-entity-id="PIPE-A"]').click();
-  await page.getByRole('button', { name: 'Pipe Solver' }).click();
+  await pipeSolver.click();
   await expect(page.locator('[data-role="pipe-solver-capability"]')).toContainText('alpha, Sa');
   await page.getByRole('button', { name: 'Open Input Review' }).click();
   await expect(page.getByRole('button', { name: 'Run Reviewed Pipe Screening' })).toBeDisabled();
@@ -68,8 +72,10 @@ test('keeps generic readiness separate and sends raw override values to the exis
 test('same-ID replacement falls back, excludes stale analysis evidence, and teardown removes listeners', async ({ page }) => {
   await page.goto('/');
   await upload(page, 'first.json', COMPLETE);
+  const nav = applicationNavigation(page);
+  const pipeSolver = navButton(nav, 'Pipe Solver');
   await page.locator('[data-entity-id="PIPE-A"]').click();
-  await page.getByRole('button', { name: 'Pipe Solver' }).click();
+  await pipeSolver.click();
   await page.getByRole('button', { name: 'Open Input Review' }).click();
   await page.getByRole('button', { name: 'Run Reviewed Pipe Screening' }).click();
   const before = await page.evaluate(() => ({
@@ -86,7 +92,7 @@ test('same-ID replacement falls back, excludes stale analysis evidence, and tear
   expect(replacementReview.currentResult).toBeNull();
   expect((await page.evaluate(() => AnalysisWorkspace.getAnalysisLedger())).entries).toHaveLength(0);
   await page.locator('[data-entity-id="PIPE-A"]').click();
-  await page.getByRole('button', { name: 'Pipe Solver' }).click();
+  await pipeSolver.click();
   const after = await page.evaluate(() => AnalysisWorkspace.getPipeSolverReviewModel());
   expect(after.currentResult).toBeNull();
   expect(after.sourceReferences.sourceSemanticHash).not.toBe(before.sourceHash);
@@ -97,6 +103,8 @@ test('same-ID replacement falls back, excludes stale analysis evidence, and tear
   topics.forEach((topic) => expect(afterDestroy[topic]).toBeLessThan(beforeDestroy[topic]));
 });
 
+function applicationNavigation(page) { return page.getByRole('navigation', { name: 'Application views' }); }
+function navButton(nav, name) { return nav.getByRole('button', { name, exact: true }); }
 async function installAudit(page) {
   await page.evaluate(() => {
     globalThis.__w1011 = { automaticActions: 0, overridePayloads: [], exportPayloads: [] };

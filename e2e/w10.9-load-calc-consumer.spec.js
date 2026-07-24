@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 
+// Historical closed compatibility remains covered for application-view-state/v2.
 const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.9-BROWSER',unit:'mm',objects:[
   {id:'PIPES',name:'Pipes',type:'BRANCH',children:[pipe('PIPE-A',[0,0,0],[1000,0,0]),pipe('PIPE-B',[1000,0,0],[2000,0,0])]},
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
-const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const NAVIGATION=['Home','Workspace','Load Calc','PCF','Sketcher','3D Calc','Pipe Solver','Reports','QA','Settings','Debug'];
 const REQUEST_TOPICS=['modelLoad:rebuildRequested','supportLoadScreening:runRequested','applicationView:changeRequested'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
@@ -17,21 +18,21 @@ test.beforeEach(async({page})=>{await page.addInitScript(()=>{
 
 test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({page})=>{
   await page.goto('/');await installEventAudit(page);
-  const nav=page.locator('[data-role="application-navigation"]');
+  const nav=applicationNavigation(page);
   await expect(nav.getByRole('button')).toHaveText(NAVIGATION);
-  const workspace=nav.getByRole('button',{name:'Workspace'}),loadCalc=nav.getByRole('button',{name:'Load Calc'});
+  const home=navButton(nav,'Home'),workspace=navButton(nav,'Workspace'),loadCalc=navButton(nav,'Load Calc');
+  await expect(home).toHaveAttribute('aria-current','page');
+  await home.focus();await page.keyboard.press('ArrowRight');await expect(workspace).toBeFocused();
+  await workspace.click();await expect(workspace).toHaveAttribute('aria-current','page');
   await expect(loadCalc).toHaveAttribute('aria-disabled','true');
   expect(await loadCalc.evaluate((element)=>element.disabled)).toBe(false);
   const reasonId=await loadCalc.getAttribute('aria-describedby');
   await expect(page.locator(`#${reasonId}`)).toContainText('Required contract');
-  await page.keyboard.press('Tab');await expect(workspace).toBeFocused();
-  await workspace.focus();await page.keyboard.press('ArrowRight');await expect(nav.getByRole('button',{name:'Reports'})).toBeFocused();
-  await page.keyboard.press('ArrowRight');await expect(loadCalc).toBeFocused();
-  await page.keyboard.press('Space');
+  await loadCalc.focus();await page.keyboard.press('Space');
   expect((await eventCounts(page)).viewFailures).toBe(1);
-  await page.keyboard.press('End');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
-  await page.keyboard.press('Home');await expect(workspace).toBeFocused();
-  await page.keyboard.press('ArrowLeft');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
+  await page.keyboard.press('End');await expect(navButton(nav,'Debug')).toBeFocused();
+  await page.keyboard.press('Home');await expect(home).toBeFocused();
+  await page.keyboard.press('ArrowLeft');await expect(navButton(nav,'Debug')).toBeFocused();
 
   await uploadJson(page,'w10.9-browser.json',STAGED_PACKAGE);
   await page.locator('[data-entity-id="PIPE-A"]').click();
@@ -50,7 +51,7 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
   expect(await page.evaluate(()=>AnalysisWorkspace.getLoadCalculationReviewModel().schema)).toBe('load-calculation-review-model/v1');
   expect(await page.evaluate(()=>AnalysisWorkspace.listWorkspaceConsumers().find((row)=>row.consumerId==='LOAD_CALC').implementationStatus)).toBe('IMPLEMENTED');
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerReadiness('LOAD_CALC').readinessState)).toBe('AVAILABLE');
-  expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v2');
+  expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().schema)).toBe('application-view-state/v6');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 
   await page.getByRole('button',{name:'Rebuild Model Loads'}).click();
@@ -72,6 +73,7 @@ test('adopts exact W10.4 evidence and delegates optional W10.5 actions',async({p
 
 test('preserves Workspace, W10.5-W10.7 and Reports state across views',async({page})=>{
   await page.goto('/');await installEventAudit(page);await uploadJson(page,'w10.9-preserve.json',STAGED_PACKAGE);
+  const nav=applicationNavigation(page);
   await page.locator('[data-entity-id="PIPE-A"]').click();
   await page.getByRole('button',{name:'Run Tributary Screening'}).click();
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getSupportLoadScreening()?.semanticHash||null)).not.toBeNull();
@@ -82,11 +84,11 @@ test('preserves Workspace, W10.5-W10.7 and Reports state across views',async({pa
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getActiveModelCalculationPackage()?.semanticHash||null)).not.toBeNull();
   const before=await preservedState(page),actions=await eventCounts(page);
 
-  await page.getByRole('button',{name:'Load Calc'}).click();
+  await navButton(nav,'Load Calc').click();
   await expect(page.locator('[data-role="load-calc-consumer"]')).toContainText('Topology-local tributary screening');
-  await page.getByRole('button',{name:'Reports'}).click();
+  await navButton(nav,'Reports').click();
   await expect(page.locator('[data-role="reports-consumer"]')).toContainText('SCREENING_AND_VERTICAL_BEAM');
-  await page.getByRole('button',{name:'Workspace'}).click();
+  await navButton(nav,'Workspace').click();
   expect(await preservedState(page)).toEqual(before);
   const after=await eventCounts(page);
   expect(after.modelLoadRebuilds).toBe(actions.modelLoadRebuilds);
@@ -98,16 +100,18 @@ test('preserves Workspace, W10.5-W10.7 and Reports state across views',async({pa
 test('same-ID replacement, clear and teardown remove stale Load Calc state',async({page})=>{
   let downloads=0;page.on('download',()=>{downloads+=1;});
   await page.goto('/');await uploadJson(page,'w10.9-first.json',STAGED_PACKAGE);
+  const nav=applicationNavigation(page);
+  const loadCalc=navButton(nav,'Load Calc'),workspace=navButton(nav,'Workspace');
   const datasetId=await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId);
-  await page.getByRole('button',{name:'Load Calc'}).click();
+  await loadCalc.click();
   await uploadJson(page,'w10.9-replacement.json',STAGED_PACKAGE);
   await expect.poll(()=>page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
   expect(await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId)).toBe(datasetId);
-  await expect(page.getByRole('button',{name:'Load Calc'})).toHaveAttribute('aria-disabled','false');
-  await page.getByRole('button',{name:'Load Calc'}).click();await page.getByRole('button',{name:'Workspace'}).click();
+  await expect(loadCalc).toHaveAttribute('aria-disabled','false');
+  await loadCalc.click();await workspace.click();
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   expect(await page.evaluate(()=>AnalysisWorkspace.getLoadCalculationReviewModel())).toBeNull();
-  await expect(page.getByRole('button',{name:'Load Calc'})).toHaveAttribute('aria-disabled','true');
+  await expect(loadCalc).toHaveAttribute('aria-disabled','true');
   const listenerCounts=await page.evaluate((topics)=>Object.fromEntries(topics.map((topic)=>[topic,EventBus.listenerCount(topic)])),REQUEST_TOPICS);
   await page.evaluate(()=>AnalysisWorkspace.destroy());await expect(page.locator('#root')).toBeEmpty();
   const afterDestroy=await page.evaluate((topics)=>Object.fromEntries(topics.map((topic)=>[topic,EventBus.listenerCount(topic)])),REQUEST_TOPICS);
@@ -122,6 +126,8 @@ test('same-ID replacement, clear and teardown remove stale Load Calc state',asyn
   expect(await page.evaluate(()=>globalThis.__w109UrlAudit)).toEqual({created:0,revoked:0});
 });
 
+function applicationNavigation(page){return page.getByRole('navigation',{name:'Application views'});}
+function navButton(nav,name){return nav.getByRole('button',{name,exact:true});}
 async function installEventAudit(page){await page.evaluate(()=>{
   globalThis.__w109Events={viewFailures:0,viewChanges:0,modelLoadRebuilds:0,modelLoadExports:0,pathRebuilds:0,screeningRuns:0,screeningExports:0,beamSolves:0,packageCreates:0};
   const count=(key)=>()=>{globalThis.__w109Events[key]+=1;};

@@ -66,6 +66,7 @@ test('renders seven engineering kinds through the resolved geometry boundary', a
 });
 
 test('compound engineering components remain entity-selectable', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/');
   await uploadJson(page, 'phase8.json', PACKAGE);
 

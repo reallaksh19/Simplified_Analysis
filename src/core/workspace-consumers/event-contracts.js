@@ -1,9 +1,6 @@
 import {
-  APPLICATION_VIEW_IDS_V5,
-  CONSUMER_IDS,
-  createWorkspaceConsumerRegistry,
-  validateApplicationViewStateAny,
-  validateWorkspaceConsumerContext,
+  APPLICATION_VIEW_IDS_V6, CONSUMER_IDS, createWorkspaceConsumerRegistry,
+  validateApplicationViewStateAny, validateWorkspaceConsumerContext,
   validateWorkspaceConsumerReadiness,
 } from './index.js';
 
@@ -15,23 +12,20 @@ export function validateApplicationViewChangeRequested(payload) {
   if (!CONSUMER_ID_SET.has(payload.viewId)) throw new TypeError('applicationView:changeRequested payload.viewId is invalid.');
   if (!REQUEST_SOURCES.has(payload.source)) throw new TypeError('applicationView:changeRequested payload.source is invalid.');
 }
-
 export function validateApplicationViewChanged(payload) {
   assertExactRecord(payload, ['previousViewId', 'reason', 'state'], 'applicationView:changed');
-  if (!APPLICATION_VIEW_IDS_V5.includes(payload.previousViewId)) throw new TypeError('applicationView:changed payload.previousViewId is invalid.');
+  if (!APPLICATION_VIEW_IDS_V6.includes(payload.previousViewId)) throw new TypeError('applicationView:changed payload.previousViewId is invalid.');
   assertNonEmpty(payload.reason, 'applicationView:changed payload.reason');
   const validation = validateApplicationViewStateAny(payload.state);
   if (!validation.ok) throw new TypeError(`applicationView:changed payload.state is invalid: ${validation.errors.join(' ')}`);
 }
-
 export function validateApplicationViewChangeFailed(payload) {
   assertExactRecord(payload, ['activeViewId', 'code', 'message', 'viewId'], 'applicationView:changeFailed');
   if (!CONSUMER_ID_SET.has(payload.viewId)) throw new TypeError('applicationView:changeFailed payload.viewId is invalid.');
-  if (!APPLICATION_VIEW_IDS_V5.includes(payload.activeViewId)) throw new TypeError('applicationView:changeFailed payload.activeViewId is invalid.');
+  if (!APPLICATION_VIEW_IDS_V6.includes(payload.activeViewId)) throw new TypeError('applicationView:changeFailed payload.activeViewId is invalid.');
   assertNonEmpty(payload.code, 'applicationView:changeFailed payload.code');
   assertNonEmpty(payload.message, 'applicationView:changeFailed payload.message');
 }
-
 export function validateWorkspaceConsumerContextChanged(payload) {
   assertExactRecord(payload, ['context', 'readiness', 'reason'], 'workspaceConsumerContext:changed');
   const contextValidation = validateWorkspaceConsumerContext(payload.context);
@@ -47,14 +41,8 @@ export function validateWorkspaceConsumerContextChanged(payload) {
   });
   assertNonEmpty(payload.reason, 'workspaceConsumerContext:changed payload.reason');
 }
-
 function assertExactRecord(value, keys, topic) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${topic} payload must be an object.`);
-  const actual = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new TypeError(`${topic} payload fields are invalid.`);
+  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...keys].sort())) throw new TypeError(`${topic} payload fields are invalid.`);
 }
-
-function assertNonEmpty(value, label) {
-  if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} must be a non-empty string.`);
-}
+function assertNonEmpty(value, label) { if (typeof value !== 'string' || !value.trim()) throw new TypeError(`${label} must be a non-empty string.`); }
