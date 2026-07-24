@@ -19,7 +19,7 @@ changed.filter((file)=>/\.(?:js|mjs)$/.test(file)).forEach(validateJavaScript);
 assert.ok(!changed.some((file)=>file.includes('w10.11') || /application-shell|workspace-consumers|view-state|registry/.test(file)), 'LFEA-002 must not modify W10.11 or application-shell authority.');
 requireTokens('src/core/element-fea/constants.js',['fea-continuum-result/v2','Q4_GAUSS_2X2_FULL_V1','Q4_CCW_N1_NEG_NEG_N2_POS_NEG_N3_POS_POS_N4_NEG_POS_V1']);
 requireTokens('src/core/element-fea/q4-element.js',['EDGE_GAUSS_POINTS','recoverQ4Result','equivalentQ4EdgeLoad']);
-requireTokens('.github/workflows/lfea-002-certification.yml',['node scripts/lfea-001-check.mjs','node scripts/lfea-002-check.mjs']);
+requireTokens('.github/workflows/lfea-002-certification.yml',['node scripts/lfea-001-contract-check.mjs','node scripts/lfea-001-numerical-check.mjs','node scripts/lfea-001-failure-check.mjs','node scripts/lfea-001-determinism-check.mjs','node scripts/lfea-002-check.mjs']);
 if (errors.length) { errors.forEach((error)=>console.error(` - ${error}`)); process.exit(1); }
 console.log(`LFEA-002 source guard passed for ${changed.length} changed file(s).`);
 function validateJavaScript(file) {
