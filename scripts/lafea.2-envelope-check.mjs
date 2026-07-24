@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { calculateLocalAttachmentScreening } from '../src/core/local-attachment-screening/index.js';
+import { screeningRequestFixture } from './lafea.2-fixtures.mjs';
+let request=screeningRequestFixture(),result=calculateLocalAttachmentScreening(request);
+for(const envelope of result.envelopes){const source=result.pointStressStates.find((row)=>row.screeningCaseId===envelope.screeningCaseId&&row.evaluationLocationId===envelope.evaluationLocationId);const field=envelope.quantity==='vonMisesMaximum'?'vonMises':envelope.quantity.startsWith('principal')?envelope.quantity:envelope.quantity.replace(/Maximum$|Minimum$/,'');assert.equal(envelope.value,source.stressTensor[field]);assert.deepEqual(envelope.sourceLoadCaseTerms,source.sourceLoadCaseTerms);}
+const tied=screeningRequestFixture((raw)=>{raw.screeningCases=[{screeningCaseId:'B',mechanicalTerms:[],pressureDefinitionId:'P-OPEN',pressureFactor:0,sourceReference:'B'},{screeningCaseId:'A',mechanicalTerms:[],pressureDefinitionId:'P-OPEN',pressureFactor:0,sourceReference:'A'}];raw.evaluationLocations=[{...raw.evaluationLocations[0],evaluationLocationId:'Z'},{...raw.evaluationLocations[0],evaluationLocationId:'A'}];});result=calculateLocalAttachmentScreening(tied);assert.ok(result.envelopes.every((row)=>row.screeningCaseId==='A'&&row.evaluationLocationId==='A'));
+assert.throws(()=>screeningRequestFixture((raw)=>raw.screeningCases.push({...raw.screeningCases[0]})),/Duplicate screeningCaseId/);
+assert.throws(()=>screeningRequestFixture((raw)=>raw.evaluationLocations.push({...raw.evaluationLocations[0]})),/Duplicate evaluationLocationId/);
+assert.throws(()=>screeningRequestFixture((raw)=>raw.screeningCases[0].mechanicalTerms.push({...raw.screeningCases[0].mechanicalTerms[0]})),/Duplicate loadCaseId/);
+console.log('LAFEA.2 deterministic envelopes, provenance, ties and duplicate rejection passed.');
