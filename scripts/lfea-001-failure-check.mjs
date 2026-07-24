@@ -64,6 +64,8 @@ const duplicateConstraint = handCheckModel(); duplicateConstraint.prescribedDisp
 const crossConstraintIdentity = partiallyPrescribedModel(); crossConstraintIdentity.prescribedDisplacements[0].constraintId = crossConstraintIdentity.restraints[0].constraintId; rejected(crossConstraintIdentity);
 const contradictoryDof = partiallyPrescribedModel(); contradictoryDof.prescribedDisplacements.push(prescribed('P2', 'N2', 'UX', 0.02)); rejected(contradictoryDof);
 const fixedAndPrescribed = partiallyPrescribedModel(); fixedAndPrescribed.restraints.push(restraint('R4', 'N2', 'UX')); rejected(fixedAndPrescribed);
+const nonzeroRestraint = partiallyPrescribedModel(); nonzeroRestraint.restraints[0].value = 1; rejected(nonzeroRestraint);
+const signedAreaMismatch = handCheckModel(); signedAreaMismatch.elements[0].signedArea = 1; rejected(signedAreaMismatch);
 
 const nonfiniteCoordinate = handCheckModel(); nonfiniteCoordinate.nodes[0].x = Number.NaN; rejected(nonfiniteCoordinate);
 const numericString = handCheckModel(); numericString.nodes[0].x = '0'; rejected(numericString);
