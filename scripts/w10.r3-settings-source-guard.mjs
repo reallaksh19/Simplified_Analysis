@@ -15,6 +15,7 @@ const allowed = [
   /^src\/workspace\/(?:application-shell-controller|bootstrap|event-topics|model-calculation-controller|settings-controller|settings-persistence-adapter|settings-view|workspace-layout)\.js$/,
   /^scripts\/w10\.r3-[^/]+\.mjs$/,
   /^scripts\/w10\.r2-pcf-intake-source-guard\.mjs$/,
+  /^scripts\/lafea\.2-source-guard\.mjs$/,
   /^e2e\/w10\.r3-[^/]+\.spec\.js$/,
   /^e2e\/w10\.(?:8-workspace-consumers|9-load-calc-consumer|10-three-d-calc-consumer|11-pipe-solver-consumer)\.spec\.js$/,
   /^docs\/main-tab-recovery\/W10\.R3_SETTINGS_AUTHORITY\.md$/,
