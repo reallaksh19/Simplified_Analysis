@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { solveContinuumModel } from '../src/core/element-fea/index.js';
+import { solveContinuumModel, validateContinuumResult } from '../src/core/element-fea/index.js';
 import { baseModel, fixedLoadedModel, prescribedFieldModel, squarePatch } from './lfea-001-fixtures.mjs';
 
 const close = (actual, expected, tolerance = 1e-10) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
@@ -9,6 +9,10 @@ const hand = qualified(baseModel());
 assert.deepEqual(hand.elementStrains[0].values, [0.01,0.02,0]);
 close(hand.elementStresses[0].values[0],1.6); close(hand.elementStresses[0].values[1],2.4);
 close(hand.elementInternalForces[0].values[2],0.8); close(hand.strainEnergy,0.016);
+assert.equal(hand.modelSemanticHash,hand.modelEvidence.semanticHash);
+assert.equal(validateContinuumResult(hand).ok,true);
+const tampered=JSON.parse(JSON.stringify(hand)); tampered.strainEnergy=99;
+assert.equal(validateContinuumResult(tampered).ok,false);
 
 const patch = qualified(squarePatch((x,y)=>[0.1+0.02*x+0.03*y,-0.2+0.04*x+0.05*y]));
 patch.elementStrains.forEach((row)=>{ close(row.values[0],0.02); close(row.values[1],0.05); close(row.values[2],0.07); });
