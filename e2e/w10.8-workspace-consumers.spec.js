@@ -5,7 +5,8 @@ const STAGED_PACKAGE={schema:'inputxml-managed-stage/v1',packageHash:'W10.8-BROW
   {id:'PIPES',name:'Pipes',type:'BRANCH',children:[pipe('PIPE-A',[0,0,0],[1000,0,0]),pipe('PIPE-B',[1000,0,0],[2000,0,0])]},
   {id:'SUPPORTS',name:'Supports',type:'GROUP',children:[support('SUP-START',[0,0,0],'PIPE-A:port:start'),support('SUP-END',[2000,0,0],'PIPE-B:port:end')]},
 ]};
-const NAVIGATION=['Workspace','Reports','Load Calc','3D Calc','Pipe Solver','QA','Debug'];
+const NAVIGATION=['Home','Workspace','Load Calc','PCF','Sketcher','3D Calc','Pipe Solver','Reports','QA','Settings','Debug'];
+const UNAVAILABLE=['Load Calc','Sketcher','3D Calc','Pipe Solver','Reports','QA','Settings','Debug'];
 
 test.beforeEach(async({page})=>{await page.addInitScript(()=>{
   globalThis.__WORKSPACE_VIEWPORT_BACKEND__='canvas2d';globalThis.__w108UrlAudit={created:0,revoked:0};
@@ -19,24 +20,27 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
   await page.goto('/');await installEventAudit(page);
   const nav=page.locator('[data-role="application-navigation"]');
   await expect(nav.getByRole('button')).toHaveText(NAVIGATION);
-  const workspace=nav.getByRole('button',{name:'Workspace'}),reportsButton=nav.getByRole('button',{name:'Reports'});
-  await expect(workspace).toHaveAttribute('aria-current','page');
-  await page.keyboard.press('Tab');await expect(workspace).toBeFocused();
-  for(const label of NAVIGATION.slice(1)){
-    const button=nav.getByRole('button',{name:label});
+  const home=nav.getByRole('button',{name:'Home',exact:true});
+  const workspace=nav.getByRole('button',{name:'Workspace',exact:true});
+  const reportsButton=nav.getByRole('button',{name:'Reports',exact:true});
+  await expect(home).toHaveAttribute('aria-current','page');
+  await home.focus();await page.keyboard.press('ArrowRight');await expect(workspace).toBeFocused();
+  await workspace.click();await expect(workspace).toHaveAttribute('aria-current','page');
+  for(const label of UNAVAILABLE){
+    const button=nav.getByRole('button',{name:label,exact:true});
     expect(await button.evaluate((element)=>element.disabled)).toBe(false);
     await expect(button).toHaveAttribute('aria-disabled','true');
     const describedBy=await button.getAttribute('aria-describedby');
     await expect(page.locator(`#${describedBy}`)).not.toHaveText('');
   }
+  await expect(nav.getByRole('button',{name:'PCF',exact:true})).toHaveAttribute('aria-disabled','false');
   const initialState=await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState());
-  await workspace.focus();await page.keyboard.press('ArrowRight');await expect(reportsButton).toBeFocused();
-  await page.keyboard.press('Space');
+  await reportsButton.focus();await page.keyboard.press('Space');
   expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState())).toEqual(initialState);
-  await page.keyboard.press('End');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
-  await page.keyboard.press('Home');await expect(workspace).toBeFocused();
-  await page.keyboard.press('ArrowLeft');await expect(nav.getByRole('button',{name:'Debug'})).toBeFocused();
-  await nav.getByRole('button',{name:'Load Calc'}).focus();await page.keyboard.press('Enter');
+  await page.keyboard.press('End');await expect(nav.getByRole('button',{name:'Debug',exact:true})).toBeFocused();
+  await page.keyboard.press('Home');await expect(home).toBeFocused();
+  await page.keyboard.press('ArrowLeft');await expect(nav.getByRole('button',{name:'Debug',exact:true})).toBeFocused();
+  await nav.getByRole('button',{name:'Load Calc',exact:true}).focus();await page.keyboard.press('Enter');
   expect((await eventCounts(page)).viewFailures).toBe(2);
   expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState())).toEqual(initialState);
   await page.evaluate(()=>AnalysisWorkspace.activateApplicationView('PIPE_SOLVER'));
@@ -53,8 +57,7 @@ test('adopts archived W10.7 evidence with accessible deterministic navigation',a
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerReadiness('REPORTS').readinessState)).toBe('AVAILABLE');
   const before=await preservedState(page),calculationBaseline=await calculationCounts(page);
 
-  await workspace.focus();await page.keyboard.press('ArrowRight');await expect(reportsButton).toBeFocused();
-  await page.keyboard.press('Enter');
+  await reportsButton.click();
   await expect(page.locator('[data-application-view="REPORTS"]')).toBeVisible();
   await expect(page.locator('[data-panel="tree"]')).toBeAttached();
   const reports=page.locator('[data-role="reports-consumer"]');
@@ -100,17 +103,17 @@ test('same-ID replacement, clear and teardown remove stale consumer state',async
   let downloadCount=0;page.on('download',()=>{downloadCount+=1;});
   await page.goto('/');await installEventAudit(page);
   await uploadJson(page,'w10.8-first.json',STAGED_PACKAGE);await prepareCalculations(page);await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
-  await page.getByRole('button',{name:'Reports'}).click();
+  await page.getByRole('button',{name:'Reports',exact:true}).click();
   const initialDatasetId=await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId);
   await uploadJson(page,'w10.8-replacement.json',STAGED_PACKAGE);
-  await expect(page.getByRole('button',{name:'Reports'})).toHaveAttribute('aria-disabled','true');
+  await expect(page.getByRole('button',{name:'Reports',exact:true})).toHaveAttribute('aria-disabled','true');
   expect(await page.evaluate(()=>AnalysisWorkspace.getSnapshot().dataset.datasetId)).toBe(initialDatasetId);
   expect(await page.evaluate(()=>AnalysisWorkspace.getApplicationViewState().activeViewId)).toBe('WORKSPACE');
   expect(await page.evaluate(()=>AnalysisWorkspace.getModelCalculationLedger().entries.length)).toBe(0);
   expect(await page.evaluate(()=>AnalysisWorkspace.getActiveModelCalculationReport())).toBeNull();
   expect(downloadCount).toBe(0);
   await prepareCalculations(page);await createPackage(page,'SCREENING_AND_VERTICAL_BEAM');
-  await page.getByRole('button',{name:'Reports'}).click();await page.getByRole('button',{name:'Workspace'}).click();
+  await page.getByRole('button',{name:'Reports',exact:true}).click();await page.getByRole('button',{name:'Workspace',exact:true}).click();
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   expect(await page.evaluate(()=>AnalysisWorkspace.getSnapshot().status)).toBe('empty');
   expect(await page.evaluate(()=>AnalysisWorkspace.getWorkspaceConsumerContext().datasetId)).toBeNull();
