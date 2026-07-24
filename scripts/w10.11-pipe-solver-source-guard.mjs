@@ -15,7 +15,7 @@ const ALLOWED = Object.freeze([
   /^src\/workspace\/element-fea-consumer-[^/]+\.js$/,
   /^scripts\/lfea-001-[^/]+\.mjs$/,
   /^e2e\/lfea-001-[^/]+\.spec\.js$/,
-  /^e2e\/w10\.8-workspace-consumers\.spec\.js$/,
+  /^e2e\/w10\.(?:8-workspace-consumers|9-load-calc-consumer|10-three-d-calc-consumer)\.spec\.js$/,
   /^docs\/element-fea\//,
   /^scripts\/full-check\.mjs$/,
   /^src\/core\/workspace-consumers\/(?:constants|registry|readiness|view-state|event-contracts|index)\.js$/,
