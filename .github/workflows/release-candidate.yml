@@ -157,7 +157,7 @@ jobs:
         run: node scripts/w10.6-vertical-beam-source-guard.mjs aliases
       - run: npm run check:full
       - name: Run QA static checks
-        run: npm run check:qa -- --skip-e2e
+        run: npm run check:qa -- --skip-e2e 2>&1 | tee rc-qa-static.log
       - name: Certify W10.7 Workspace capability
         run: npm run check:w10.7:browser
       - name: Certify W10.8 application shell and Reports consumer
@@ -178,6 +178,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            rc-qa-static.log
           if-no-files-found: ignore
           retention-days: 7
       - run: npm run check:u3
