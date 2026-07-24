@@ -10,7 +10,7 @@ export function buildCsrMatrix(size, contributions, limits, symmetryTolerance) {
   const capacityEvidence = qualifyCapacity(size, predictedNonzeros, predictedStorageBytes, limits);
   const pattern = allocatePattern(rows, predictedNonzeros);
   const values = assembleValues(pattern, orderedContributions(contributions));
-  const compact = compactZeroEntries(pattern.rowPointers, pattern.columnIndices, values);
+  const compact = compactZeroEntries(pattern.rowPointers, pattern.columnIndices, values, symmetryTolerance);
   const evidence = createCsrEvidence(size, compact, symmetryTolerance, capacityEvidence);
   return Object.freeze({ storageIdentity: CSR_STORAGE_ID, rowCount: size, columnCount: size, ...compact, evidence, capacityEvidence });
 }
@@ -82,18 +82,28 @@ function assembleValues(pattern, contributions) {
   return values;
 }
 
-function compactZeroEntries(rowPointers, columnIndices, values) {
-  const compactRows = []; const compactColumns = []; const compactValues = [];
+function compactZeroEntries(rowPointers, columnIndices, values, tolerance) {
+  const pattern = { rowPointers, columnIndices }; const compactRows = []; const compactColumns = []; const compactValues = [];
   for (let row = 0; row < rowPointers.length - 1; row += 1) {
     compactRows.push(compactColumns.length);
     for (let index = rowPointers[row]; index < rowPointers[row + 1]; index += 1) {
       const value = values[index]; const column = columnIndices[index];
       if (!Number.isFinite(value)) throw new TypeError('Assembled CSR coefficient is non-finite.');
-      if (value !== 0 || column === row) { compactColumns.push(column); compactValues.push(value); }
+      if (column !== row && removableSymmetricPair(pattern, values, row, column, value, tolerance)) continue;
+      if (column !== row && value === 0) throw new TypeError(`CSR off-diagonal (${row},${column}) cannot retain an explicit zero.`);
+      compactColumns.push(column); compactValues.push(value);
     }
   }
   compactRows.push(compactColumns.length);
   return { rowPointers: Int32Array.from(compactRows), columnIndices: Int32Array.from(compactColumns), values: Float64Array.from(compactValues) };
+}
+
+function removableSymmetricPair(pattern, values, row, column, value, tolerance) {
+  const paired = binarySearch(pattern.columnIndices, pattern.rowPointers[column], pattern.rowPointers[column + 1], row);
+  if (paired < 0) throw new TypeError(`CSR transpose pattern is missing for (${row},${column}).`);
+  const pairedValue = values[paired];
+  if (!Number.isFinite(pairedValue)) throw new TypeError('Assembled CSR transpose coefficient is non-finite.');
+  return Math.max(Math.abs(value), Math.abs(pairedValue)) <= tolerance;
 }
 
 function createCsrEvidence(size, matrix, tolerance, capacityEvidence, columnCount = size) {
